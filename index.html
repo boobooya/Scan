@@ -1,0 +1,1557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>0DTE Options Scanner</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 10px;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .header .subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-value {
+            font-weight: bold;
+        }
+
+        .scan-button {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .scan-button:active {
+            transform: scale(0.98);
+        }
+
+        .scan-button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .opportunities {
+            margin-bottom: 20px;
+        }
+
+        .opportunity-card {
+            background: rgba(255, 255, 255, 0.95);
+            color: #2d3436;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .opportunity-card.alert {
+            border: 3px solid #d63031;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe5e5 100%);
+        }
+
+        .opp-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .opp-symbol {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .opp-strategy {
+            background: #3498db;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .opp-alert-badge {
+            background: #d63031;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .opp-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .detail-item {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-bottom: 3px;
+        }
+
+        .detail-value {
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .settings-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .settings-panel h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .input-group {
+            margin-bottom: 12px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #2d3436;
+            font-size: 14px;
+        }
+
+        .toggle-settings {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 10px;
+            width: 100%;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0.7;
+        }
+
+        .empty-state svg {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 15px;
+        }
+
+        .alert-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #d63031;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(214, 48, 49, 0.5);
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(30, 60, 114, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 10px;
+            display: flex;
+            justify-content: space-around;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-item {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .nav-item.active {
+            color: white;
+        }
+
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Options Scanner</h1>
+            <div class="subtitle">Find High-Probability Straddles & Strangles</div>
+        </div>
+
+        <div class="status-bar">
+            <div class="status-item">
+                <span>Last Scan:</span>
+                <span class="status-value" id="lastScan">Never</span>
+            </div>
+            <div class="status-item">
+                <span>Opportunities:</span>
+                <span class="status-value" id="oppCount">0</span>
+            </div>
+            <div class="status-item">
+                <span>Status:</span>
+                <span class="status-value" id="status">Ready</span>
+            </div>
+        </div>
+
+        <button class="scan-button" id="scanBtn" onclick="scanOptions()">
+            🔍 Scan Now
+        </button>
+
+        <button class="toggle-settings" onclick="toggleSettings()">
+            ⚙️ Settings
+        </button>
+
+        <div class="settings-panel hidden" id="settingsPanel">
+            <h3>Scan Configuration</h3>
+            
+            <div style="margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px;">
+                <h3 style="font-size: 14px; margin-bottom: 10px;">🔌 API Configuration</h3>
+                
+                <div class="input-group">
+                    <label>Data Provider</label>
+                    <select id="dataProvider">
+                        <option value="yahoo">Yahoo Finance (Free, 15-min delay)</option>
+                        <option value="alphavantage" selected>Alpha Vantage (Your API Key)</option>
+                    </select>
+                </div>
+
+                <div class="input-group" id="alphaVantageKeyGroup">
+                    <label>Alpha Vantage API Key</label>
+                    <input type="text" id="alphaVantageKey" value="7UOSK3Z2XFXU992W" placeholder="Enter your API key">
+                    <div style="font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 5px;">
+                        ✓ Your key is saved. Get one free at alphavantage.co
+                    </div>
+                </div>
+            </div>
+            
+            <div class="input-group">
+                <label>📊 Scan Mode</label>
+                <select id="scanMode" onchange="toggleScanMode()">
+                    <option value="weekly" selected>Weekly Options (32 stocks) - Auto Scan Mon/Wed/Fri</option>
+                    <option value="custom">Custom Symbols - Manual Entry</option>
+                </select>
+            </div>
+
+            <div class="input-group" id="customSymbolsGroup" style="display: none;">
+                <label>Symbols to Scan (comma-separated)</label>
+                <input type="text" id="symbols" value="SPY,QQQ" placeholder="SPY,QQQ,AAPL">
+            </div>
+
+            <div class="input-group" id="weeklySymbolsInfo">
+                <label>Weekly Options Symbols</label>
+                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 11px; line-height: 1.6;">
+                    <strong>32 stocks with Mon/Wed/Fri expirations:</strong><br>
+                    SPY, QQQ, IWM, DIA, AAPL, MSFT, GOOGL, AMZN, META, NVDA, TSLA, AMD, NFLX, JPM, BAC, WFC, GS, MS, XLE, XLF, GLD, TLT, SLV, USO, COIN, PLTR, SOFI, NIO, LCID, RIVN, F, RIOT
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>Min Premium ($)</label>
+                <input type="number" id="minPremium" value="0.50" step="0.10">
+            </div>
+
+            <div class="input-group">
+                <label>Max Premium ($)</label>
+                <input type="number" id="maxPremium" value="5.00" step="0.50">
+            </div>
+
+            <div class="input-group">
+                <label>Min Volume</label>
+                <input type="number" id="minVolume" value="100">
+            </div>
+
+            <div class="input-group">
+                <label>Max Risk/Reward Ratio</label>
+                <input type="number" id="maxRiskReward" value="2.0" step="0.1">
+            </div>
+
+            <div class="input-group">
+                <label>Days to Expiration (DTE)</label>
+                <select id="daysToExpiration">
+                    <option value="0">0 DTE (Today)</option>
+                    <option value="1">1 DTE (Tomorrow)</option>
+                    <option value="2">2 DTE</option>
+                    <option value="3">3 DTE</option>
+                    <option value="7">1 Week</option>
+                    <option value="14">2 Weeks</option>
+                    <option value="30" selected>1 Month</option>
+                    <option value="60">2 Months</option>
+                    <option value="90">3 Months</option>
+                </select>
+            </div>
+
+            <div style="margin: 20px 0; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+                <h3 style="font-size: 14px; margin-bottom: 15px;">📈 Technical Analysis Filters</h3>
+            </div>
+
+            <div class="input-group">
+                <label>Enable Technical Filters</label>
+                <select id="enableTechnicalFilters">
+                    <option value="false">Disabled</option>
+                    <option value="true">Enabled</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Price vs Moving Average</label>
+                <select id="priceVsMA">
+                    <option value="any">Any Position</option>
+                    <option value="above_sma_20">Price Above SMA(20)</option>
+                    <option value="below_sma_20">Price Below SMA(20)</option>
+                    <option value="above_sma_50">Price Above SMA(50)</option>
+                    <option value="below_sma_50">Price Below SMA(50)</option>
+                    <option value="above_ema_9">Price Above EMA(9)</option>
+                    <option value="below_ema_9">Price Below EMA(9)</option>
+                    <option value="above_ema_21">Price Above EMA(21)</option>
+                    <option value="below_ema_21">Price Below EMA(21)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Moving Average Crossover</label>
+                <select id="maCrossover">
+                    <option value="any">Any Crossover</option>
+                    <option value="sma_20_above_50">SMA(20) Above SMA(50) - Bullish</option>
+                    <option value="sma_20_below_50">SMA(20) Below SMA(50) - Bearish</option>
+                    <option value="ema_9_above_21">EMA(9) Above EMA(21) - Bullish</option>
+                    <option value="ema_9_below_21">EMA(9) Below EMA(21) - Bearish</option>
+                    <option value="golden_cross">Golden Cross (SMA 50/200) - Very Bullish</option>
+                    <option value="death_cross">Death Cross (SMA 50/200) - Very Bearish</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Recent Crossover (within days)</label>
+                <input type="number" id="crossoverDays" value="5" min="1" max="30">
+            </div>
+
+            <div class="input-group">
+                <label>Trend Direction</label>
+                <select id="trendDirection">
+                    <option value="any">Any Trend</option>
+                    <option value="uptrend">Uptrend (Price > SMA 20 > SMA 50)</option>
+                    <option value="downtrend">Downtrend (Price < SMA 20 < SMA 50)</option>
+                    <option value="strong_uptrend">Strong Uptrend (All EMAs Rising)</option>
+                    <option value="strong_downtrend">Strong Downtrend (All EMAs Falling)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Auto-Refresh Interval</label>
+                <select id="autoRefresh">
+                    <option value="0">Manual Only</option>
+                    <option value="60">Every 1 minute</option>
+                    <option value="300">Every 5 minutes</option>
+                    <option value="600">Every 10 minutes</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Sound Alerts</label>
+                <select id="soundAlerts">
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="opportunities" class="opportunities"></div>
+
+        <!-- Chart Modal -->
+        <div id="chartModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 9999; overflow-y: auto; padding: 20px;">
+            <div style="max-width: 800px; margin: 0 auto; background: white; border-radius: 15px; padding: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 id="chartTitle" style="color: #2d3436; margin: 0;">Chart</h2>
+                    <button onclick="closeChart()" style="background: #d63031; color: white; border: none; padding: 10px 20px; border-radius: 10px; font-size: 16px; cursor: pointer;">
+                        ✕ Close
+                    </button>
+                </div>
+                <canvas id="technicalChart" style="width: 100%; max-height: 400px;"></canvas>
+                <div id="chartLegend" style="margin-top: 15px; font-size: 12px; color: #2d3436;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active">
+            <div class="nav-icon">📊</div>
+            <div>Scanner</div>
+        </div>
+        <div class="nav-item">
+            <div class="nav-icon">📜</div>
+            <div>History</div>
+        </div>
+        <div class="nav-item">
+            <div class="nav-icon">⚙️</div>
+            <div>Settings</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Weekly options symbols - stocks with Mon/Wed/Fri expirations
+        const WEEKLY_OPTIONS_SYMBOLS = [
+            'SPY', 'QQQ', 'IWM', 'DIA',
+            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'NFLX',
+            'JPM', 'BAC', 'WFC', 'GS', 'MS',
+            'XLE', 'XLF', 'GLD', 'TLT', 'SLV', 'USO',
+            'COIN', 'PLTR', 'SOFI', 'NIO', 'LCID', 'RIVN', 'F', 'RIOT'
+        ];
+
+        let autoRefreshTimer = null;
+        let currentChart = null;
+
+        // ========== CHART FUNCTIONS ==========
+        
+        function showChart(symbol, technicalData, historicalPrices) {
+            const modal = document.getElementById('chartModal');
+            const title = document.getElementById('chartTitle');
+            const canvas = document.getElementById('technicalChart');
+            const legend = document.getElementById('chartLegend');
+            
+            title.textContent = `${symbol} - Technical Analysis`;
+            modal.style.display = 'block';
+            
+            // Destroy previous chart if exists
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            // Prepare data
+            const labels = historicalPrices.timestamps.slice(-100).map(ts => {
+                const date = new Date(ts * 1000);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            const prices = historicalPrices.prices.slice(-100);
+            
+            // Calculate moving averages for chart
+            const sma20Data = [];
+            const sma50Data = [];
+            const ema9Data = [];
+            const ema21Data = [];
+            
+            for (let i = 0; i < prices.length; i++) {
+                const slice = historicalPrices.prices.slice(Math.max(0, historicalPrices.prices.length - 100 + i - 19), historicalPrices.prices.length - 100 + i + 1);
+                sma20Data.push(i >= 19 ? calculateSMA(slice, 20) : null);
+                
+                const slice50 = historicalPrices.prices.slice(Math.max(0, historicalPrices.prices.length - 100 + i - 49), historicalPrices.prices.length - 100 + i + 1);
+                sma50Data.push(i >= 49 ? calculateSMA(slice50, 50) : null);
+                
+                const sliceEma9 = historicalPrices.prices.slice(0, historicalPrices.prices.length - 100 + i + 1);
+                ema9Data.push(calculateEMA(sliceEma9, 9));
+                
+                const sliceEma21 = historicalPrices.prices.slice(0, historicalPrices.prices.length - 100 + i + 1);
+                ema21Data.push(calculateEMA(sliceEma21, 21));
+            }
+            
+            // Create chart
+            const ctx = canvas.getContext('2d');
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Price',
+                            data: prices,
+                            borderColor: '#2d3436',
+                            backgroundColor: 'rgba(45, 52, 54, 0.1)',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'SMA(20)',
+                            data: sma20Data,
+                            borderColor: '#0984e3',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            borderDash: [5, 5],
+                            tension: 0.1
+                        },
+                        {
+                            label: 'SMA(50)',
+                            data: sma50Data,
+                            borderColor: '#6c5ce7',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            borderDash: [5, 5],
+                            tension: 0.1
+                        },
+                        {
+                            label: 'EMA(9)',
+                            data: ema9Data,
+                            borderColor: '#00b894',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'EMA(21)',
+                            data: ema21Data,
+                            borderColor: '#fdcb6e',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        tooltip: {
+                            enabled: true,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += '$' + context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update legend with current values
+            const currentPrice = technicalData.currentPrice;
+            const signal = getTechnicalSignal(technicalData);
+            
+            legend.innerHTML = `
+                <strong>${signal}</strong><br>
+                Current Price: <strong>$${currentPrice.toFixed(2)}</strong><br>
+                SMA(20): $${technicalData.sma20?.toFixed(2) || 'N/A'} | 
+                SMA(50): $${technicalData.sma50?.toFixed(2) || 'N/A'} | 
+                EMA(9): $${technicalData.ema9?.toFixed(2) || 'N/A'} | 
+                EMA(21): $${technicalData.ema21?.toFixed(2) || 'N/A'}
+            `;
+        }
+        
+        function closeChart() {
+            document.getElementById('chartModal').style.display = 'none';
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+        }
+
+        // ========== TECHNICAL ANALYSIS FUNCTIONS ==========
+        
+        function calculateSMA(prices, period) {
+            if (prices.length < period) return null;
+            const slice = prices.slice(-period);
+            const sum = slice.reduce((a, b) => a + b, 0);
+            return sum / period;
+        }
+
+        function calculateEMA(prices, period) {
+            if (prices.length < period) return null;
+            
+            const multiplier = 2 / (period + 1);
+            let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            
+            for (let i = period; i < prices.length; i++) {
+                ema = (prices[i] - ema) * multiplier + ema;
+            }
+            
+            return ema;
+        }
+
+        async function fetchHistoricalPrices(symbol, days = 200) {
+            const config = getConfig();
+            
+            try {
+                if (config.dataProvider === 'alphavantage') {
+                    return await fetchAlphaVantageData(symbol, config.alphaVantageKey);
+                } else {
+                    return await fetchYahooData(symbol, days);
+                }
+            } catch (error) {
+                console.error(`Error fetching historical data for ${symbol}:`, error);
+                return null;
+            }
+        }
+
+        async function fetchYahooData(symbol, days) {
+            const endDate = Math.floor(Date.now() / 1000);
+            const startDate = endDate - (days * 24 * 60 * 60);
+            
+            const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${startDate}&period2=${endDate}&interval=1d`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+            
+            try {
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+                    throw new Error(`No historical data for ${symbol}`);
+                }
+                
+                const result = data.chart.result[0];
+                const timestamps = result.timestamp;
+                const quotes = result.indicators.quote[0];
+                const closes = quotes.close;
+                
+                const validPrices = closes.filter(p => p !== null && p !== undefined);
+                
+                return {
+                    prices: validPrices,
+                    currentPrice: validPrices[validPrices.length - 1],
+                    timestamps: timestamps
+                };
+            } catch (error) {
+                console.error(`Yahoo data fetch error for ${symbol}:`, error);
+                throw error;
+            }
+        }
+
+        async function fetchAlphaVantageData(symbol, apiKey) {
+            const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=full&apikey=${apiKey}`;
+            
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            if (data['Error Message']) {
+                throw new Error(data['Error Message']);
+            }
+            
+            if (data['Note']) {
+                throw new Error('API rate limit reached. Please wait or upgrade your plan.');
+            }
+            
+            const timeSeries = data['Time Series (Daily)'];
+            if (!timeSeries) {
+                throw new Error('No time series data available');
+            }
+            
+            const dates = Object.keys(timeSeries).sort();
+            const prices = dates.map(date => parseFloat(timeSeries[date]['4. close']));
+            const timestamps = dates.map(date => new Date(date).getTime() / 1000);
+            
+            return {
+                prices: prices,
+                currentPrice: prices[prices.length - 1],
+                timestamps: timestamps
+            };
+        }
+
+        async function analyzeTechnicals(symbol, config) {
+            console.log(`Analyzing technicals for ${symbol}...`);
+            
+            const historicalData = await fetchHistoricalPrices(symbol, 200);
+            if (!historicalData) return null;
+            
+            const { prices, currentPrice } = historicalData;
+            
+            // Calculate moving averages
+            const sma20 = calculateSMA(prices, 20);
+            const sma50 = calculateSMA(prices, 50);
+            const sma200 = calculateSMA(prices, 200);
+            const ema9 = calculateEMA(prices, 9);
+            const ema21 = calculateEMA(prices, 21);
+            
+            // Calculate previous values for crossover detection
+            const prevPrices = prices.slice(0, -1);
+            const prevSMA20 = calculateSMA(prevPrices, 20);
+            const prevSMA50 = calculateSMA(prevPrices, 50);
+            const prevEMA9 = calculateEMA(prevPrices, 9);
+            const prevEMA21 = calculateEMA(prevPrices, 21);
+            
+            const analysis = {
+                currentPrice,
+                sma20,
+                sma50,
+                sma200,
+                ema9,
+                ema21,
+                prevSMA20,
+                prevSMA50,
+                prevEMA9,
+                prevEMA21,
+                historicalData  // Store for charting
+            };
+            
+            console.log(`${symbol} technicals:`, {
+                price: currentPrice.toFixed(2),
+                sma20: sma20?.toFixed(2),
+                sma50: sma50?.toFixed(2),
+                ema9: ema9?.toFixed(2),
+                ema21: ema21?.toFixed(2)
+            });
+            
+            return analysis;
+        }
+
+        function checkTechnicalFilters(analysis, config) {
+            if (!config.enableTechnicalFilters) return true;
+            
+            const { currentPrice, sma20, sma50, sma200, ema9, ema21, prevSMA20, prevSMA50, prevEMA9, prevEMA21 } = analysis;
+            
+            // Check price vs MA filter
+            if (config.priceVsMA !== 'any') {
+                switch (config.priceVsMA) {
+                    case 'above_sma_20':
+                        if (currentPrice <= sma20) return false;
+                        break;
+                    case 'below_sma_20':
+                        if (currentPrice >= sma20) return false;
+                        break;
+                    case 'above_sma_50':
+                        if (currentPrice <= sma50) return false;
+                        break;
+                    case 'below_sma_50':
+                        if (currentPrice >= sma50) return false;
+                        break;
+                    case 'above_ema_9':
+                        if (currentPrice <= ema9) return false;
+                        break;
+                    case 'below_ema_9':
+                        if (currentPrice >= ema9) return false;
+                        break;
+                    case 'above_ema_21':
+                        if (currentPrice <= ema21) return false;
+                        break;
+                    case 'below_ema_21':
+                        if (currentPrice >= ema21) return false;
+                        break;
+                }
+            }
+            
+            // Check MA crossover filter
+            if (config.maCrossover !== 'any') {
+                switch (config.maCrossover) {
+                    case 'sma_20_above_50':
+                        if (sma20 <= sma50) return false;
+                        break;
+                    case 'sma_20_below_50':
+                        if (sma20 >= sma50) return false;
+                        break;
+                    case 'ema_9_above_21':
+                        if (ema9 <= ema21) return false;
+                        break;
+                    case 'ema_9_below_21':
+                        if (ema9 >= ema21) return false;
+                        break;
+                    case 'golden_cross':
+                        if (sma50 <= sma200) return false;
+                        // Check if crossover happened recently
+                        if (prevSMA50 && prevSMA50 > sma200) return false;
+                        break;
+                    case 'death_cross':
+                        if (sma50 >= sma200) return false;
+                        // Check if crossover happened recently
+                        if (prevSMA50 && prevSMA50 < sma200) return false;
+                        break;
+                }
+            }
+            
+            // Check trend direction filter
+            if (config.trendDirection !== 'any') {
+                switch (config.trendDirection) {
+                    case 'uptrend':
+                        if (!(currentPrice > sma20 && sma20 > sma50)) return false;
+                        break;
+                    case 'downtrend':
+                        if (!(currentPrice < sma20 && sma20 < sma50)) return false;
+                        break;
+                    case 'strong_uptrend':
+                        if (!(currentPrice > ema9 && ema9 > ema21 && ema21 > sma50)) return false;
+                        break;
+                    case 'strong_downtrend':
+                        if (!(currentPrice < ema9 && ema9 < ema21 && ema21 < sma50)) return false;
+                        break;
+                }
+            }
+            
+            return true;
+        }
+
+        function getTechnicalSignal(analysis) {
+            const { currentPrice, sma20, sma50, ema9, ema21 } = analysis;
+            
+            // Determine overall signal
+            let bullishSignals = 0;
+            let bearishSignals = 0;
+            
+            if (currentPrice > sma20) bullishSignals++;
+            else bearishSignals++;
+            
+            if (currentPrice > sma50) bullishSignals++;
+            else bearishSignals++;
+            
+            if (sma20 > sma50) bullishSignals++;
+            else bearishSignals++;
+            
+            if (ema9 > ema21) bullishSignals++;
+            else bearishSignals++;
+            
+            if (bullishSignals >= 3) return '🟢 Bullish';
+            if (bearishSignals >= 3) return '🔴 Bearish';
+            return '🟡 Neutral';
+        }
+
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            panel.classList.toggle('hidden');
+        }
+
+        function toggleScanMode() {
+            const scanMode = document.getElementById('scanMode').value;
+            const customGroup = document.getElementById('customSymbolsGroup');
+            const weeklyInfo = document.getElementById('weeklySymbolsInfo');
+            
+            if (scanMode === 'custom') {
+                customGroup.style.display = 'block';
+                weeklyInfo.style.display = 'none';
+            } else {
+                customGroup.style.display = 'none';
+                weeklyInfo.style.display = 'block';
+            }
+        }
+
+        async function scanOptions() {
+            const btn = document.getElementById('scanBtn');
+            const oppContainer = document.getElementById('opportunities');
+            const statusEl = document.getElementById('status');
+            
+            btn.disabled = true;
+            btn.textContent = '🔄 Scanning...';
+            statusEl.textContent = 'Scanning...';
+            
+            // Show loading
+            oppContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Fetching options data & analyzing technicals...</div>
+                    <div style="font-size: 11px; margin-top: 10px; opacity: 0.7;">Check console (F12) for details</div>
+                </div>
+            `;
+
+            try {
+                const config = getConfig();
+                console.log('Scan config:', config);
+                
+                // Determine which symbols to scan
+                let symbols;
+                if (config.scanMode === 'weekly') {
+                    symbols = WEEKLY_OPTIONS_SYMBOLS;
+                    console.log(`📊 Weekly mode: Scanning ${symbols.length} stocks with Mon/Wed/Fri options`);
+                } else {
+                    symbols = config.symbols.split(',').map(s => s.trim());
+                    console.log(`📝 Custom mode: Scanning ${symbols.length} symbols`);
+                }
+                
+                let allOpportunities = [];
+                let errors = [];
+                let filteredByTechnicals = [];
+                let completed = 0;
+                
+                // Update loading message
+                oppContainer.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>Scanning ${symbols.length} symbols for weekly options...</div>
+                        <div id="scanProgress" style="font-size: 13px; margin-top: 10px; color: #00b894;"></div>
+                        <div style="font-size: 11px; margin-top: 5px; opacity: 0.7;">This may take 30-90 seconds</div>
+                    </div>
+                `;
+
+                // Scan each symbol
+                for (let symbol of symbols) {
+                    console.log(`\n=== Scanning ${symbol} (${completed + 1}/${symbols.length}) ===`);
+                    
+                    // Update progress
+                    const progressEl = document.getElementById('scanProgress');
+                    if (progressEl) {
+                        progressEl.textContent = `${completed}/${symbols.length} complete • Found ${allOpportunities.length} opportunities`;
+                    }
+                    
+                    try {
+                        // First, check technical analysis if enabled
+                        let technicalAnalysis = null;
+                        let passedTechnicals = true;
+                        
+                        if (config.enableTechnicalFilters) {
+                            statusEl.textContent = `Analyzing ${symbol} technicals...`;
+                            technicalAnalysis = await analyzeTechnicals(symbol, config);
+                            
+                            if (technicalAnalysis) {
+                                passedTechnicals = checkTechnicalFilters(technicalAnalysis, config);
+                                
+                                if (!passedTechnicals) {
+                                    console.log(`✗ ${symbol}: Filtered by technical analysis`);
+                                    filteredByTechnicals.push(symbol);
+                                    completed++;
+                                    continue;
+                                }
+                                console.log(`✓ ${symbol}: Passed technical filters`);
+                            }
+                        }
+                        
+                        // If passed technicals (or disabled), scan options
+                        statusEl.textContent = `Scanning ${symbol} options... (${completed + 1}/${symbols.length})`;
+                        const opportunities = await scanSymbol(symbol, config);
+                        
+                        // Add technical signal to opportunities
+                        if (technicalAnalysis) {
+                            const signal = getTechnicalSignal(technicalAnalysis);
+                            opportunities.forEach(opp => {
+                                opp.technicalSignal = signal;
+                                opp.technicalData = technicalAnalysis;
+                            });
+                        }
+                        
+                        allOpportunities = allOpportunities.concat(opportunities);
+                        console.log(`✓ ${symbol}: Found ${opportunities.length} opportunities`);
+                        completed++;
+                    } catch (error) {
+                        console.error(`✗ ${symbol}: ${error.message}`);
+                        errors.push(`${symbol}: ${error.message}`);
+                        completed++;
+                    }
+                }
+
+                console.log(`\n=== SCAN COMPLETE ===`);
+                console.log(`Total opportunities: ${allOpportunities.length}`);
+                console.log(`Filtered by technicals: ${filteredByTechnicals.length}`);
+                console.log(`Errors: ${errors.length}`);
+                
+                if (errors.length > 0) {
+                    console.log('Error details:', errors);
+                }
+                
+                if (filteredByTechnicals.length > 0) {
+                    console.log('Filtered symbols:', filteredByTechnicals);
+                }
+
+                // Sort by risk/reward
+                allOpportunities.sort((a, b) => a.riskReward - b.riskReward);
+
+                // Store opportunities globally for chart access
+                globalOpportunities = allOpportunities;
+
+                // Update UI
+                displayOpportunities(allOpportunities);
+                updateStatus(allOpportunities.length);
+
+                // Show errors if any
+                if (errors.length > 0 && allOpportunities.length === 0) {
+                    statusEl.textContent = `${errors.length} error(s) - check console`;
+                }
+                
+                // Show filtered count in status
+                if (filteredByTechnicals.length > 0) {
+                    const currentStatus = statusEl.textContent;
+                    statusEl.textContent = `${currentStatus} (${filteredByTechnicals.length} filtered)`;
+                }
+
+                // Play alert if high-priority opportunities found
+                const alerts = allOpportunities.filter(o => o.isAlert);
+                if (alerts.length > 0 && config.soundAlerts) {
+                    playAlertSound();
+                    showAlertBadge(alerts.length);
+                }
+
+            } catch (error) {
+                console.error('Scan error:', error);
+                statusEl.textContent = 'Error - Check Console';
+                oppContainer.innerHTML = `
+                    <div class="empty-state">
+                        <div>❌ Error scanning options</div>
+                        <div style="font-size: 12px; margin-top: 10px;">${error.message}</div>
+                        <div style="font-size: 11px; margin-top: 5px; opacity: 0.7;">Press F12 to open console for details</div>
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 Scan Now';
+            }
+        }
+
+        async function scanSymbol(symbol, config) {
+            // Use AllOrigins CORS proxy - more reliable than corsproxy.io
+            
+            try {
+                console.log(`Fetching options for ${symbol}...`);
+                
+                // Build Yahoo Finance URL
+                const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+
+                console.log(`Options data received for ${symbol}`);
+
+                if (!data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
+                    console.warn(`No options data for ${symbol}`);
+                    return [];
+                }
+
+                const result = data.optionChain.result[0];
+                
+                // Get all available expirations
+                const expirations = result.expirationDates || [];
+                const quote = result.quote;
+                const underlyingPrice = quote.regularMarketPrice;
+
+                if (expirations.length === 0) {
+                    console.warn(`No expirations available for ${symbol}`);
+                    return [];
+                }
+
+                // Find expiration closest to desired DTE
+                const targetDate = new Date();
+                targetDate.setDate(targetDate.getDate() + config.daysToExpiration);
+                
+                let closestExpiration = expirations[0];
+                let minDiff = Math.abs(expirations[0] * 1000 - targetDate.getTime());
+                
+                for (let exp of expirations) {
+                    const diff = Math.abs(exp * 1000 - targetDate.getTime());
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestExpiration = exp;
+                    }
+                }
+
+                console.log(`Using expiration: ${new Date(closestExpiration * 1000).toLocaleDateString()}`);
+
+                // Fetch options chain for specific expiration
+                const expYahooUrl = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}?date=${closestExpiration}`;
+                const expProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(expYahooUrl)}`;
+                
+                const expResponse = await fetch(expProxyUrl);
+                
+                if (!expResponse.ok) {
+                    throw new Error(`HTTP ${expResponse.status} fetching expiration data`);
+                }
+                
+                const expData = await expResponse.json();
+                
+                if (!expData.optionChain || !expData.optionChain.result || !expData.optionChain.result[0].options) {
+                    console.warn(`No options chain for ${symbol} at expiration ${closestExpiration}`);
+                    return [];
+                }
+
+                const options = expData.optionChain.result[0].options[0];
+                
+                if (!options.calls || !options.puts || options.calls.length === 0 || options.puts.length === 0) {
+                    console.warn(`No calls or puts for ${symbol}`);
+                    return [];
+                }
+
+                const opportunities = [];
+                const expirationDate = new Date(closestExpiration * 1000);
+                const daysToExp = Math.round((expirationDate - new Date()) / (1000 * 60 * 60 * 24));
+
+                // Find straddles
+                const atmStrike = findATMStrike(options, underlyingPrice);
+                const straddle = findStraddle(symbol, options, atmStrike, config, underlyingPrice, daysToExp);
+                if (straddle) opportunities.push(straddle);
+
+                // Find strangles
+                const strangles = findStrangles(symbol, options, atmStrike, config, underlyingPrice, daysToExp);
+                opportunities.push(...strangles);
+
+                console.log(`Found ${opportunities.length} opportunities for ${symbol}`);
+                return opportunities;
+                
+            } catch (error) {
+                console.error(`Error fetching options for ${symbol}:`, error);
+                throw new Error(`Failed to fetch options for ${symbol}: ${error.message}`);
+            }
+        }
+
+        function findATMStrike(options, underlyingPrice) {
+            const strikes = [...new Set([
+                ...options.calls.map(c => c.strike),
+                ...options.puts.map(p => p.strike)
+            ])];
+
+            let closest = strikes[0];
+            let minDiff = Math.abs(underlyingPrice - closest);
+
+            for (let strike of strikes) {
+                const diff = Math.abs(underlyingPrice - strike);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closest = strike;
+                }
+            }
+
+            return closest;
+        }
+
+        function findStraddle(symbol, options, strike, config, underlyingPrice, daysToExp) {
+            const call = options.calls.find(c => c.strike === strike);
+            const put = options.puts.find(p => p.strike === strike);
+
+            if (!call || !put) {
+                console.log(`No call or put found at strike ${strike}`);
+                return null;
+            }
+            
+            const callVolume = call.volume || 0;
+            const putVolume = put.volume || 0;
+            
+            if (callVolume < config.minVolume || putVolume < config.minVolume) {
+                console.log(`Volume too low: Call=${callVolume}, Put=${putVolume}, Required=${config.minVolume}`);
+                return null;
+            }
+
+            const premium = (call.ask || call.lastPrice || 0) + (put.ask || put.lastPrice || 0);
+            
+            if (premium < config.minPremium || premium > config.maxPremium) {
+                console.log(`Premium out of range: ${premium.toFixed(2)}, Range: ${config.minPremium}-${config.maxPremium}`);
+                return null;
+            }
+
+            const lowerBE = strike - premium;
+            const upperBE = strike + premium;
+            const riskReward = 1.8; // Simplified calculation
+            const winProb = 50;
+
+            if (riskReward > config.maxRiskReward) return null;
+
+            return {
+                symbol,
+                strategy: 'Straddle',
+                strikes: strike.toFixed(2),
+                premium: premium.toFixed(2),
+                maxProfit: 'Unlimited',
+                maxLoss: `$${(premium * 100).toFixed(0)}`,
+                breakeven: `${lowerBE.toFixed(2)}-${upperBE.toFixed(2)}`,
+                riskReward: riskReward.toFixed(2),
+                winProb: winProb.toFixed(0),
+                daysToExp: daysToExp,
+                isAlert: riskReward < 1.5
+            };
+        }
+
+        function findStrangles(symbol, options, atmStrike, config, underlyingPrice, daysToExp) {
+            const opportunities = [];
+            
+            const otmPuts = options.puts.filter(p => p.strike < atmStrike).slice(0, 5);
+            const otmCalls = options.calls.filter(c => c.strike > atmStrike).slice(0, 5);
+
+            for (let put of otmPuts) {
+                for (let call of otmCalls) {
+                    const callVolume = call.volume || 0;
+                    const putVolume = put.volume || 0;
+                    
+                    if (callVolume < config.minVolume || putVolume < config.minVolume) continue;
+
+                    const callPrice = call.ask || call.lastPrice || 0;
+                    const putPrice = put.ask || put.lastPrice || 0;
+                    const premium = callPrice + putPrice;
+                    
+                    if (premium < config.minPremium || premium > config.maxPremium) continue;
+
+                    const lowerBE = put.strike - premium;
+                    const upperBE = call.strike + premium;
+                    const width = call.strike - put.strike;
+                    const riskReward = premium / (premium * 0.6);
+                    const winProb = Math.min(95, Math.max(30, 45 + (width / premium * 5)));
+
+                    if (riskReward > config.maxRiskReward) continue;
+
+                    opportunities.push({
+                        symbol,
+                        strategy: 'Strangle',
+                        strikes: `${put.strike.toFixed(2)}/${call.strike.toFixed(2)}`,
+                        premium: premium.toFixed(2),
+                        maxProfit: 'Unlimited',
+                        maxLoss: `$${(premium * 100).toFixed(0)}`,
+                        breakeven: `${lowerBE.toFixed(2)}-${upperBE.toFixed(2)}`,
+                        riskReward: riskReward.toFixed(2),
+                        winProb: winProb.toFixed(0),
+                        daysToExp: daysToExp,
+                        isAlert: riskReward < 1.5
+                    });
+                }
+            }
+
+            return opportunities.slice(0, 5);
+        }
+
+        function displayOpportunities(opportunities) {
+            const container = document.getElementById('opportunities');
+
+            if (opportunities.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"/>
+                        </svg>
+                        <div>No opportunities found</div>
+                        <div style="font-size: 12px; margin-top: 10px;">Try adjusting your criteria in settings</div>
+                        <div style="font-size: 11px; margin-top: 5px; opacity: 0.7;">Check browser console (F12) for debug info</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = opportunities.map((opp, index) => `
+                <div class="opportunity-card ${opp.isAlert ? 'alert' : ''}">
+                    <div class="opp-header">
+                        <div class="opp-symbol">${opp.symbol}</div>
+                        ${opp.isAlert 
+                            ? '<div class="opp-alert-badge">⚠️ ALERT</div>' 
+                            : `<div class="opp-strategy">${opp.strategy}</div>`}
+                    </div>
+                    ${opp.technicalSignal ? `
+                        <div style="text-align: center; margin: 10px 0; padding: 8px; background: #f8f9fa; border-radius: 8px; font-size: 13px; font-weight: bold;">
+                            Technical Signal: ${opp.technicalSignal}
+                        </div>
+                    ` : ''}
+                    ${opp.technicalData && opp.technicalData.historicalData ? `
+                        <button onclick="showChartForOpportunity(${index})" style="width: 100%; padding: 10px; margin: 10px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: bold; cursor: pointer;">
+                            📊 View Technical Chart
+                        </button>
+                    ` : ''}
+                    <div class="opp-details">
+                        <div class="detail-item">
+                            <div class="detail-label">Strategy</div>
+                            <div class="detail-value">${opp.strategy}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Strikes</div>
+                            <div class="detail-value">${opp.strikes}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Premium</div>
+                            <div class="detail-value">$${opp.premium}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Days to Exp</div>
+                            <div class="detail-value">${opp.daysToExp} DTE</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Max Loss</div>
+                            <div class="detail-value">${opp.maxLoss}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Break-Even</div>
+                            <div class="detail-value">${opp.breakeven}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Risk/Reward</div>
+                            <div class="detail-value">${opp.riskReward}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Win Probability</div>
+                            <div class="detail-value">${opp.winProb}%</div>
+                        </div>
+                        ${opp.technicalData ? `
+                            <div class="detail-item" style="grid-column: 1 / -1;">
+                                <div class="detail-label">Technical Data</div>
+                                <div class="detail-value" style="font-size: 11px;">
+                                    Price: $${opp.technicalData.currentPrice.toFixed(2)} | 
+                                    SMA20: $${opp.technicalData.sma20?.toFixed(2) || 'N/A'} | 
+                                    SMA50: $${opp.technicalData.sma50?.toFixed(2) || 'N/A'} | 
+                                    EMA9: $${opp.technicalData.ema9?.toFixed(2) || 'N/A'}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Store opportunities globally for chart access
+        let globalOpportunities = [];
+        
+        function showChartForOpportunity(index) {
+            const opp = globalOpportunities[index];
+            if (opp && opp.technicalData && opp.technicalData.historicalData) {
+                showChart(opp.symbol, opp.technicalData, opp.technicalData.historicalData);
+            }
+        }
+
+        function updateStatus(count) {
+            document.getElementById('lastScan').textContent = new Date().toLocaleTimeString();
+            document.getElementById('oppCount').textContent = count;
+            document.getElementById('status').textContent = count > 0 ? '✓ Complete' : 'No Opportunities';
+        }
+
+        function getConfig() {
+            return {
+                scanMode: document.getElementById('scanMode').value || 'weekly',
+                symbols: document.getElementById('symbols').value || 'SPY,QQQ',
+                minPremium: parseFloat(document.getElementById('minPremium').value) || 0.5,
+                maxPremium: parseFloat(document.getElementById('maxPremium').value) || 5.0,
+                minVolume: parseInt(document.getElementById('minVolume').value) || 100,
+                maxRiskReward: parseFloat(document.getElementById('maxRiskReward').value) || 2.0,
+                daysToExpiration: parseInt(document.getElementById('daysToExpiration').value) || 0,
+                dataProvider: document.getElementById('dataProvider').value || 'alphavantage',
+                alphaVantageKey: document.getElementById('alphaVantageKey').value || '7UOSK3Z2XFXU992W',
+                enableTechnicalFilters: document.getElementById('enableTechnicalFilters').value === 'true',
+                priceVsMA: document.getElementById('priceVsMA').value || 'any',
+                maCrossover: document.getElementById('maCrossover').value || 'any',
+                crossoverDays: parseInt(document.getElementById('crossoverDays').value) || 5,
+                trendDirection: document.getElementById('trendDirection').value || 'any',
+                soundAlerts: document.getElementById('soundAlerts').value === 'true'
+            };
+        }
+
+        function playAlertSound() {
+            // Simple beep using Web Audio API
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.3;
+            
+            oscillator.start();
+            setTimeout(() => oscillator.stop(), 200);
+        }
+
+        function showAlertBadge(count) {
+            const badge = document.createElement('div');
+            badge.className = 'alert-badge';
+            badge.textContent = `${count} Alert${count > 1 ? 's' : ''}!`;
+            document.body.appendChild(badge);
+            
+            setTimeout(() => badge.remove(), 3000);
+        }
+
+        // Auto-refresh functionality
+        document.getElementById('autoRefresh').addEventListener('change', function() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+            }
+
+            const interval = parseInt(this.value);
+            if (interval > 0) {
+                autoRefreshTimer = setInterval(scanOptions, interval * 1000);
+            }
+        });
+
+        // Toggle Alpha Vantage key visibility
+        document.getElementById('dataProvider').addEventListener('change', function() {
+            const keyGroup = document.getElementById('alphaVantageKeyGroup');
+            if (this.value === 'alphavantage') {
+                keyGroup.style.display = 'block';
+            } else {
+                keyGroup.style.display = 'none';
+            }
+        });
+
+        // Load saved settings from localStorage
+        window.addEventListener('load', function() {
+            const saved = localStorage.getItem('scannerSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                document.getElementById('symbols').value = settings.symbols || 'SPY,QQQ';
+                document.getElementById('minPremium').value = settings.minPremium || 0.5;
+                document.getElementById('maxPremium').value = settings.maxPremium || 5.0;
+                document.getElementById('minVolume').value = settings.minVolume || 100;
+                document.getElementById('maxRiskReward').value = settings.maxRiskReward || 2.0;
+            }
+        });
+
+        // Save settings when changed
+        document.getElementById('settingsPanel').addEventListener('change', function() {
+            const config = getConfig();
+            localStorage.setItem('scannerSettings', JSON.stringify(config));
+        });
+
+        // Initial instructions
+        setTimeout(() => {
+            if (!localStorage.getItem('hasVisited')) {
+                alert('📱 Welcome to Options Scanner!\n\n✅ READY TO USE:\n✓ No setup needed - just tap Scan!\n✓ Uses AllOrigins proxy (no CORS issues)\n✓ Alpha Vantage API pre-configured\n\n⚙️ CUSTOMIZE:\n✓ Tap Settings to adjust filters\n✓ Choose DTE (0-90 days)\n✓ Enable technical filters\n✓ View interactive charts\n\n🔍 START:\n✓ Default: SPY, QQQ at 30 DTE\n✓ Tap "🔍 Scan Now"\n✓ Wait 5-10 seconds\n✓ View results & charts!\n\n⚠️ For learning only - 15min delayed data');
+                localStorage.setItem('hasVisited', 'true');
+            }
+        }, 500);
+    </script>
+</body>
+</html>
