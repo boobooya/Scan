@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Scanner Diagnostic Test</h1>
+    
+    <div class="test-box">
+        <h2>1. Basic JavaScript Test</h2>
+        <p id="jsTest">Testing...</p>
+    </div>
+    
+    <div class="test-box">
+        <h2>2. API Test - Yahoo Finance</h2>
+        <button onclick="testYahooAPI()">Test Yahoo API</button>
+        <p id="yahooTest">Click button to test</p>
+    </div>
+    
+    <div class="test-box">
+        <h2>3. API Test - Alpha Vantage</h2>
+        <button onclick="testAlphaAPI()">Test Alpha Vantage API</button>
+        <p id="alphaTest">Click button to test</p>
+    </div>
+    
+    <div class="test-box">
+        <h2>4. Console Messages</h2>
+        <p>Open console (F12) and check for any errors</p>
+        <button onclick="console.log('Console test - if you see this, console works!')">Log to Console</button>
+    </div>
+
+    <script>
+        // Test 1: Basic JS
+        document.getElementById('jsTest').innerHTML = '<span class="success">✓ JavaScript is working!</span>';
+        console.log('✓ JavaScript loaded successfully');
+        
+        // Test 2: Yahoo Finance API
+        async function testYahooAPI() {
+            const el = document.getElementById('yahooTest');
+            el.textContent = 'Testing...';
+            
+            try {
+                const url = 'https://query2.finance.yahoo.com/v8/finance/chart/SPY?interval=1d&range=1d';
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                
+                console.log('Testing Yahoo API via proxy:', proxyUrl);
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                
+                if (data && data.chart && data.chart.result) {
+                    el.innerHTML = '<span class="success">✓ Yahoo Finance API working!</span>';
+                    console.log('✓ Yahoo API response:', data.chart.result[0].meta);
+                } else {
+                    el.innerHTML = '<span class="error">✗ Unexpected response format</span>';
+                    console.error('Yahoo API response:', data);
+                }
+            } catch (error) {
+                el.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+                console.error('Yahoo API error:', error);
+            }
+        }
+        
+        // Test 3: Alpha Vantage API
+        async function testAlphaAPI() {
+            const el = document.getElementById('alphaTest');
+            el.textContent = 'Testing...';
+            
+            try {
+                const url = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=SPY&apikey=7UOSK3Z2XFXU992W&outputsize=compact';
+                
+                console.log('Testing Alpha Vantage API:', url);
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data['Time Series (Daily)']) {
+                    el.innerHTML = '<span class="success">✓ Alpha Vantage API working!</span>';
+                    console.log('✓ Alpha Vantage response received');
+                } else if (data.Note) {
+                    el.innerHTML = '<span class="error">✗ Rate limit hit</span>';
+                    console.error('Rate limit:', data.Note);
+                } else {
+                    el.innerHTML = '<span class="error">✗ Unexpected response</span>';
+                    console.error('Alpha Vantage response:', data);
+                }
+            } catch (error) {
+                el.innerHTML = `<span class="error">✗ Error: ${error.message}</span>`;
+                console.error('Alpha Vantage error:', error);
+            }
+        }
+        
+        console.log('Diagnostic page loaded. Open console (F12) for detailed logs.');
+    </script>
+</body>
+</html>
