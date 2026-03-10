@@ -323,17 +323,21 @@
             <div class="info-box">
                 <strong>✅ Guaranteed to work on GitHub Pages!</strong><br>
                 This scanner uses ONLY Alpha Vantage API which has zero CORS restrictions. It combines multiple technical indicators to give you professional-grade analysis.
+                <br><br>
+                <strong>📊 All Weekly Options Included:</strong> The scanner now includes 250+ stocks with Monday, Wednesday, and Friday weekly options expirations. Click "⭐ ALL Weekly Options" to scan everything, or choose a category to scan specific sectors.
             </div>
 
             <div class="controls">
                 <div class="input-group">
                     <label>📝 Symbols to Scan (comma-separated):</label>
-                    <input type="text" id="symbolInput" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD" placeholder="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,GOOGL,MSFT">
+                    <input type="text" id="symbolInput" value="SPY,QQQ,IWM,DIA,AAPL,MSFT,NVDA,TSLA,AMD,META,AMZN,GOOGL,JPM,BAC,GS,MS,WFC,XLE,XLF,XLK,XLV,GLD,SLV,TLT" placeholder="Enter symbols separated by commas">
                     <div class="quick-select">
-                        <button class="quick-btn" onclick="setSymbols('SPY,QQQ,IWM,DIA')">📈 ETFs</button>
-                        <button class="quick-btn" onclick="setSymbols('AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA')">💻 Tech</button>
-                        <button class="quick-btn" onclick="setSymbols('JPM,BAC,GS,MS,WFC')">🏦 Finance</button>
-                        <button class="quick-btn" onclick="setSymbols('GLD,SLV,TLT,USO')">💰 Commodities</button>
+                        <button class="quick-btn" onclick="setSymbols(ALL_WEEKLY_SYMBOLS)">⭐ ALL Weekly Options (250+)</button>
+                        <button class="quick-btn" onclick="setSymbols('SPY,QQQ,IWM,DIA,EEM,EFA,VXX,UVXY')">📈 Index ETFs</button>
+                        <button class="quick-btn" onclick="setSymbols('AAPL,MSFT,GOOGL,GOOG,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO')">💻 Mega Tech</button>
+                        <button class="quick-btn" onclick="setSymbols('JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF')">🏦 Financials</button>
+                        <button class="quick-btn" onclick="setSymbols('XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,XLC')">📊 Sector ETFs</button>
+                        <button class="quick-btn" onclick="setSymbols('GLD,SLV,GDX,GDXJ,TLT,USO,UNG,DBA')">💰 Commodities</button>
                     </div>
                 </div>
 
@@ -343,7 +347,11 @@
                         <option value="fast">⚡ Fast (15s wait) - May hit limits</option>
                         <option value="normal" selected>🚀 Normal (20s wait) - Recommended</option>
                         <option value="safe">🐢 Safe (30s wait) - Never fails</option>
+                        <option value="ultra">🚀🚀 Ultra Fast (12s wait) - For small lists only</option>
                     </select>
+                    <div style="margin-top: 10px; font-size: 12px; color: #636e72;">
+                        <strong>Note:</strong> Scanning 250+ symbols will take 80-120 minutes. Consider scanning in batches.
+                    </div>
                 </div>
             </div>
 
@@ -369,6 +377,121 @@
     <script>
         const API_KEY = '7UOSK3Z2XFXU992W';
         let results = [];
+
+        // Comprehensive list of ALL stocks with weekly options (Mon/Wed/Fri expirations)
+        const ALL_WEEKLY_SYMBOLS = [
+            // Major Index ETFs
+            'SPY', 'QQQ', 'IWM', 'DIA', 'EEM', 'EFA', 'VXX', 'UVXY',
+            
+            // FAANG + Mega Cap Tech
+            'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'NVDA', 'TSLA',
+            'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL', 'ADBE', 'CSCO', 'AVGO',
+            'QCOM', 'TXN', 'MU', 'AMAT', 'LRCX', 'KLAC', 'ASML', 'SNOW',
+            'NOW', 'DDOG', 'NET', 'ZS', 'CRWD', 'OKTA', 'WDAY', 'TEAM',
+            
+            // Financial Services
+            'JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'BLK', 'SCHW', 'AXP',
+            'USB', 'PNC', 'TFC', 'COF', 'BK', 'STT', 'FITB', 'HBAN',
+            'RF', 'CFG', 'KEY', 'BBT', 'MTB', 'ALLY', 'SOFI',
+            
+            // Consumer & Retail
+            'WMT', 'HD', 'TGT', 'COST', 'NKE', 'SBUX', 'MCD', 'DIS',
+            'CMCSA', 'BKNG', 'ABNB', 'UBER', 'LYFT', 'DASH', 'ETSY',
+            'SHOP', 'EBAY', 'LOW', 'BBY', 'DG', 'DLTR',
+            
+            // Healthcare & Pharma
+            'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'ABT', 'MRK', 'LLY',
+            'AMGN', 'GILD', 'BMY', 'CVS', 'CI', 'REGN', 'VRTX', 'BIIB',
+            'ISRG', 'DHR', 'SYK', 'BSX', 'ELV', 'HUM', 'MRNA', 'BNTX',
+            
+            // Energy & Commodities
+            'XLE', 'XOP', 'OXY', 'CVX', 'XOM', 'COP', 'SLB', 'HAL',
+            'MPC', 'PSX', 'VLO', 'EOG', 'PXD', 'DVN', 'FANG', 'HES',
+            
+            // Metals & Mining
+            'GLD', 'SLV', 'GDX', 'GDXJ', 'NEM', 'FCX', 'GOLD', 'AEM',
+            
+            // Industrials & Defense
+            'BA', 'CAT', 'GE', 'MMM', 'HON', 'UPS', 'RTX', 'LMT',
+            'NOC', 'GD', 'LHX', 'DE', 'EMR', 'ETN', 'FDX', 'NSC',
+            'UNP', 'CSX', 'DAL', 'UAL', 'LUV', 'AAL',
+            
+            // Semiconductor (Additional)
+            'TSM', 'MCHP', 'NXPI', 'ON', 'SWKS', 'MPWR', 'MRVL',
+            
+            // Electric Vehicles & Auto
+            'F', 'GM', 'RIVN', 'LCID', 'NIO', 'LI', 'XPEV', 'PLUG',
+            
+            // Communications & Social Media
+            'T', 'VZ', 'TMUS', 'SNAP', 'PINS', 'TWTR', 'MTCH', 'RBLX',
+            
+            // E-commerce & Payments
+            'PYPL', 'SQ', 'V', 'MA', 'COIN', 'HOOD', 'AFRM',
+            
+            // Biotech (Additional)
+            'ILMN', 'CELG', 'ALXN', 'EXAS', 'TDOC',
+            
+            // High Volatility / Meme Stocks
+            'GME', 'AMC', 'BBBY', 'BB', 'PLTR', 'WISH', 'CLOV',
+            
+            // REITs
+            'SPG', 'PLD', 'AMT', 'CCI', 'EQIX', 'PSA', 'O', 'WELL',
+            
+            // Chinese ADRs
+            'BABA', 'JD', 'PDD', 'BIDU', 'BILI', 'TME',
+            
+            // Cannabis
+            'TLRY', 'CGC', 'SNDL', 'ACB', 'CRON', 'APHA',
+            
+            // Insurance
+            'BRK.B', 'AIG', 'PGR', 'ALL', 'MET', 'PRU', 'TRV', 'AFL',
+            
+            // Utilities
+            'NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'SRE', 'PEG',
+            
+            // Consumer Staples
+            'PG', 'KO', 'PEP', 'MDLZ', 'CL', 'KHC', 'GIS', 'K',
+            
+            // Airlines & Travel
+            'JBLU', 'ALK', 'CCL', 'NCLH', 'RCL', 'MAR', 'HLT',
+            
+            // Banks - Regional
+            'ZION', 'CBSH', 'WTFC', 'PACW', 'WAL', 'FHN',
+            
+            // Sector ETFs
+            'XLF', 'XLK', 'XLV', 'XLI', 'XLP', 'XLU', 'XLY',
+            'XLB', 'XLRE', 'XLC', 'IYR', 'KRE', 'SMH', 'IBB', 'XRT',
+            'VNQ', 'GDX', 'XOP', 'ITB', 'XHB', 'REMX',
+            
+            // Volatility & Inverse
+            'UVXY', 'SVXY', 'SQQQ', 'TQQQ', 'SPXU', 'SPXL',
+            'TNA', 'TZA', 'FAS', 'FAZ', 'ERX', 'ERY',
+            
+            // Bond ETFs
+            'TLT', 'IEF', 'SHY', 'LQD', 'HYG', 'JNK', 'TIP', 'AGG',
+            
+            // Commodity ETFs
+            'USO', 'UNG', 'DBA', 'DBC', 'CORN', 'WEAT', 'SOYB',
+            
+            // Crypto-Related
+            'MARA', 'RIOT', 'MSTR', 'SI', 'HUT', 'BITF', 'CLSK',
+            
+            // Cloud & Software
+            'ZM', 'DOCU', 'TWLO', 'SPLK', 'DDOG', 'ESTC',
+            
+            // Gaming
+            'ATVI', 'EA', 'TTWO', 'DKNG', 'PENN', 'MGM', 'WYNN',
+            
+            // Streaming & Media
+            'ROKU', 'PARA', 'WBD', 'SPOT', 'FUBO',
+            
+            // Cybersecurity
+            'PANW', 'FTNT', 'CYBR', 'S', 'QLYS', 'CHKP',
+            
+            // Additional High Volume
+            'ARKK', 'ARKW', 'ARKG', 'ARKF', 'TAN', 'ICLN', 'LIT', 'XBI',
+            'JETS', 'BOTZ', 'FINX', 'HACK', 'CLOU'
+        ].join(',');
 
         function log(message, color = '#00ff00') {
             const status = document.getElementById('status');
@@ -398,7 +521,9 @@
             }
 
             const symbols = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-            const waitTime = speed === 'fast' ? 15000 : speed === 'normal' ? 20000 : 30000;
+            const waitTime = speed === 'ultra' ? 12000 : 
+                           speed === 'fast' ? 15000 : 
+                           speed === 'normal' ? 20000 : 30000;
 
             btn.disabled = true;
             btn.textContent = '🔄 Scanning...';
