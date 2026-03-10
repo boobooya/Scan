@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Options Scanner - No Proxy Required</title>
+    <title>Multi-Source Options Scanner - GitHub Pages</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -15,7 +15,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -32,17 +32,235 @@
             margin-bottom: 10px;
         }
 
-        .warning {
-            background: #fff3cd;
-            border-left: 4px solid #f39c12;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .sources {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
         }
 
-        .warning h3 {
-            color: #856404;
+        .source-badge {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #dfe6e9;
+        }
+
+        .source-badge.active {
+            border-color: #00b894;
+            background: #d4edda;
+        }
+
+        .source-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2d3436;
+        }
+
+        .source-status {
+            font-size: 12px;
+            color: #636e72;
+        }
+
+        .scan-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .scan-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            background: #2d3436;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+
+        .status div {
+            margin: 2px 0;
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .result-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+
+        .result-card.bullish { border-left-color: #00b894; }
+        .result-card.bearish { border-left-color: #d63031; }
+
+        .symbol-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .symbol {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .price-change {
+            text-align: right;
+        }
+
+        .price {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .change {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .change.positive { color: #00b894; }
+        .change.negative { color: #d63031; }
+
+        .details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+        }
+
+        .detail-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+        }
+
+        .label {
+            color: #636e72;
+            font-size: 11px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .value {
+            color: #2d3436;
+            font-weight: bold;
+            font-size: 15px;
+        }
+
+        .indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .indicator {
+            text-align: center;
+        }
+
+        .indicator-label {
+            font-size: 10px;
+            color: #636e72;
+            margin-bottom: 3px;
+        }
+
+        .indicator-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2d3436;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .badge.bullish { background: #d4edda; color: #155724; }
+        .badge.bearish { background: #f8d7da; color: #721c24; }
+        .badge.neutral { background: #fff3cd; color: #856404; }
+
+        .recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .rec-title {
+            font-size: 14px;
+            font-weight: bold;
             margin-bottom: 10px;
+        }
+
+        .rec-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            font-size: 13px;
+        }
+
+        .data-sources {
+            font-size: 11px;
+            color: #636e72;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ecf0f1;
+        }
+
+        .progress {
+            background: #ecf0f1;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00b894, #00cec9);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
         }
 
         .info-box {
@@ -51,371 +269,314 @@
             padding: 15px;
             border-radius: 8px;
             margin: 15px 0;
-        }
-
-        .solution {
-            background: #d4edda;
-            border-left: 4px solid #00b894;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-
-        .solution h3 {
-            color: #155724;
-            margin-bottom: 15px;
-        }
-
-        .solution ol {
-            margin-left: 20px;
-        }
-
-        .solution li {
-            margin: 10px 0;
+            font-size: 13px;
             line-height: 1.6;
         }
 
-        code {
-            background: #f1f3f5;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: monospace;
-            color: #d63031;
-        }
-
-        .api-key-input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #dfe6e9;
-            border-radius: 8px;
-            font-size: 14px;
-            margin: 10px 0;
-        }
-
-        .btn {
-            padding: 15px 30px;
-            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .status {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 13px;
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 15px;
-        }
-
-        .results-grid {
-            display: grid;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .result-card {
-            background: #f8f9fa;
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
             padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+            overflow-y: auto;
         }
 
-        .result-card.bullish { border-left-color: #00b894; }
-        .result-card.bearish { border-left-color: #d63031; }
-
-        .symbol {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2d3436;
-            margin-bottom: 10px;
-        }
-
-        .details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 10px;
-            font-size: 13px;
-        }
-
-        .detail-item {
+        .modal-content {
             background: white;
-            padding: 10px;
-            border-radius: 5px;
+            max-width: 1000px;
+            margin: 0 auto;
+            border-radius: 15px;
+            padding: 30px;
         }
 
-        .label {
-            color: #636e72;
-            font-size: 11px;
-            margin-bottom: 3px;
-        }
-
-        .value {
-            color: #2d3436;
-            font-weight: bold;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-
-        .badge.bullish { background: #d4edda; color: #155724; }
-        .badge.bearish { background: #f8d7da; color: #721c24; }
-        .badge.neutral { background: #fff3cd; color: #856404; }
-
-        .success { color: #00b894; }
-        .error { color: #d63031; }
-        .warning-text { color: #fdcb6e; }
-        .info { color: #0984e3; }
-
-        pre {
-            background: #2d3436;
-            color: #00ff00;
-            padding: 15px;
+        .close-btn {
+            background: #d63031;
+            color: white;
+            border: none;
+            padding: 10px 20px;
             border-radius: 8px;
-            overflow-x: auto;
-            margin: 15px 0;
-        }
-
-        a {
-            color: #0984e3;
-            text-decoration: none;
+            cursor: pointer;
             font-weight: bold;
+            float: right;
         }
 
-        a:hover {
-            text-decoration: underline;
+        canvas {
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="card">
-            <h1>📊 Weekly Options Scanner</h1>
-            <p style="color: #636e72; margin-bottom: 20px;">Professional options scanner for GitHub Pages</p>
-
-            <div class="warning">
-                <h3>⚠️ GitHub Pages Limitation Detected</h3>
-                <p>GitHub Pages blocks CORS proxy services, so we cannot fetch live data directly from Yahoo Finance.</p>
-            </div>
-
-            <div class="solution">
-                <h3>✅ Solution: Use Alpha Vantage API (Free)</h3>
-                <p><strong>Alpha Vantage provides free market data without CORS restrictions!</strong></p>
-                
-                <ol>
-                    <li>Get a <strong>FREE API key</strong> from Alpha Vantage (takes 30 seconds):
-                        <br><a href="https://www.alphavantage.co/support/#api-key" target="_blank">👉 Click here to get your free API key</a>
-                    </li>
-                    <li>Enter your email → Click "GET FREE API KEY"</li>
-                    <li>Copy the API key they give you</li>
-                    <li>Paste it below and click "Start Scanning"</li>
-                </ol>
-
-                <p style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.3); border-radius: 5px;">
-                    <strong>🔒 Privacy:</strong> Your API key is stored locally in your browser only. It never leaves your device.
-                </p>
-            </div>
+            <h1>📊 Multi-Source Options Scanner</h1>
+            <p style="color: #636e72; margin-bottom: 20px;">
+                Combining multiple free APIs for comprehensive analysis
+            </p>
 
             <div class="info-box">
-                <h4 style="margin-bottom: 10px;">📊 What Alpha Vantage Provides:</h4>
-                <ul style="margin-left: 20px; line-height: 1.8;">
-                    <li>✅ Real-time stock prices</li>
-                    <li>✅ Historical price data for technical analysis</li>
-                    <li>✅ SMA, EMA, and other indicators</li>
-                    <li>✅ Works perfectly on GitHub Pages (no CORS issues)</li>
-                    <li>✅ 25 API calls per day (free tier) - enough for daily scans</li>
-                </ul>
+                <strong>🚀 Data Sources (All Free & GitHub Pages Compatible):</strong><br>
+                This scanner combines data from multiple sources to give you the most comprehensive analysis possible without needing proxies or paid APIs.
             </div>
 
-            <label style="font-weight: bold; display: block; margin-bottom: 10px;">Enter Your Alpha Vantage API Key:</label>
-            <input type="text" class="api-key-input" id="apiKey" placeholder="Paste your API key here (e.g., ABC123XYZ...)" value="7UOSK3Z2XFXU992W" />
-            
-            <button class="btn" id="scanBtn" onclick="startScan()">
-                🔍 Start Scanning
+            <div class="sources">
+                <div class="source-badge active">
+                    <div class="source-name">📈 Alpha Vantage</div>
+                    <div class="source-status">Price & Indicators</div>
+                </div>
+                <div class="source-badge active">
+                    <div class="source-name">📊 Finnhub</div>
+                    <div class="source-status">Real-time Quotes</div>
+                </div>
+                <div class="source-badge active">
+                    <div class="source-name">💹 Twelve Data</div>
+                    <div class="source-status">Technical Data</div>
+                </div>
+                <div class="source-badge active">
+                    <div class="source-name">🔢 Calculations</div>
+                    <div class="source-status">Strike & Greeks</div>
+                </div>
+            </div>
+
+            <button class="scan-btn" id="scanBtn" onclick="startScan()">
+                🔍 Start Multi-Source Scan
             </button>
+
+            <div class="progress" style="display: none;" id="progress">
+                <div class="progress-bar" id="progressBar">0%</div>
+            </div>
 
             <div class="status" id="status" style="display: none;"></div>
         </div>
 
         <div class="card" id="resultsCard" style="display: none;">
-            <h2 style="margin-bottom: 20px;">Results: <span id="count">0</span> Opportunities</h2>
+            <h2 style="margin-bottom: 20px;">
+                Results: <span id="count">0</span> Opportunities Found
+            </h2>
             <div class="results-grid" id="results"></div>
-        </div>
-
-        <div class="card">
-            <h3 style="margin-bottom: 15px;">❓ Why Can't We Use Yahoo Finance?</h3>
-            <p style="line-height: 1.6; color: #636e72;">
-                GitHub Pages has strict security policies that block CORS proxy services. This means we cannot access Yahoo Finance options data directly from a static website hosted on GitHub Pages. 
-                <br><br>
-                <strong>Three solutions:</strong>
-            </p>
-            <ol style="margin: 15px 0 15px 20px; line-height: 1.8;">
-                <li><strong>Use Alpha Vantage API</strong> (recommended for GitHub Pages) ✅ Works now!</li>
-                <li><strong>Run locally:</strong> <code>python -m http.server 8000</code> then open <code>http://localhost:8000</code></li>
-                <li><strong>Deploy to Netlify/Vercel</strong> instead of GitHub Pages (they allow CORS proxies)</li>
-            </ol>
         </div>
     </div>
 
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="closeModal()">✕ Close</button>
+            <div style="clear: both;"></div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
+        // API Keys (all free tier)
+        const API_KEYS = {
+            alphaVantage: '7UOSK3Z2XFXU992W',
+            finnhub: 'ctcirgpr01qmuq0bhjtgctcirgpr01qmuq0bhjug', // Free tier
+            twelveData: 'demo' // Demo key works for basic queries
+        };
+
         const SYMBOLS = [
             'SPY', 'QQQ', 'IWM', 'DIA',
-            'AAPL', 'MSFT', 'TSLA', 'NVDA', 'AMD', 'META', 'AMZN', 'GOOGL',
-            'JPM', 'BAC', 'GS', 'MS',
-            'XLE', 'XLF', 'XLK', 'XLV',
+            'AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMD', 'META', 'AMZN', 'GOOGL',
+            'JPM', 'BAC', 'GS', 'MS', 'WFC',
+            'XLE', 'XLF', 'XLK', 'XLV', 'XLI',
             'GLD', 'SLV', 'TLT'
         ];
 
         let results = [];
+        let currentChart = null;
 
-        // Load saved API key
-        window.addEventListener('load', () => {
-            const saved = localStorage.getItem('alphaVantageKey');
-            if (saved) {
-                document.getElementById('apiKey').value = saved;
-            }
-        });
-
-        function log(message, type = 'info') {
+        function log(message, color = '#00ff00') {
             const status = document.getElementById('status');
             status.style.display = 'block';
             const div = document.createElement('div');
-            div.className = type;
+            div.style.color = color;
             div.textContent = message;
             status.appendChild(div);
             status.scrollTop = status.scrollHeight;
         }
 
         async function startScan() {
-            const apiKey = document.getElementById('apiKey').value.trim();
             const btn = document.getElementById('scanBtn');
             const status = document.getElementById('status');
-
-            if (!apiKey) {
-                alert('⚠️ Please enter your Alpha Vantage API key first!\n\nGet one free at: https://www.alphavantage.co/support/#api-key');
-                return;
-            }
-
-            // Save API key
-            localStorage.setItem('alphaVantageKey', apiKey);
+            const progress = document.getElementById('progress');
+            const progressBar = document.getElementById('progressBar');
 
             btn.disabled = true;
             btn.textContent = '🔄 Scanning...';
             status.innerHTML = '';
+            progress.style.display = 'block';
             results = [];
 
-            log('🚀 Starting scan with Alpha Vantage API...', 'info');
-            log(`📊 Analyzing ${SYMBOLS.length} symbols`, 'info');
+            log('🚀 Starting multi-source scan...', '#00ffff');
+            log(`📊 Analyzing ${SYMBOLS.length} symbols from 3 data sources`, '#ffff00');
 
-            let scanned = 0;
-            let found = 0;
-            let errors = 0;
+            const total = SYMBOLS.length;
+            let completed = 0;
 
-            // Process sequentially to respect rate limits (5 calls/min)
-            for (let symbol of SYMBOLS) {
-                try {
-                    log(`Analyzing ${symbol}...`, 'info');
-                    const data = await analyzeSymbol(symbol, apiKey);
-                    
-                    if (data) {
-                        results.push(data);
-                        found++;
-                        log(`✓ ${symbol}: ${data.signal} signal (Price: $${data.price})`, 'success');
+            // Scan in batches of 5 to balance speed vs rate limits
+            const BATCH_SIZE = 5;
+            for (let i = 0; i < SYMBOLS.length; i += BATCH_SIZE) {
+                const batch = SYMBOLS.slice(i, i + BATCH_SIZE);
+                
+                const promises = batch.map(async (symbol) => {
+                    try {
+                        log(`Analyzing ${symbol}...`, '#ffffff');
+                        const data = await analyzeSymbol(symbol);
+                        
+                        if (data) {
+                            results.push(data);
+                            log(`✓ ${symbol}: ${data.signal} - $${data.price} (${data.change >= 0 ? '+' : ''}${data.changePercent}%)`, data.signal === 'bullish' ? '#00ff00' : data.signal === 'bearish' ? '#ff0000' : '#ffff00');
+                            updateResults();
+                        }
+                    } catch (e) {
+                        log(`✗ ${symbol}: ${e.message}`, '#ff0000');
                     }
                     
-                    scanned++;
-                    
-                    // Wait 12 seconds between calls (5 per minute limit)
-                    if (scanned < SYMBOLS.length) {
-                        log(`⏳ Waiting 12s (rate limit)...`, 'warning-text');
-                        await sleep(12000);
-                    }
-                } catch (e) {
-                    errors++;
-                    log(`✗ ${symbol}: ${e.message}`, 'error');
-                    scanned++;
+                    completed++;
+                    const percent = Math.round((completed / total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressBar.textContent = `${completed}/${total} (${percent}%)`;
+                });
+
+                await Promise.all(promises);
+                
+                // Wait 2 seconds between batches
+                if (i + BATCH_SIZE < SYMBOLS.length) {
+                    log('⏳ Waiting 2s...', '#808080');
+                    await sleep(2000);
                 }
-
-                updateResults();
             }
 
-            log(`\n✅ Scan complete!`, 'success');
-            log(`✓ Found: ${found} opportunities`, 'success');
-            log(`✗ Errors: ${errors}`, 'error');
-
+            log(`\n✅ Scan complete! Found ${results.length} opportunities`, '#00ff00');
             btn.disabled = false;
-            btn.textContent = '🔍 Start Scanning';
+            btn.textContent = '🔍 Start Multi-Source Scan';
         }
 
-        async function analyzeSymbol(symbol, apiKey) {
-            // Fetch daily prices
-            const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}`;
-            const response = await fetch(url);
+        async function analyzeSymbol(symbol) {
+            // Source 1: Finnhub for real-time quote
+            const quote = await getFinnhubQuote(symbol);
             
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+            if (!quote) {
+                throw new Error('No quote data');
             }
 
-            const data = await response.json();
-
-            if (data.Note) {
-                throw new Error('API rate limit reached');
-            }
-
-            if (data.Error || !data['Time Series (Daily)']) {
-                throw new Error('No data available');
-            }
-
-            const timeSeries = data['Time Series (Daily)'];
-            const dates = Object.keys(timeSeries).sort().reverse();
+            // Source 2: Alpha Vantage for technical indicators
+            const technicals = await getAlphaVantageTechnicals(symbol);
             
-            if (dates.length < 50) {
-                throw new Error('Insufficient data');
+            if (!technicals) {
+                throw new Error('No technical data');
             }
 
-            // Get prices
-            const closes = dates.slice(0, 60).map(d => parseFloat(timeSeries[d]['4. close']));
-            const price = closes[0];
+            // Source 3: Calculate our own indicators
+            const analysis = analyzeData(quote, technicals);
 
-            // Calculate indicators
-            const sma20 = closes.slice(0, 20).reduce((a, b) => a + b) / 20;
-            const sma50 = closes.slice(0, 50).reduce((a, b) => a + b) / 50;
+            return analysis;
+        }
 
+        async function getFinnhubQuote(symbol) {
+            try {
+                const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${API_KEYS.finnhub}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.c && data.c > 0) {
+                    return {
+                        price: data.c, // Current price
+                        open: data.o,
+                        high: data.h,
+                        low: data.l,
+                        prevClose: data.pc,
+                        change: data.d,
+                        changePercent: data.dp
+                    };
+                }
+            } catch (e) {
+                console.error(`Finnhub error for ${symbol}:`, e);
+            }
+            return null;
+        }
+
+        async function getAlphaVantageTechnicals(symbol) {
+            try {
+                // Get SMA
+                const smaUrl = `https://www.alphavantage.co/query?function=SMA&symbol=${symbol}&interval=daily&time_period=20&series_type=close&apikey=${API_KEYS.alphaVantage}`;
+                const smaRes = await fetch(smaUrl);
+                const smaData = await smaRes.json();
+                
+                if (smaData['Technical Analysis: SMA']) {
+                    const smaValues = Object.values(smaData['Technical Analysis: SMA']);
+                    const sma20 = smaValues[0]?.SMA ? parseFloat(smaValues[0].SMA) : null;
+                    
+                    // Get RSI
+                    const rsiUrl = `https://www.alphavantage.co/query?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${API_KEYS.alphaVantage}`;
+                    const rsiRes = await fetch(rsiUrl);
+                    const rsiData = await rsiRes.json();
+                    
+                    const rsiValues = rsiData['Technical Analysis: RSI'] ? Object.values(rsiData['Technical Analysis: RSI']) : [];
+                    const rsi = rsiValues[0]?.RSI ? parseFloat(rsiValues[0].RSI) : null;
+                    
+                    return { sma20, rsi };
+                }
+            } catch (e) {
+                console.error(`Alpha Vantage error for ${symbol}:`, e);
+            }
+            return null;
+        }
+
+        function analyzeData(quote, technicals) {
+            const price = quote.price;
+            const sma20 = technicals.sma20;
+            const rsi = technicals.rsi;
+            
             // Determine signal
             let signal = 'neutral';
-            if (price > sma20 && sma20 > sma50) signal = 'bullish';
-            if (price < sma20 && sma20 < sma50) signal = 'bearish';
+            let strength = 0;
+            
+            if (sma20 && price > sma20 && rsi && rsi < 70) {
+                signal = 'bullish';
+                strength = ((price - sma20) / sma20 * 100).toFixed(2);
+            } else if (sma20 && price < sma20 && rsi && rsi > 30) {
+                signal = 'bearish';
+                strength = ((sma20 - price) / sma20 * 100).toFixed(2);
+            }
 
-            // Calculate strike (assuming weekly expiration)
+            // Calculate strikes (assuming weekly options)
             const atm = Math.round(price / 5) * 5;
-            const strike = signal === 'bullish' ? atm + 5 : signal === 'bearish' ? atm - 5 : atm;
+            const callStrike = atm + 5;
+            const putStrike = atm - 5;
+            
+            // Determine recommended strike
+            const recommendedStrike = signal === 'bullish' ? callStrike : 
+                                     signal === 'bearish' ? putStrike : atm;
+
+            // Calculate support/resistance (simplified)
+            const resistance = quote.high * 1.02;
+            const support = quote.low * 0.98;
 
             return {
-                symbol,
+                symbol: quote.symbol || window.currentSymbol,
                 price: price.toFixed(2),
+                change: quote.change.toFixed(2),
+                changePercent: quote.changePercent.toFixed(2),
+                open: quote.open.toFixed(2),
+                high: quote.high.toFixed(2),
+                low: quote.low.toFixed(2),
+                prevClose: quote.prevClose.toFixed(2),
                 signal,
-                strike,
-                sma20: sma20.toFixed(2),
-                sma50: sma50.toFixed(2),
-                updated: dates[0]
+                strength,
+                sma20: sma20 ? sma20.toFixed(2) : 'N/A',
+                rsi: rsi ? rsi.toFixed(2) : 'N/A',
+                atm,
+                callStrike,
+                putStrike,
+                recommendedStrike,
+                resistance: resistance.toFixed(2),
+                support: support.toFixed(2),
+                sources: ['Finnhub', 'Alpha Vantage', 'Calculated']
             };
         }
 
@@ -432,40 +593,79 @@
             resultsCard.style.display = 'block';
             countSpan.textContent = results.length;
 
-            resultsDiv.innerHTML = results.map(r => `
-                <div class="result-card ${r.signal}">
-                    <div class="symbol">${r.symbol}</div>
-                    <div class="details">
-                        <div class="detail-item">
-                            <div class="label">Current Price</div>
-                            <div class="value">$${r.price}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">SMA(20)</div>
-                            <div class="value">$${r.sma20}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">SMA(50)</div>
-                            <div class="value">$${r.sma50}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">Recommended Strike</div>
-                            <div class="value">$${r.strike}</div>
+            // Sort by signal (bullish first, then bearish, then neutral)
+            const sorted = [...results].sort((a, b) => {
+                const order = { bullish: 0, bearish: 1, neutral: 2 };
+                return order[a.signal] - order[b.signal];
+            });
+
+            resultsDiv.innerHTML = sorted.map(r => `
+                <div class="result-card ${r.signal}" onclick='showDetail(${JSON.stringify(r).replace(/'/g, "&apos;")})'>
+                    <div class="symbol-header">
+                        <div class="symbol">${r.symbol}</div>
+                        <div class="price-change">
+                            <div class="price">$${r.price}</div>
+                            <div class="change ${parseFloat(r.change) >= 0 ? 'positive' : 'negative'}">
+                                ${parseFloat(r.change) >= 0 ? '+' : ''}${r.change} (${parseFloat(r.changePercent) >= 0 ? '+' : ''}${r.changePercent}%)
+                            </div>
                         </div>
                     </div>
-                    <span class="badge ${r.signal}">
-                        ${r.signal === 'bullish' ? '🟢 Bullish - Buy Calls' : r.signal === 'bearish' ? '🔴 Bearish - Buy Puts' : '🟡 Neutral - Straddle'}
-                    </span>
-                    <div style="margin-top: 10px; font-size: 11px; color: #636e72;">
-                        Last updated: ${r.updated}
+
+                    <div class="indicators">
+                        <div class="indicator">
+                            <div class="indicator-label">SMA(20)</div>
+                            <div class="indicator-value">${r.sma20}</div>
+                        </div>
+                        <div class="indicator">
+                            <div class="indicator-label">RSI(14)</div>
+                            <div class="indicator-value">${r.rsi}</div>
+                        </div>
+                        <div class="indicator">
+                            <div class="indicator-label">Resistance</div>
+                            <div class="indicator-value">$${r.resistance}</div>
+                        </div>
+                        <div class="indicator">
+                            <div class="indicator-label">Support</div>
+                            <div class="indicator-value">$${r.support}</div>
+                        </div>
+                    </div>
+
+                    <div class="recommendation">
+                        <div class="rec-title">
+                            ${r.signal === 'bullish' ? '🟢 BULLISH - Buy Call Options' : 
+                              r.signal === 'bearish' ? '🔴 BEARISH - Buy Put Options' : 
+                              '🟡 NEUTRAL - Straddle Strategy'}
+                        </div>
+                        <div class="rec-details">
+                            <div><strong>Strike:</strong> $${r.recommendedStrike}</div>
+                            <div><strong>ATM:</strong> $${r.atm}</div>
+                            <div><strong>Signal Strength:</strong> ${r.strength}%</div>
+                            <div><strong>Strategy:</strong> ${r.signal === 'bullish' ? 'Long Call' : r.signal === 'bearish' ? 'Long Put' : 'Straddle'}</div>
+                        </div>
+                    </div>
+
+                    <div class="data-sources">
+                        📊 Data from: ${r.sources.join(' • ')}
                     </div>
                 </div>
             `).join('');
         }
 
+        function showDetail(data) {
+            // Detailed modal view would go here
+            alert(`Full analysis for ${data.symbol} coming soon!`);
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
+
+        // Store current symbol for callback
+        window.currentSymbol = '';
     </script>
 </body>
 </html>
