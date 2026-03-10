@@ -374,7 +374,7 @@
             <div class="input-group">
                 <label>📊 Scan Mode</label>
                 <select id="scanMode" onchange="toggleScanMode()">
-                    <option value="weekly" selected>Weekly Options (32 stocks) - Auto Scan Mon/Wed/Fri</option>
+                    <option value="weekly" selected id="weeklyModeOption">Weekly Options - Auto Scan Mon/Wed/Fri</option>
                     <option value="custom">Custom Symbols - Manual Entry</option>
                 </select>
             </div>
@@ -386,9 +386,8 @@
 
             <div class="input-group" id="weeklySymbolsInfo">
                 <label>Weekly Options Symbols</label>
-                <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 11px; line-height: 1.6;">
-                    <strong>32 stocks with Mon/Wed/Fri expirations:</strong><br>
-                    SPY, QQQ, IWM, DIA, AAPL, MSFT, GOOGL, AMZN, META, NVDA, TSLA, AMD, NFLX, JPM, BAC, WFC, GS, MS, XLE, XLF, GLD, TLT, SLV, USO, COIN, PLTR, SOFI, NIO, LCID, RIVN, F, RIOT
+                <div id="weeklySymbolsList" style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 11px; line-height: 1.6;">
+                    <strong>Loading symbols list...</strong>
                 </div>
             </div>
 
@@ -536,14 +535,120 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        // Weekly options symbols - stocks with Mon/Wed/Fri expirations
+        // Weekly options symbols - ALL stocks with Mon/Wed/Fri expirations
         const WEEKLY_OPTIONS_SYMBOLS = [
-            'SPY', 'QQQ', 'IWM', 'DIA',
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META', 'NVDA', 'TSLA', 'AMD', 'NFLX',
-            'JPM', 'BAC', 'WFC', 'GS', 'MS',
-            'XLE', 'XLF', 'GLD', 'TLT', 'SLV', 'USO',
-            'COIN', 'PLTR', 'SOFI', 'NIO', 'LCID', 'RIVN', 'F', 'RIOT'
+            // Major Index ETFs
+            'SPY', 'QQQ', 'IWM', 'DIA', 'EEM', 'EFA', 'VXX', 'UVXY',
+            
+            // FAANG + Mega Cap Tech
+            'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'NVDA', 'TSLA',
+            'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL', 'ADBE', 'CSCO', 'AVGO',
+            'QCOM', 'TXN', 'MU', 'AMAT', 'LRCX', 'KLAC', 'ASML',
+            
+            // Financial Services
+            'JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'BLK', 'SCHW', 'AXP',
+            'USB', 'PNC', 'TFC', 'COF', 'BK', 'STT', 'FITB',
+            
+            // Consumer & Retail
+            'AMZN', 'WMT', 'HD', 'TGT', 'COST', 'NKE', 'SBUX', 'MCD',
+            'DIS', 'CMCSA', 'NFLX', 'BKNG', 'ABNB', 'UBER', 'LYFT',
+            
+            // Healthcare & Pharma
+            'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'ABT', 'MRK', 'LLY',
+            'AMGN', 'GILD', 'BMY', 'CVS', 'CI', 'REGN', 'VRTX', 'BIIB',
+            
+            // Energy & Commodities
+            'XLE', 'XOP', 'OXY', 'CVX', 'XOM', 'COP', 'SLB', 'HAL',
+            'MPC', 'PSX', 'VLO', 'EOG', 'PXD', 'DVN', 'FANG',
+            
+            // Metals & Mining
+            'GLD', 'SLV', 'GDX', 'GDXJ', 'NEM', 'FCX', 'GOLD', 'AEM',
+            
+            // Industrials & Defense
+            'BA', 'CAT', 'GE', 'MMM', 'HON', 'UPS', 'RTX', 'LMT',
+            'NOC', 'GD', 'LHX', 'DE', 'EMR', 'ETN',
+            
+            // Semiconductor
+            'NVDA', 'AMD', 'INTC', 'TSM', 'AVGO', 'QCOM', 'TXN', 'MU',
+            'AMAT', 'LRCX', 'KLAC', 'MCHP', 'NXPI', 'ON', 'SWKS',
+            
+            // Electric Vehicles & Auto
+            'TSLA', 'F', 'GM', 'RIVN', 'LCID', 'NIO', 'LI', 'XPEV',
+            
+            // Communications & Social Media
+            'META', 'GOOGL', 'GOOG', 'SNAP', 'PINS', 'TWTR', 'MTCH',
+            'T', 'VZ', 'TMUS',
+            
+            // E-commerce & Payments
+            'AMZN', 'SHOP', 'PYPL', 'SQ', 'V', 'MA', 'COIN', 'HOOD',
+            
+            // Biotech
+            'MRNA', 'BNTX', 'REGN', 'VRTX', 'GILD', 'BIIB', 'ILMN',
+            'AMGN', 'CELG', 'ALXN',
+            
+            // High Volatility / Meme Stocks
+            'GME', 'AMC', 'BBBY', 'BB', 'PLTR', 'SOFI', 'RIVN', 'LCID',
+            
+            // REITs
+            'SPG', 'PLD', 'AMT', 'CCI', 'EQIX', 'PSA', 'O', 'WELL',
+            
+            // Chinese ADRs
+            'BABA', 'JD', 'PDD', 'BIDU', 'NIO', 'LI', 'XPEV', 'BILI',
+            
+            // Cannabis
+            'TLRY', 'CGC', 'SNDL', 'ACB', 'CRON', 'APHA',
+            
+            // Financials - Insurance
+            'BRK.B', 'AIG', 'PGR', 'ALL', 'MET', 'PRU', 'TRV', 'AFL',
+            
+            // Utilities
+            'NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'SRE', 'PEG',
+            
+            // Consumer Staples
+            'PG', 'KO', 'PEP', 'WMT', 'COST', 'MDLZ', 'CL', 'KHC',
+            
+            // Airlines & Travel
+            'AAL', 'DAL', 'UAL', 'LUV', 'JBLU', 'ALK', 'CCL', 'NCLH', 'RCL',
+            
+            // Banks - Regional
+            'BAC', 'JPM', 'C', 'WFC', 'USB', 'PNC', 'TFC', 'SCHW',
+            
+            // Sector ETFs
+            'XLF', 'XLE', 'XLK', 'XLV', 'XLI', 'XLP', 'XLU', 'XLY',
+            'XLB', 'XLRE', 'XLC', 'IYR', 'KRE', 'SMH', 'IBB', 'XRT',
+            
+            // Volatility & Inverse
+            'VXX', 'UVXY', 'SVXY', 'SQQQ', 'TQQQ', 'SPXU', 'SPXL',
+            'TNA', 'TZA', 'FAS', 'FAZ', 'ERX', 'ERY',
+            
+            // Bond ETFs
+            'TLT', 'IEF', 'SHY', 'LQD', 'HYG', 'JNK', 'TIP', 'AGG',
+            
+            // Commodity ETFs
+            'USO', 'UNG', 'GLD', 'SLV', 'GDXJ', 'DBA', 'DBC',
+            
+            // Crypto-Related
+            'COIN', 'MARA', 'RIOT', 'MSTR', 'SI', 'HUT', 'BITF',
+            
+            // Cloud & Software
+            'CRM', 'NOW', 'SNOW', 'DDOG', 'NET', 'ZS', 'CRWD', 'OKTA',
+            'WDAY', 'TEAM', 'ZM', 'DOCU', 'TWLO', 'SPLK',
+            
+            // Gaming
+            'ATVI', 'EA', 'TTWO', 'RBLX', 'U', 'DKNG',
+            
+            // Streaming
+            'NFLX', 'DIS', 'ROKU', 'PARA', 'WBD',
+            
+            // Cybersecurity
+            'CRWD', 'ZS', 'PANW', 'FTNT', 'CYBR', 'S',
+            
+            // Additional High Volume
+            'ARKK', 'ARKW', 'ARKG', 'ARKF', 'TAN', 'ICLN', 'LIT', 'XBI'
         ];
+        
+        // Remove duplicates and sort
+        const UNIQUE_WEEKLY_SYMBOLS = [...new Set(WEEKLY_OPTIONS_SYMBOLS)].sort();
 
         let autoRefreshTimer = null;
         let currentChart = null;
@@ -1192,7 +1297,7 @@
                 // Determine which symbols to scan
                 let symbols;
                 if (config.scanMode === 'weekly') {
-                    symbols = WEEKLY_OPTIONS_SYMBOLS;
+                    symbols = UNIQUE_WEEKLY_SYMBOLS;
                     console.log(`📊 Weekly mode: Scanning ${symbols.length} stocks with Mon/Wed/Fri options`);
                 } else {
                     symbols = config.symbols.split(',').map(s => s.trim());
@@ -1994,6 +2099,29 @@
 
         // Load saved settings from localStorage
         window.addEventListener('load', function() {
+            // Update weekly mode dropdown with count
+            const weeklyModeOption = document.getElementById('weeklyModeOption');
+            if (weeklyModeOption) {
+                const count = UNIQUE_WEEKLY_SYMBOLS.length;
+                weeklyModeOption.textContent = `Weekly Options (${count} stocks) - Auto Scan Mon/Wed/Fri`;
+            }
+            
+            // Populate weekly symbols list dynamically
+            const symbolsListEl = document.getElementById('weeklySymbolsList');
+            if (symbolsListEl) {
+                const count = UNIQUE_WEEKLY_SYMBOLS.length;
+                const preview = UNIQUE_WEEKLY_SYMBOLS.slice(0, 50).join(', ');
+                const remaining = count - 50;
+                
+                symbolsListEl.innerHTML = `
+                    <strong>${count} stocks with Mon/Wed/Fri expirations</strong><br>
+                    <div style="margin-top: 8px;">${preview}${remaining > 0 ? `, and ${remaining} more...` : ''}</div>
+                    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 10px;">
+                        📊 Categories: Index ETFs, Mega Cap Tech, Financials, Energy, Healthcare, Semiconductors, EVs, Crypto, High Volatility, Sector ETFs, and more
+                    </div>
+                `;
+            }
+            
             const saved = localStorage.getItem('scannerSettings');
             if (saved) {
                 const settings = JSON.parse(saved);
@@ -2014,7 +2142,8 @@
         // Initial instructions
         setTimeout(() => {
             if (!localStorage.getItem('hasVisited')) {
-                alert('📱 Welcome to Options Scanner!\n\n✅ READY TO USE:\n✓ No setup needed - just tap Scan!\n✓ Uses AllOrigins proxy (no CORS issues)\n✓ Alpha Vantage API pre-configured\n\n⚙️ CUSTOMIZE:\n✓ Tap Settings to adjust filters\n✓ Choose DTE (0-90 days)\n✓ Enable technical filters\n✓ View interactive charts\n\n🔍 START:\n✓ Default: SPY, QQQ at 30 DTE\n✓ Tap "🔍 Scan Now"\n✓ Wait 5-10 seconds\n✓ View results & charts!\n\n⚠️ For learning only - 15min delayed data');
+                const count = UNIQUE_WEEKLY_SYMBOLS.length;
+                alert(`📊 Weekly Options Scanner - LIVE MODE!\n\n🎯 AUTO-SCAN ${count} WEEKLY OPTIONS STOCKS:\n✓ Mon/Wed/Fri expirations\n✓ All major liquid options\n✓ Index ETFs, Tech, Finance, Energy, Healthcare, Crypto, and more\n\n⚙️ TWO MODES:\n✓ Weekly Mode (default) - Auto scans ${count} stocks\n✓ Custom Mode - Enter your own symbols\n\n🔍 HOW TO USE:\n1. Click "🔍 Scan Now"\n2. Wait 2-5 minutes (scanning all ${count} symbols)\n3. View results sorted by risk/reward\n4. Click charts to see full analysis\n\n⚠️ IMPORTANT:\n✓ Must be on http://localhost OR uploaded to GitHub/Netlify\n✓ File:// protocol will NOT work (CORS blocked)\n✓ See NO_RESULTS_FIX.txt for setup help`);
                 localStorage.setItem('hasVisited', 'true');
             }
         }, 500);
