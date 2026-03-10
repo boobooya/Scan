@@ -465,9 +465,19 @@
         let scanResults = [];
         let currentFilter = 'all';
         let currentChart = null;
+        let dataCache = {}; // Cache API responses
 
         // CORS proxy with fallback
-        async function fetchWithProxy(url) {
+        async function fetchWithProxy(url, useCache = true) {
+            // Check cache first
+            if (useCache && dataCache[url]) {
+                const cached = dataCache[url];
+                const age = Date.now() - cached.timestamp;
+                if (age < 5 * 60 * 1000) { // 5 minute cache
+                    return cached.data;
+                }
+            }
+
             const proxies = [
                 'https://api.allorigins.win/raw?url=',
                 'https://corsproxy.io/?',
@@ -475,11 +485,32 @@
 
             for (let proxy of proxies) {
                 try {
-                    const response = await fetch(proxy + encodeURIComponent(url));
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                    
+                    const response = await fetch(proxy + encodeURIComponent(url), {
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeout);
+                    
                     if (response.ok) {
-                        return await response.json();
+                        const data = await response.json();
+                        
+                        // Cache the result
+                        if (useCache) {
+                            dataCache[url] = {
+                                data: data,
+                                timestamp: Date.now()
+                            };
+                        }
+                        
+                        return data;
                     }
                 } catch (e) {
+                    if (e.name === 'AbortError') {
+                        console.log(`Timeout fetching ${url}`);
+                    }
                     continue;
                 }
             }
@@ -500,116 +531,160 @@
             const total = WEEKLY_OPTIONS_SYMBOLS.length;
             let completed = 0;
 
-            for (let symbol of WEEKLY_OPTIONS_SYMBOLS) {
-                try {
-                    const analysis = await analyzeSymbol(symbol);
-                    if (analysis) {
-                        scanResults.push(analysis);
-                    }
-                } catch (error) {
-                    console.error(`Error scanning ${symbol}:`, error);
-                }
+            // Show empty results immediately
+            resultsContainer.style.display = 'block';
+            displayResults();
 
-                completed++;
-                const percent = Math.round((completed / total) * 100);
-                progressFill.style.width = percent + '%';
-                progressFill.textContent = `${completed}/${total} (${percent}%) - Found ${scanResults.length}`;
+            // Process in parallel batches of 50 for speed
+            const BATCH_SIZE = 50;
+            const batches = [];
+            
+            for (let i = 0; i < WEEKLY_OPTIONS_SYMBOLS.length; i += BATCH_SIZE) {
+                batches.push(WEEKLY_OPTIONS_SYMBOLS.slice(i, i + BATCH_SIZE));
             }
 
+            // Process all batches in parallel
+            const batchPromises = batches.map(async (batch, batchIndex) => {
+                const symbolPromises = batch.map(async (symbol) => {
+                    try {
+                        const analysis = await analyzeSymbol(symbol);
+                        if (analysis) {
+                            scanResults.push(analysis);
+                            
+                            // Update UI every 10 symbols
+                            completed++;
+                            if (completed % 10 === 0) {
+                                const percent = Math.round((completed / total) * 100);
+                                progressFill.style.width = percent + '%';
+                                progressFill.textContent = `${completed}/${total} (${percent}%) - Found ${scanResults.length}`;
+                                displayResults(); // Live update
+                            }
+                        }
+                    } catch (error) {
+                        console.error(`Error scanning ${symbol}:`, error);
+                    }
+                    
+                    completed++;
+                    return null;
+                });
+
+                // Wait for all symbols in this batch
+                await Promise.all(symbolPromises);
+            });
+
+            // Wait for all batches to complete
+            await Promise.all(batchPromises);
+
+            // Final update
+            progressFill.style.width = '100%';
+            progressFill.textContent = `Complete - Found ${scanResults.length} opportunities`;
             displayResults();
+            
             button.disabled = false;
             button.textContent = '🔍 Scan All Weekly Options';
-            progressBar.style.display = 'none';
-            resultsContainer.style.display = 'block';
+            
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+            }, 2000);
         }
 
         async function analyzeSymbol(symbol) {
-            // Fetch options data
-            const url = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
-            const data = await fetchWithProxy(url);
+            try {
+                // Fetch options data with timeout
+                const url = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
+                const data = await fetchWithProxy(url);
 
-            if (!data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
+                if (!data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
+                    return null;
+                }
+
+                const result = data.optionChain.result[0];
+                const quote = result.quote;
+                const currentPrice = quote.regularMarketPrice;
+                const expirations = result.expirationDates || [];
+
+                if (expirations.length === 0) return null;
+
+                // Get nearest weekly expiration
+                const nextExpiration = expirations[0];
+                const expDate = new Date(nextExpiration * 1000);
+                const daysToExp = Math.round((expDate - new Date()) / (1000 * 60 * 60 * 24));
+
+                // Only include weekly options (0-7 days)
+                if (daysToExp > 7) return null;
+
+                // Quick fetch of minimal historical data (last 30 days only for speed)
+                const historicalUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`;
+                const histData = await fetchWithProxy(historicalUrl);
+
+                if (!histData.chart || !histData.chart.result) return null;
+
+                const chartResult = histData.chart.result[0];
+                const quotes = chartResult.indicators.quote[0];
+                const closes = quotes.close.filter(p => p !== null);
+                const highs = quotes.high.filter(p => p !== null);
+                const lows = quotes.low.filter(p => p !== null);
+
+                if (closes.length < 20) return null;
+
+                // Fast technical calculations
+                const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
+                const sma50 = closes.length >= 50 ? closes.slice(-50).reduce((a, b) => a + b, 0) / 50 : sma20;
+                
+                // Simple EMA calculation
+                const ema9 = calculateEMA(closes, 9);
+                const ema21 = calculateEMA(closes, 21);
+
+                // Quick signal determination
+                let signal = 'neutral';
+                let signalStrength = 0;
+
+                if (currentPrice > sma20 && sma20 > sma50 && ema9 > ema21) {
+                    signal = 'bullish';
+                    signalStrength = ((currentPrice - sma50) / sma50 * 100).toFixed(2);
+                } else if (currentPrice < sma20 && sma20 < sma50 && ema9 < ema21) {
+                    signal = 'bearish';
+                    signalStrength = ((sma50 - currentPrice) / sma50 * 100).toFixed(2);
+                }
+
+                // Quick support/resistance from recent data only
+                const recentHighs = highs.slice(-10);
+                const recentLows = lows.slice(-10);
+                const resistance = Math.max(...recentHighs);
+                const support = Math.min(...recentLows);
+
+                // Fast strike calculations
+                const atmStrike = Math.round(currentPrice / 5) * 5;
+                const callStrike = signal === 'bullish' ? atmStrike + 5 : atmStrike;
+                const putStrike = signal === 'bearish' ? atmStrike - 5 : atmStrike;
+
+                return {
+                    symbol,
+                    currentPrice,
+                    signal,
+                    signalStrength,
+                    daysToExp,
+                    expDate: expDate.toLocaleDateString(),
+                    sma20,
+                    sma50,
+                    ema9,
+                    ema21,
+                    resistance,
+                    support,
+                    atmStrike,
+                    callStrike,
+                    putStrike,
+                    historicalData: {
+                        timestamps: chartResult.timestamp,
+                        closes,
+                        highs,
+                        lows
+                    }
+                };
+            } catch (error) {
+                // Silently fail for speed
                 return null;
             }
-
-            const result = data.optionChain.result[0];
-            const quote = result.quote;
-            const currentPrice = quote.regularMarketPrice;
-            const expirations = result.expirationDates || [];
-
-            if (expirations.length === 0) return null;
-
-            // Get nearest weekly expiration
-            const nextExpiration = expirations[0];
-            const expDate = new Date(nextExpiration * 1000);
-            const daysToExp = Math.round((expDate - new Date()) / (1000 * 60 * 60 * 24));
-
-            // Check if it's a weekly (0-7 days)
-            if (daysToExp > 7) return null;
-
-            // Fetch historical data for technical analysis
-            const historicalUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=60d`;
-            const histData = await fetchWithProxy(historicalUrl);
-
-            if (!histData.chart || !histData.chart.result) return null;
-
-            const chartResult = histData.chart.result[0];
-            const timestamps = chartResult.timestamp;
-            const quotes = chartResult.indicators.quote[0];
-            const closes = quotes.close.filter(p => p !== null);
-            const highs = quotes.high.filter(p => p !== null);
-            const lows = quotes.low.filter(p => p !== null);
-
-            // Calculate technical indicators
-            const sma20 = calculateSMA(closes, 20);
-            const sma50 = calculateSMA(closes, 50);
-            const ema9 = calculateEMA(closes, 9);
-            const ema21 = calculateEMA(closes, 21);
-
-            // Determine signal
-            let signal = 'neutral';
-            let signalStrength = 0;
-
-            if (currentPrice > sma20 && sma20 > sma50 && ema9 > ema21) {
-                signal = 'bullish';
-                signalStrength = ((currentPrice - sma50) / sma50 * 100).toFixed(2);
-            } else if (currentPrice < sma20 && sma20 < sma50 && ema9 < ema21) {
-                signal = 'bearish';
-                signalStrength = ((sma50 - currentPrice) / sma50 * 100).toFixed(2);
-            }
-
-            // Identify support and resistance
-            const resistance = Math.max(...highs.slice(-20));
-            const support = Math.min(...lows.slice(-20));
-
-            // Calculate ideal strikes
-            const atmStrike = Math.round(currentPrice / 5) * 5;
-            const callStrike = signal === 'bullish' ? atmStrike + 5 : atmStrike;
-            const putStrike = signal === 'bearish' ? atmStrike - 5 : atmStrike;
-
-            return {
-                symbol,
-                currentPrice,
-                signal,
-                signalStrength,
-                daysToExp,
-                expDate: expDate.toLocaleDateString(),
-                sma20,
-                sma50,
-                ema9,
-                ema21,
-                resistance,
-                support,
-                atmStrike,
-                callStrike,
-                putStrike,
-                historicalData: {
-                    timestamps,
-                    closes,
-                    highs,
-                    lows
-                }
-            };
         }
 
         function calculateSMA(prices, period) {
@@ -637,7 +712,20 @@
                 return r.signal === currentFilter;
             });
 
+            // Sort by signal strength (strongest first)
+            filtered.sort((a, b) => Math.abs(parseFloat(b.signalStrength)) - Math.abs(parseFloat(a.signalStrength)));
+
             resultsCount.textContent = `${filtered.length} opportunities found`;
+
+            if (filtered.length === 0 && scanResults.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>Scanning symbols...</div>
+                    </div>
+                `;
+                return;
+            }
 
             if (filtered.length === 0) {
                 resultsList.innerHTML = `
@@ -649,8 +737,8 @@
                 return;
             }
 
-            resultsList.innerHTML = filtered.map(result => `
-                <div class="result-item" onclick="showAnalysis('${result.symbol}')">
+            resultsList.innerHTML = filtered.map((result, idx) => `
+                <div class="result-item" onclick="showAnalysis('${result.symbol}')" style="animation: fadeIn 0.3s ease ${idx * 0.05}s both;">
                     <div class="result-symbol">${result.symbol}</div>
                     <div class="result-info">
                         <div class="info-item">
@@ -658,16 +746,16 @@
                             <div class="info-value">$${result.currentPrice.toFixed(2)}</div>
                         </div>
                         <div class="info-item">
-                            <div class="info-label">Days to Expiration</div>
-                            <div class="info-value">${result.daysToExp} DTE</div>
+                            <div class="info-label">Expiration</div>
+                            <div class="info-value">${result.expDate}</div>
                         </div>
                         <div class="info-item">
                             <div class="info-label">Signal Strength</div>
-                            <div class="info-value">${result.signalStrength}%</div>
+                            <div class="info-value">${Math.abs(result.signalStrength)}%</div>
                         </div>
                         <div class="info-item">
-                            <div class="info-label">Ideal Strike</div>
-                            <div class="info-value">$${result.signal === 'bullish' ? result.callStrike : result.putStrike}</div>
+                            <div class="info-label">Recommended Strike</div>
+                            <div class="info-value">$${result.signal === 'bullish' ? result.callStrike : result.signal === 'bearish' ? result.putStrike : result.atmStrike}</div>
                         </div>
                     </div>
                     <div>
@@ -678,6 +766,22 @@
                 </div>
             `).join('');
         }
+
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
 
         function filterResults(filter) {
             currentFilter = filter;
