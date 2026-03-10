@@ -409,6 +409,20 @@
                 <div class="results-count" id="resultsCount">0 opportunities found</div>
             </div>
 
+            <!-- Diagnostic Panel -->
+            <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f39c12;" id="diagnosticPanel">
+                <div style="font-weight: bold; margin-bottom: 10px;">📊 Scan Diagnostic</div>
+                <div style="font-size: 13px; font-family: monospace;">
+                    <div>Symbols Scanned: <span id="diagScanned">0</span></div>
+                    <div>Successfully Fetched: <span id="diagSuccess">0</span></div>
+                    <div>Network Errors: <span id="diagErrors">0</span></div>
+                    <div>Not Weekly (DTE > 7): <span id="diagNotWeekly">0</span></div>
+                    <div>No Data Available: <span id="diagNoData">0</span></div>
+                    <div>Opportunities Found: <span id="diagFound">0</span></div>
+                </div>
+                <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px; max-height: 150px; overflow-y: auto; font-size: 11px; font-family: monospace;" id="diagLog"></div>
+            </div>
+
             <div class="filter-tabs">
                 <button class="filter-tab active" onclick="filterResults('all')">All</button>
                 <button class="filter-tab" onclick="filterResults('bullish')">🟢 Bullish</button>
@@ -466,6 +480,41 @@
         let currentFilter = 'all';
         let currentChart = null;
         let dataCache = {}; // Cache API responses
+        
+        // Diagnostic counters
+        let diagnostics = {
+            scanned: 0,
+            success: 0,
+            errors: 0,
+            notWeekly: 0,
+            noData: 0,
+            found: 0,
+            logs: []
+        };
+
+        function updateDiagnostics() {
+            document.getElementById('diagScanned').textContent = diagnostics.scanned;
+            document.getElementById('diagSuccess').textContent = diagnostics.success;
+            document.getElementById('diagErrors').textContent = diagnostics.errors;
+            document.getElementById('diagNotWeekly').textContent = diagnostics.notWeekly;
+            document.getElementById('diagNoData').textContent = diagnostics.noData;
+            document.getElementById('diagFound').textContent = diagnostics.found;
+            
+            const logDiv = document.getElementById('diagLog');
+            logDiv.innerHTML = diagnostics.logs.slice(-20).join('<br>');
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function addDiagLog(message, type = 'info') {
+            const colors = {
+                'success': '#00b894',
+                'error': '#d63031',
+                'warning': '#fdcb6e',
+                'info': '#636e72'
+            };
+            diagnostics.logs.push(`<span style="color: ${colors[type]}">${message}</span>`);
+            updateDiagnostics();
+        }
 
         // Multiple CORS proxies - try all of them
         const CORS_PROXIES = [
@@ -546,25 +595,37 @@
             button.textContent = '🔄 Scanning...';
             progressBar.style.display = 'block';
             scanResults = [];
+            
+            // Reset diagnostics
+            diagnostics = {
+                scanned: 0,
+                success: 0,
+                errors: 0,
+                notWeekly: 0,
+                noData: 0,
+                found: 0,
+                logs: []
+            };
 
             const total = WEEKLY_OPTIONS_SYMBOLS.length;
             let completed = 0;
-            let successful = 0;
-            let failed = 0;
 
             // Show empty results immediately
             resultsContainer.style.display = 'block';
             displayResults();
+            updateDiagnostics();
 
-            console.log(`Starting scan of ${total} symbols...`);
+            addDiagLog(`🚀 Starting scan of ${total} symbols...`, 'info');
 
             // MAXIMUM PARALLELISM - Process ALL symbols at once!
             const symbolPromises = WEEKLY_OPTIONS_SYMBOLS.map(async (symbol) => {
                 try {
+                    diagnostics.scanned++;
                     const analysis = await analyzeSymbol(symbol);
                     if (analysis) {
                         scanResults.push(analysis);
-                        successful++;
+                        diagnostics.found++;
+                        addDiagLog(`✓ ${symbol}: ${analysis.signal} (${analysis.daysToExp} DTE)`, 'success');
                         
                         // Update UI every 5 symbols for speed
                         if (scanResults.length % 5 === 0) {
@@ -572,8 +633,8 @@
                         }
                     }
                 } catch (error) {
-                    failed++;
-                    console.error(`Failed ${symbol}:`, error.message);
+                    diagnostics.errors++;
+                    addDiagLog(`✗ ${symbol}: ${error.message}`, 'error');
                 }
                 
                 completed++;
@@ -583,6 +644,7 @@
                     const percent = Math.round((completed / total) * 100);
                     progressFill.style.width = percent + '%';
                     progressFill.textContent = `${completed}/${total} (${percent}%) - Found ${scanResults.length}`;
+                    updateDiagnostics();
                 }
                 
                 return null;
@@ -592,10 +654,11 @@
             await Promise.all(symbolPromises);
 
             // Final update
-            console.log(`Scan complete: ${successful} success, ${failed} failed`);
+            addDiagLog(`✅ Scan complete! Found ${diagnostics.found} opportunities`, diagnostics.found > 0 ? 'success' : 'warning');
             progressFill.style.width = '100%';
-            progressFill.textContent = `Complete - Found ${scanResults.length} opportunities (${failed} errors)`;
+            progressFill.textContent = `Complete - Found ${scanResults.length} opportunities`;
             displayResults();
+            updateDiagnostics();
             
             button.disabled = false;
             button.textContent = '🔍 Scan All Weekly Options';
@@ -612,7 +675,8 @@
                 const data = await fetchWithProxy(url);
 
                 if (!data || !data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
-                    console.log(`${symbol}: No option chain data`);
+                    diagnostics.noData++;
+                    addDiagLog(`${symbol}: No option chain`, 'warning');
                     return null;
                 }
 
@@ -620,7 +684,8 @@
                 const quote = result.quote;
                 
                 if (!quote || !quote.regularMarketPrice) {
-                    console.log(`${symbol}: No quote data`);
+                    diagnostics.noData++;
+                    addDiagLog(`${symbol}: No quote`, 'warning');
                     return null;
                 }
                 
@@ -628,7 +693,8 @@
                 const expirations = result.expirationDates || [];
 
                 if (expirations.length === 0) {
-                    console.log(`${symbol}: No expirations`);
+                    diagnostics.noData++;
+                    addDiagLog(`${symbol}: No expirations`, 'warning');
                     return null;
                 }
 
@@ -639,18 +705,18 @@
 
                 // Only include weekly options (0-7 days)
                 if (daysToExp > 7) {
-                    console.log(`${symbol}: DTE ${daysToExp} > 7, not weekly`);
+                    diagnostics.notWeekly++;
+                    addDiagLog(`${symbol}: DTE=${daysToExp} (not weekly)`, 'info');
                     return null;
                 }
-
-                console.log(`${symbol}: DTE ${daysToExp}, fetching historical...`);
 
                 // Quick fetch of minimal historical data (last 30 days only for speed)
                 const historicalUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`;
                 const histData = await fetchWithProxy(historicalUrl);
 
                 if (!histData || !histData.chart || !histData.chart.result || histData.chart.result.length === 0) {
-                    console.log(`${symbol}: No historical data`);
+                    diagnostics.noData++;
+                    addDiagLog(`${symbol}: No historical data`, 'warning');
                     return null;
                 }
 
@@ -661,9 +727,12 @@
                 const lows = quotes.low.filter(p => p !== null && p !== undefined);
 
                 if (closes.length < 20) {
-                    console.log(`${symbol}: Not enough price data (${closes.length})`);
+                    diagnostics.noData++;
+                    addDiagLog(`${symbol}: Only ${closes.length} data points`, 'warning');
                     return null;
                 }
+
+                diagnostics.success++;
 
                 // Fast technical calculations
                 const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
@@ -696,8 +765,6 @@
                 const callStrike = signal === 'bullish' ? atmStrike + 5 : atmStrike;
                 const putStrike = signal === 'bearish' ? atmStrike - 5 : atmStrike;
 
-                console.log(`✓ ${symbol}: ${signal} signal, strength ${signalStrength}%`);
-
                 return {
                     symbol,
                     currentPrice,
@@ -722,7 +789,7 @@
                     }
                 };
             } catch (error) {
-                console.error(`✗ ${symbol} ERROR:`, error.message);
+                diagnostics.errors++;
                 return null;
             }
         }
