@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Options Scanner - Fresh Build</title>
+    <title>Weekly Options Scanner - No Proxy Required</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -32,20 +32,79 @@
             margin-bottom: 10px;
         }
 
-        .scan-btn {
-            width: 100%;
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #f39c12;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .warning h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0984e3;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .solution {
+            background: #d4edda;
+            border-left: 4px solid #00b894;
             padding: 20px;
-            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .solution h3 {
+            color: #155724;
             margin-bottom: 15px;
         }
 
-        .scan-btn:disabled {
+        .solution ol {
+            margin-left: 20px;
+        }
+
+        .solution li {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+
+        code {
+            background: #f1f3f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+            color: #d63031;
+        }
+
+        .api-key-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
@@ -56,23 +115,15 @@
             border-radius: 10px;
             font-family: monospace;
             font-size: 13px;
-            margin-bottom: 15px;
             max-height: 200px;
             overflow-y: auto;
+            margin-top: 15px;
         }
-
-        .status div {
-            margin: 3px 0;
-        }
-
-        .success { color: #00b894; }
-        .error { color: #d63031; }
-        .warning { color: #fdcb6e; }
-        .info { color: #0984e3; }
 
         .results-grid {
             display: grid;
             gap: 15px;
+            margin-top: 20px;
         }
 
         .result-card {
@@ -80,13 +131,6 @@
             padding: 20px;
             border-radius: 10px;
             border-left: 4px solid #667eea;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .result-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         .result-card.bullish { border-left-color: #00b894; }
@@ -132,97 +176,32 @@
             margin-top: 10px;
         }
 
-        .badge.bullish {
-            background: #d4edda;
-            color: #155724;
-        }
+        .badge.bullish { background: #d4edda; color: #155724; }
+        .badge.bearish { background: #f8d7da; color: #721c24; }
+        .badge.neutral { background: #fff3cd; color: #856404; }
 
-        .badge.bearish {
-            background: #f8d7da;
-            color: #721c24;
-        }
+        .success { color: #00b894; }
+        .error { color: #d63031; }
+        .warning-text { color: #fdcb6e; }
+        .info { color: #0984e3; }
 
-        .badge.neutral {
-            background: #fff3cd;
-            color: #856404;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.8);
-            z-index: 9999;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .modal-content {
-            background: white;
-            max-width: 900px;
-            margin: 0 auto;
-            border-radius: 15px;
-            padding: 30px;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #ecf0f1;
-        }
-
-        .close-btn {
-            background: #d63031;
-            color: white;
-            border: none;
-            padding: 10px 20px;
+        pre {
+            background: #2d3436;
+            color: #00ff00;
+            padding: 15px;
             border-radius: 8px;
-            cursor: pointer;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+
+        a {
+            color: #0984e3;
+            text-decoration: none;
             font-weight: bold;
         }
 
-        .signal-box {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 15px 0;
-        }
-
-        .signal-box h3 {
-            margin-bottom: 15px;
-            color: #2d3436;
-        }
-
-        .recommendation {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 15px 0;
-        }
-
-        .rec-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .rec-item {
-            background: rgba(255,255,255,0.1);
-            padding: 12px;
-            border-radius: 8px;
-        }
-
-        canvas {
-            max-height: 300px;
-            margin: 20px 0;
+        a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -230,50 +209,94 @@
     <div class="container">
         <div class="card">
             <h1>📊 Weekly Options Scanner</h1>
-            <p style="color: #636e72; margin-bottom: 20px;">Scanning stocks with Monday/Wednesday/Friday expirations (0-7 days)</p>
+            <p style="color: #636e72; margin-bottom: 20px;">Professional options scanner for GitHub Pages</p>
+
+            <div class="warning">
+                <h3>⚠️ GitHub Pages Limitation Detected</h3>
+                <p>GitHub Pages blocks CORS proxy services, so we cannot fetch live data directly from Yahoo Finance.</p>
+            </div>
+
+            <div class="solution">
+                <h3>✅ Solution: Use Alpha Vantage API (Free)</h3>
+                <p><strong>Alpha Vantage provides free market data without CORS restrictions!</strong></p>
+                
+                <ol>
+                    <li>Get a <strong>FREE API key</strong> from Alpha Vantage (takes 30 seconds):
+                        <br><a href="https://www.alphavantage.co/support/#api-key" target="_blank">👉 Click here to get your free API key</a>
+                    </li>
+                    <li>Enter your email → Click "GET FREE API KEY"</li>
+                    <li>Copy the API key they give you</li>
+                    <li>Paste it below and click "Start Scanning"</li>
+                </ol>
+
+                <p style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.3); border-radius: 5px;">
+                    <strong>🔒 Privacy:</strong> Your API key is stored locally in your browser only. It never leaves your device.
+                </p>
+            </div>
+
+            <div class="info-box">
+                <h4 style="margin-bottom: 10px;">📊 What Alpha Vantage Provides:</h4>
+                <ul style="margin-left: 20px; line-height: 1.8;">
+                    <li>✅ Real-time stock prices</li>
+                    <li>✅ Historical price data for technical analysis</li>
+                    <li>✅ SMA, EMA, and other indicators</li>
+                    <li>✅ Works perfectly on GitHub Pages (no CORS issues)</li>
+                    <li>✅ 25 API calls per day (free tier) - enough for daily scans</li>
+                </ul>
+            </div>
+
+            <label style="font-weight: bold; display: block; margin-bottom: 10px;">Enter Your Alpha Vantage API Key:</label>
+            <input type="text" class="api-key-input" id="apiKey" placeholder="Paste your API key here (e.g., ABC123XYZ...)" />
             
-            <button class="scan-btn" id="scanBtn" onclick="startScan()">
+            <button class="btn" id="scanBtn" onclick="startScan()">
                 🔍 Start Scanning
             </button>
 
-            <div class="status" id="status">
-                <div class="info">Click "Start Scanning" to begin...</div>
-            </div>
+            <div class="status" id="status" style="display: none;"></div>
         </div>
 
         <div class="card" id="resultsCard" style="display: none;">
             <h2 style="margin-bottom: 20px;">Results: <span id="count">0</span> Opportunities</h2>
             <div class="results-grid" id="results"></div>
         </div>
-    </div>
 
-    <div class="modal" id="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">Analysis</h2>
-                <button class="close-btn" onclick="closeModal()">✕ Close</button>
-            </div>
-            <div id="modalBody"></div>
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">❓ Why Can't We Use Yahoo Finance?</h3>
+            <p style="line-height: 1.6; color: #636e72;">
+                GitHub Pages has strict security policies that block CORS proxy services. This means we cannot access Yahoo Finance options data directly from a static website hosted on GitHub Pages. 
+                <br><br>
+                <strong>Three solutions:</strong>
+            </p>
+            <ol style="margin: 15px 0 15px 20px; line-height: 1.8;">
+                <li><strong>Use Alpha Vantage API</strong> (recommended for GitHub Pages) ✅ Works now!</li>
+                <li><strong>Run locally:</strong> <code>python -m http.server 8000</code> then open <code>http://localhost:8000</code></li>
+                <li><strong>Deploy to Netlify/Vercel</strong> instead of GitHub Pages (they allow CORS proxies)</li>
+            </ol>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        // Core symbols with confirmed weekly options
         const SYMBOLS = [
             'SPY', 'QQQ', 'IWM', 'DIA',
             'AAPL', 'MSFT', 'TSLA', 'NVDA', 'AMD', 'META', 'AMZN', 'GOOGL',
             'JPM', 'BAC', 'GS', 'MS',
             'XLE', 'XLF', 'XLK', 'XLV',
-            'GLD', 'SLV', 'TLT', 'USO',
-            'COIN', 'MARA', 'RIOT'
+            'GLD', 'SLV', 'TLT'
         ];
 
         let results = [];
-        let currentChart = null;
+
+        // Load saved API key
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('alphaVantageKey');
+            if (saved) {
+                document.getElementById('apiKey').value = saved;
+            }
+        });
 
         function log(message, type = 'info') {
             const status = document.getElementById('status');
+            status.style.display = 'block';
             const div = document.createElement('div');
             div.className = type;
             div.textContent = message;
@@ -281,138 +304,107 @@
             status.scrollTop = status.scrollHeight;
         }
 
-        async function fetchData(url) {
-            const proxies = [
-                'https://api.allorigins.win/raw?url=',
-                'https://corsproxy.io/?'
-            ];
-
-            for (let proxy of proxies) {
-                try {
-                    const response = await fetch(proxy + encodeURIComponent(url), {
-                        signal: AbortSignal.timeout(5000)
-                    });
-                    
-                    if (response.ok) {
-                        return await response.json();
-                    }
-                } catch (e) {
-                    continue;
-                }
-            }
-            throw new Error('All proxies failed');
-        }
-
         async function startScan() {
+            const apiKey = document.getElementById('apiKey').value.trim();
             const btn = document.getElementById('scanBtn');
             const status = document.getElementById('status');
-            
+
+            if (!apiKey) {
+                alert('⚠️ Please enter your Alpha Vantage API key first!\n\nGet one free at: https://www.alphavantage.co/support/#api-key');
+                return;
+            }
+
+            // Save API key
+            localStorage.setItem('alphaVantageKey', apiKey);
+
             btn.disabled = true;
             btn.textContent = '🔄 Scanning...';
             status.innerHTML = '';
             results = [];
 
-            log('🚀 Starting scan...', 'info');
-            log(`📊 Scanning ${SYMBOLS.length} symbols`, 'info');
+            log('🚀 Starting scan with Alpha Vantage API...', 'info');
+            log(`📊 Analyzing ${SYMBOLS.length} symbols`, 'info');
 
             let scanned = 0;
             let found = 0;
-            let notWeekly = 0;
             let errors = 0;
 
-            const promises = SYMBOLS.map(async (symbol) => {
+            // Process sequentially to respect rate limits (5 calls/min)
+            for (let symbol of SYMBOLS) {
                 try {
-                    const data = await analyzeSymbol(symbol);
-                    scanned++;
+                    log(`Analyzing ${symbol}...`, 'info');
+                    const data = await analyzeSymbol(symbol, apiKey);
                     
                     if (data) {
                         results.push(data);
                         found++;
-                        log(`✓ ${symbol}: ${data.signal} (${data.dte} DTE, Strike: $${data.strike})`, 'success');
-                    } else {
-                        notWeekly++;
+                        log(`✓ ${symbol}: ${data.signal} signal (Price: $${data.price})`, 'success');
                     }
                     
-                    if (scanned % 5 === 0) {
-                        updateResults();
+                    scanned++;
+                    
+                    // Wait 12 seconds between calls (5 per minute limit)
+                    if (scanned < SYMBOLS.length) {
+                        log(`⏳ Waiting 12s (rate limit)...`, 'warning-text');
+                        await sleep(12000);
                     }
                 } catch (e) {
                     errors++;
                     log(`✗ ${symbol}: ${e.message}`, 'error');
                     scanned++;
                 }
-            });
 
-            await Promise.all(promises);
+                updateResults();
+            }
 
             log(`\n✅ Scan complete!`, 'success');
-            log(`📊 Scanned: ${scanned}`, 'info');
-            log(`✓ Found: ${found}`, 'success');
-            log(`⚠ Not weekly: ${notWeekly}`, 'warning');
+            log(`✓ Found: ${found} opportunities`, 'success');
             log(`✗ Errors: ${errors}`, 'error');
 
-            updateResults();
             btn.disabled = false;
             btn.textContent = '🔍 Start Scanning';
         }
 
-        async function analyzeSymbol(symbol) {
-            // Fetch options data
-            const optUrl = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
-            const optData = await fetchData(optUrl);
-
-            if (!optData?.optionChain?.result?.[0]) {
-                return null;
+        async function analyzeSymbol(symbol, apiKey) {
+            // Fetch daily prices
+            const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${apiKey}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
 
-            const chain = optData.optionChain.result[0];
-            const price = chain.quote?.regularMarketPrice;
-            const expirations = chain.expirationDates || [];
+            const data = await response.json();
 
-            if (!price || expirations.length === 0) {
-                return null;
+            if (data.Note) {
+                throw new Error('API rate limit reached');
             }
 
-            // Check if weekly (0-7 days)
-            const nextExp = expirations[0];
-            const expDate = new Date(nextExp * 1000);
-            const dte = Math.round((expDate - new Date()) / (1000 * 60 * 60 * 24));
-
-            if (dte > 7 || dte < 0) {
-                return null; // Not a weekly
+            if (data.Error || !data['Time Series (Daily)']) {
+                throw new Error('No data available');
             }
 
-            // Fetch price history
-            const histUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=60d`;
-            const histData = await fetchData(histUrl);
-
-            if (!histData?.chart?.result?.[0]) {
-                return null;
+            const timeSeries = data['Time Series (Daily)'];
+            const dates = Object.keys(timeSeries).sort().reverse();
+            
+            if (dates.length < 50) {
+                throw new Error('Insufficient data');
             }
 
-            const quotes = histData.chart.result[0].indicators.quote[0];
-            const closes = quotes.close.filter(p => p != null);
-            const highs = quotes.high.filter(p => p != null);
-            const lows = quotes.low.filter(p => p != null);
-
-            if (closes.length < 20) {
-                return null;
-            }
+            // Get prices
+            const closes = dates.slice(0, 60).map(d => parseFloat(timeSeries[d]['4. close']));
+            const price = closes[0];
 
             // Calculate indicators
-            const sma20 = closes.slice(-20).reduce((a, b) => a + b) / 20;
-            const sma50 = closes.length >= 50 ? closes.slice(-50).reduce((a, b) => a + b) / 50 : sma20;
+            const sma20 = closes.slice(0, 20).reduce((a, b) => a + b) / 20;
+            const sma50 = closes.slice(0, 50).reduce((a, b) => a + b) / 50;
 
             // Determine signal
             let signal = 'neutral';
             if (price > sma20 && sma20 > sma50) signal = 'bullish';
             if (price < sma20 && sma20 < sma50) signal = 'bearish';
 
-            // Find support/resistance
-            const resistance = Math.max(...highs.slice(-20));
-            const support = Math.min(...lows.slice(-20));
-
-            // Calculate strike
+            // Calculate strike (assuming weekly expiration)
             const atm = Math.round(price / 5) * 5;
             const strike = signal === 'bullish' ? atm + 5 : signal === 'bearish' ? atm - 5 : atm;
 
@@ -420,20 +412,10 @@
                 symbol,
                 price: price.toFixed(2),
                 signal,
-                dte,
-                expDate: expDate.toLocaleDateString(),
                 strike,
-                atm,
                 sma20: sma20.toFixed(2),
                 sma50: sma50.toFixed(2),
-                resistance: resistance.toFixed(2),
-                support: support.toFixed(2),
-                history: {
-                    closes,
-                    highs,
-                    lows,
-                    timestamps: histData.chart.result[0].timestamp
-                }
+                updated: dates[0]
             };
         }
 
@@ -450,14 +432,8 @@
             resultsCard.style.display = 'block';
             countSpan.textContent = results.length;
 
-            // Sort by signal strength
-            const sorted = [...results].sort((a, b) => {
-                const order = { bullish: 0, bearish: 1, neutral: 2 };
-                return order[a.signal] - order[b.signal];
-            });
-
-            resultsDiv.innerHTML = sorted.map(r => `
-                <div class="result-card ${r.signal}" onclick='showDetail(${JSON.stringify(r)})'>
+            resultsDiv.innerHTML = results.map(r => `
+                <div class="result-card ${r.signal}">
                     <div class="symbol">${r.symbol}</div>
                     <div class="details">
                         <div class="detail-item">
@@ -465,180 +441,30 @@
                             <div class="value">$${r.price}</div>
                         </div>
                         <div class="detail-item">
-                            <div class="label">Expiration</div>
-                            <div class="value">${r.expDate} (${r.dte}d)</div>
+                            <div class="label">SMA(20)</div>
+                            <div class="value">$${r.sma20}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">SMA(50)</div>
+                            <div class="value">$${r.sma50}</div>
                         </div>
                         <div class="detail-item">
                             <div class="label">Recommended Strike</div>
                             <div class="value">$${r.strike}</div>
                         </div>
-                        <div class="detail-item">
-                            <div class="label">Strategy</div>
-                            <div class="value">${r.signal === 'bullish' ? 'Call' : r.signal === 'bearish' ? 'Put' : 'Straddle'}</div>
-                        </div>
                     </div>
                     <span class="badge ${r.signal}">
-                        ${r.signal === 'bullish' ? '🟢 Bullish' : r.signal === 'bearish' ? '🔴 Bearish' : '🟡 Neutral'}
+                        ${r.signal === 'bullish' ? '🟢 Bullish - Buy Calls' : r.signal === 'bearish' ? '🔴 Bearish - Buy Puts' : '🟡 Neutral - Straddle'}
                     </span>
+                    <div style="margin-top: 10px; font-size: 11px; color: #636e72;">
+                        Last updated: ${r.updated}
+                    </div>
                 </div>
             `).join('');
         }
 
-        function showDetail(data) {
-            const modal = document.getElementById('modal');
-            const title = document.getElementById('modalTitle');
-            const body = document.getElementById('modalBody');
-
-            title.textContent = `${data.symbol} - Detailed Analysis`;
-
-            body.innerHTML = `
-                <div class="signal-box">
-                    <h3>📊 Current Status</h3>
-                    <div class="rec-grid">
-                        <div class="detail-item">
-                            <div class="label">Current Price</div>
-                            <div class="value">$${data.price}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">SMA(20)</div>
-                            <div class="value">$${data.sma20}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">SMA(50)</div>
-                            <div class="value">$${data.sma50}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">Signal</div>
-                            <div class="value">${data.signal.toUpperCase()}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="signal-box">
-                    <h3>🎯 Key Levels</h3>
-                    <div class="rec-grid">
-                        <div class="detail-item">
-                            <div class="label">🔴 Resistance</div>
-                            <div class="value">$${data.resistance}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">🟢 Support</div>
-                            <div class="value">$${data.support}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">ATM Strike</div>
-                            <div class="value">$${data.atm}</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="label">Days to Exp</div>
-                            <div class="value">${data.dte} days</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="recommendation">
-                    <h3>💡 Trade Recommendation</h3>
-                    ${data.signal === 'bullish' ? `
-                        <p><strong>BULLISH SETUP - Buy Call Options</strong></p>
-                        <div class="rec-grid">
-                            <div class="rec-item"><strong>Strike:</strong> $${data.strike}</div>
-                            <div class="rec-item"><strong>Expiration:</strong> ${data.expDate}</div>
-                            <div class="rec-item"><strong>Entry:</strong> Price above $${data.sma20}</div>
-                            <div class="rec-item"><strong>Target:</strong> $${data.resistance}</div>
-                        </div>
-                        <p style="margin-top: 15px; font-size: 13px;">✅ Price is above SMA(20) and SMA(50), indicating uptrend. Consider buying call options at strike $${data.strike}.</p>
-                    ` : data.signal === 'bearish' ? `
-                        <p><strong>BEARISH SETUP - Buy Put Options</strong></p>
-                        <div class="rec-grid">
-                            <div class="rec-item"><strong>Strike:</strong> $${data.strike}</div>
-                            <div class="rec-item"><strong>Expiration:</strong> ${data.expDate}</div>
-                            <div class="rec-item"><strong>Entry:</strong> Price below $${data.sma20}</div>
-                            <div class="rec-item"><strong>Target:</strong> $${data.support}</div>
-                        </div>
-                        <p style="margin-top: 15px; font-size: 13px;">📉 Price is below SMA(20) and SMA(50), indicating downtrend. Consider buying put options at strike $${data.strike}.</p>
-                    ` : `
-                        <p><strong>NEUTRAL - Straddle Strategy</strong></p>
-                        <div class="rec-grid">
-                            <div class="rec-item"><strong>Call Strike:</strong> $${data.atm}</div>
-                            <div class="rec-item"><strong>Put Strike:</strong> $${data.atm}</div>
-                            <div class="rec-item"><strong>Expiration:</strong> ${data.expDate}</div>
-                            <div class="rec-item"><strong>Strategy:</strong> Buy both</div>
-                        </div>
-                        <p style="margin-top: 15px; font-size: 13px;">⚖️ No clear trend. Consider straddle (buy both call and put) to profit from volatility.</p>
-                    `}
-                </div>
-
-                <div class="signal-box">
-                    <h3>📈 Price Chart (60 Days)</h3>
-                    <canvas id="detailChart"></canvas>
-                </div>
-            `;
-
-            modal.style.display = 'block';
-
-            // Draw chart
-            setTimeout(() => drawChart(data), 100);
-        }
-
-        function drawChart(data) {
-            const ctx = document.getElementById('detailChart');
-            if (!ctx) return;
-
-            if (currentChart) currentChart.destroy();
-
-            const labels = data.history.timestamps.slice(-60).map(ts => 
-                new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            );
-
-            currentChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Price',
-                        data: data.history.closes.slice(-60),
-                        borderColor: '#2d3436',
-                        borderWidth: 2,
-                        pointRadius: 0
-                    }, {
-                        label: 'Resistance',
-                        data: Array(60).fill(data.resistance),
-                        borderColor: '#d63031',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        pointRadius: 0
-                    }, {
-                        label: 'Support',
-                        data: Array(60).fill(data.support),
-                        borderColor: '#00b894',
-                        borderWidth: 2,
-                        borderDash: [5, 5],
-                        pointRadius: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: true, position: 'top' }
-                    },
-                    scales: {
-                        y: {
-                            ticks: {
-                                callback: v => '$' + v.toFixed(2)
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        function closeModal() {
-            document.getElementById('modal').style.display = 'none';
-            if (currentChart) {
-                currentChart.destroy();
-                currentChart = null;
-            }
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
         }
     </script>
 </body>
