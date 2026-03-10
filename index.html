@@ -467,7 +467,18 @@
         let currentChart = null;
         let dataCache = {}; // Cache API responses
 
-        // CORS proxy with fallback
+        // Multiple CORS proxies - try all of them
+        const CORS_PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest=',
+            // Direct attempt (works on some networks)
+            ''
+        ];
+
+        let workingProxyIndex = 0;
+
+        // CORS proxy with fallback and auto-detection
         async function fetchWithProxy(url, useCache = true) {
             // Check cache first
             if (useCache && dataCache[url]) {
@@ -478,24 +489,33 @@
                 }
             }
 
-            const proxies = [
-                'https://api.allorigins.win/raw?url=',
-                'https://corsproxy.io/?',
+            // Try working proxy first
+            let proxiesToTry = [
+                CORS_PROXIES[workingProxyIndex],
+                ...CORS_PROXIES.filter((_, i) => i !== workingProxyIndex)
             ];
 
-            for (let proxy of proxies) {
+            for (let proxy of proxiesToTry) {
                 try {
                     const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                    const timeout = setTimeout(() => controller.abort(), 3000); // 3 second timeout
                     
-                    const response = await fetch(proxy + encodeURIComponent(url), {
-                        signal: controller.signal
+                    const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
+                    
+                    const response = await fetch(fetchUrl, {
+                        signal: controller.signal,
+                        headers: {
+                            'Accept': 'application/json',
+                        }
                     });
                     
                     clearTimeout(timeout);
                     
                     if (response.ok) {
                         const data = await response.json();
+                        
+                        // Update working proxy if this one worked
+                        workingProxyIndex = CORS_PROXIES.indexOf(proxy);
                         
                         // Cache the result
                         if (useCache) {
@@ -508,13 +528,12 @@
                         return data;
                     }
                 } catch (e) {
-                    if (e.name === 'AbortError') {
-                        console.log(`Timeout fetching ${url}`);
-                    }
+                    // Try next proxy
                     continue;
                 }
             }
-            throw new Error('All proxies failed');
+            
+            throw new Error(`All proxies failed for ${url}`);
         }
 
         async function startScan() {
@@ -530,54 +549,52 @@
 
             const total = WEEKLY_OPTIONS_SYMBOLS.length;
             let completed = 0;
+            let successful = 0;
+            let failed = 0;
 
             // Show empty results immediately
             resultsContainer.style.display = 'block';
             displayResults();
 
-            // Process in parallel batches of 50 for speed
-            const BATCH_SIZE = 50;
-            const batches = [];
-            
-            for (let i = 0; i < WEEKLY_OPTIONS_SYMBOLS.length; i += BATCH_SIZE) {
-                batches.push(WEEKLY_OPTIONS_SYMBOLS.slice(i, i + BATCH_SIZE));
-            }
+            console.log(`Starting scan of ${total} symbols...`);
 
-            // Process all batches in parallel
-            const batchPromises = batches.map(async (batch, batchIndex) => {
-                const symbolPromises = batch.map(async (symbol) => {
-                    try {
-                        const analysis = await analyzeSymbol(symbol);
-                        if (analysis) {
-                            scanResults.push(analysis);
-                            
-                            // Update UI every 10 symbols
-                            completed++;
-                            if (completed % 10 === 0) {
-                                const percent = Math.round((completed / total) * 100);
-                                progressFill.style.width = percent + '%';
-                                progressFill.textContent = `${completed}/${total} (${percent}%) - Found ${scanResults.length}`;
-                                displayResults(); // Live update
-                            }
+            // MAXIMUM PARALLELISM - Process ALL symbols at once!
+            const symbolPromises = WEEKLY_OPTIONS_SYMBOLS.map(async (symbol) => {
+                try {
+                    const analysis = await analyzeSymbol(symbol);
+                    if (analysis) {
+                        scanResults.push(analysis);
+                        successful++;
+                        
+                        // Update UI every 5 symbols for speed
+                        if (scanResults.length % 5 === 0) {
+                            displayResults(); // Live update
                         }
-                    } catch (error) {
-                        console.error(`Error scanning ${symbol}:`, error);
                     }
-                    
-                    completed++;
-                    return null;
-                });
-
-                // Wait for all symbols in this batch
-                await Promise.all(symbolPromises);
+                } catch (error) {
+                    failed++;
+                    console.error(`Failed ${symbol}:`, error.message);
+                }
+                
+                completed++;
+                
+                // Update progress every 5 symbols
+                if (completed % 5 === 0) {
+                    const percent = Math.round((completed / total) * 100);
+                    progressFill.style.width = percent + '%';
+                    progressFill.textContent = `${completed}/${total} (${percent}%) - Found ${scanResults.length}`;
+                }
+                
+                return null;
             });
 
-            // Wait for all batches to complete
-            await Promise.all(batchPromises);
+            // Wait for ALL symbols to complete
+            await Promise.all(symbolPromises);
 
             // Final update
+            console.log(`Scan complete: ${successful} success, ${failed} failed`);
             progressFill.style.width = '100%';
-            progressFill.textContent = `Complete - Found ${scanResults.length} opportunities`;
+            progressFill.textContent = `Complete - Found ${scanResults.length} opportunities (${failed} errors)`;
             displayResults();
             
             button.disabled = false;
@@ -585,7 +602,7 @@
             
             setTimeout(() => {
                 progressBar.style.display = 'none';
-            }, 2000);
+            }, 3000);
         }
 
         async function analyzeSymbol(symbol) {
@@ -594,16 +611,26 @@
                 const url = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
                 const data = await fetchWithProxy(url);
 
-                if (!data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
+                if (!data || !data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
+                    console.log(`${symbol}: No option chain data`);
                     return null;
                 }
 
                 const result = data.optionChain.result[0];
                 const quote = result.quote;
+                
+                if (!quote || !quote.regularMarketPrice) {
+                    console.log(`${symbol}: No quote data`);
+                    return null;
+                }
+                
                 const currentPrice = quote.regularMarketPrice;
                 const expirations = result.expirationDates || [];
 
-                if (expirations.length === 0) return null;
+                if (expirations.length === 0) {
+                    console.log(`${symbol}: No expirations`);
+                    return null;
+                }
 
                 // Get nearest weekly expiration
                 const nextExpiration = expirations[0];
@@ -611,21 +638,32 @@
                 const daysToExp = Math.round((expDate - new Date()) / (1000 * 60 * 60 * 24));
 
                 // Only include weekly options (0-7 days)
-                if (daysToExp > 7) return null;
+                if (daysToExp > 7) {
+                    console.log(`${symbol}: DTE ${daysToExp} > 7, not weekly`);
+                    return null;
+                }
+
+                console.log(`${symbol}: DTE ${daysToExp}, fetching historical...`);
 
                 // Quick fetch of minimal historical data (last 30 days only for speed)
                 const historicalUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`;
                 const histData = await fetchWithProxy(historicalUrl);
 
-                if (!histData.chart || !histData.chart.result) return null;
+                if (!histData || !histData.chart || !histData.chart.result || histData.chart.result.length === 0) {
+                    console.log(`${symbol}: No historical data`);
+                    return null;
+                }
 
                 const chartResult = histData.chart.result[0];
                 const quotes = chartResult.indicators.quote[0];
-                const closes = quotes.close.filter(p => p !== null);
-                const highs = quotes.high.filter(p => p !== null);
-                const lows = quotes.low.filter(p => p !== null);
+                const closes = quotes.close.filter(p => p !== null && p !== undefined);
+                const highs = quotes.high.filter(p => p !== null && p !== undefined);
+                const lows = quotes.low.filter(p => p !== null && p !== undefined);
 
-                if (closes.length < 20) return null;
+                if (closes.length < 20) {
+                    console.log(`${symbol}: Not enough price data (${closes.length})`);
+                    return null;
+                }
 
                 // Fast technical calculations
                 const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
@@ -658,6 +696,8 @@
                 const callStrike = signal === 'bullish' ? atmStrike + 5 : atmStrike;
                 const putStrike = signal === 'bearish' ? atmStrike - 5 : atmStrike;
 
+                console.log(`✓ ${symbol}: ${signal} signal, strength ${signalStrength}%`);
+
                 return {
                     symbol,
                     currentPrice,
@@ -682,7 +722,7 @@
                     }
                 };
             } catch (error) {
-                // Silently fail for speed
+                console.error(`✗ ${symbol} ERROR:`, error.message);
                 return null;
             }
         }
