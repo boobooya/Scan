@@ -547,6 +547,136 @@
 
         let autoRefreshTimer = null;
         let currentChart = null;
+        let keltnerCharts = {}; // Store multiple timeframe charts
+
+        // ========== KELTNER CHANNEL FUNCTIONS ==========
+        
+        // Calculate ATR (Average True Range)
+        function calculateATR(highs, lows, closes, period = 20) {
+            const trValues = [];
+            
+            for (let i = 1; i < closes.length; i++) {
+                const high = highs[i];
+                const low = lows[i];
+                const prevClose = closes[i - 1];
+                
+                const tr = Math.max(
+                    high - low,
+                    Math.abs(high - prevClose),
+                    Math.abs(low - prevClose)
+                );
+                trValues.push(tr);
+            }
+            
+            // Calculate ATR as EMA of TR
+            const atrArray = [];
+            let atr = trValues.slice(0, period).reduce((a, b) => a + b, 0) / period;
+            atrArray.push(atr);
+            
+            const multiplier = 2 / (period + 1);
+            for (let i = period; i < trValues.length; i++) {
+                atr = (trValues[i] - atr) * multiplier + atr;
+                atrArray.push(atr);
+            }
+            
+            return atrArray;
+        }
+        
+        // Calculate Keltner Channel
+        function calculateKeltnerChannel(closes, highs, lows, emaPeriod = 20, atrPeriod = 20, multiplier = 2) {
+            const emaValues = [];
+            const upperBand = [];
+            const lowerBand = [];
+            
+            // Calculate EMA for middle line
+            let ema = closes.slice(0, emaPeriod).reduce((a, b) => a + b, 0) / emaPeriod;
+            emaValues.push(ema);
+            
+            const emaMultiplier = 2 / (emaPeriod + 1);
+            for (let i = emaPeriod; i < closes.length; i++) {
+                ema = (closes[i] - ema) * emaMultiplier + ema;
+                emaValues.push(ema);
+            }
+            
+            // Calculate ATR
+            const atr = calculateATR(highs, lows, closes, atrPeriod);
+            
+            // Calculate upper and lower bands
+            for (let i = 0; i < Math.min(emaValues.length, atr.length); i++) {
+                upperBand.push(emaValues[i] + (atr[i] * multiplier));
+                lowerBand.push(emaValues[i] - (atr[i] * multiplier));
+            }
+            
+            return {
+                middle: emaValues,
+                upper: upperBand,
+                lower: lowerBand,
+                atr: atr
+            };
+        }
+        
+        // Detect Keltner Channel alignments across timeframes
+        function detectKeltnerAlignments(keltnerData, currentPrice) {
+            const alignments = [];
+            const timeframes = Object.keys(keltnerData);
+            
+            // Check each timeframe's current values
+            const currentValues = {};
+            for (const tf of timeframes) {
+                const data = keltnerData[tf];
+                const lastIdx = data.middle.length - 1;
+                currentValues[tf] = {
+                    upper: data.upper[lastIdx],
+                    middle: data.middle[lastIdx],
+                    lower: data.lower[lastIdx]
+                };
+            }
+            
+            // Find alignments (when bands are within 1% of each other)
+            const tolerance = 0.01; // 1% tolerance
+            
+            for (let i = 0; i < timeframes.length; i++) {
+                for (let j = i + 1; j < timeframes.length; j++) {
+                    const tf1 = timeframes[i];
+                    const tf2 = timeframes[j];
+                    
+                    // Check upper band alignment
+                    const upperDiff = Math.abs(currentValues[tf1].upper - currentValues[tf2].upper) / currentPrice;
+                    if (upperDiff < tolerance) {
+                        alignments.push({
+                            type: 'Upper Band',
+                            timeframes: [tf1, tf2],
+                            value: ((currentValues[tf1].upper + currentValues[tf2].upper) / 2).toFixed(2),
+                            significance: 'Resistance'
+                        });
+                    }
+                    
+                    // Check middle alignment
+                    const middleDiff = Math.abs(currentValues[tf1].middle - currentValues[tf2].middle) / currentPrice;
+                    if (middleDiff < tolerance) {
+                        alignments.push({
+                            type: 'Middle Line',
+                            timeframes: [tf1, tf2],
+                            value: ((currentValues[tf1].middle + currentValues[tf2].middle) / 2).toFixed(2),
+                            significance: 'Support/Resistance'
+                        });
+                    }
+                    
+                    // Check lower band alignment
+                    const lowerDiff = Math.abs(currentValues[tf1].lower - currentValues[tf2].lower) / currentPrice;
+                    if (lowerDiff < tolerance) {
+                        alignments.push({
+                            type: 'Lower Band',
+                            timeframes: [tf1, tf2],
+                            value: ((currentValues[tf1].lower + currentValues[tf2].lower) / 2).toFixed(2),
+                            significance: 'Support'
+                        });
+                    }
+                }
+            }
+            
+            return alignments;
+        }
 
         // ========== CHART FUNCTIONS ==========
         
@@ -742,6 +872,57 @@
                 console.error(`Error fetching historical data for ${symbol}:`, error);
                 return null;
             }
+        }
+
+        // Fetch multi-timeframe data for Keltner Channel analysis
+        async function fetchMultiTimeframeData(symbol) {
+            const timeframes = {
+                '5m': '5m',
+                '15m': '15m',
+                '1h': '60m',
+                '2h': '2h',
+                '4h': '4h',
+                'daily': '1d'
+            };
+            
+            const multiData = {};
+            
+            for (const [label, interval] of Object.entries(timeframes)) {
+                try {
+                    console.log(`Fetching ${label} data for ${symbol}...`);
+                    
+                    // Yahoo Finance intraday data
+                    let range = '1d';
+                    if (label === 'daily') range = '60d';
+                    else if (label.includes('h')) range = '5d';
+                    
+                    const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
+                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+                    
+                    const response = await fetch(proxyUrl);
+                    const data = await response.json();
+                    
+                    if (data.chart && data.chart.result && data.chart.result[0]) {
+                        const result = data.chart.result[0];
+                        const timestamps = result.timestamp;
+                        const quotes = result.indicators.quote[0];
+                        
+                        multiData[label] = {
+                            timestamps: timestamps,
+                            closes: quotes.close.filter(p => p !== null),
+                            highs: quotes.high.filter(p => p !== null),
+                            lows: quotes.low.filter(p => p !== null),
+                            opens: quotes.open.filter(p => p !== null)
+                        };
+                        
+                        console.log(`✓ ${label}: ${multiData[label].closes.length} data points`);
+                    }
+                } catch (error) {
+                    console.error(`Error fetching ${label} data:`, error);
+                }
+            }
+            
+            return multiData;
         }
 
         async function fetchYahooData(symbol, days) {
@@ -1388,8 +1569,11 @@
                         </div>
                     ` : ''}
                     ${opp.technicalData && opp.technicalData.historicalData ? `
-                        <button onclick="showChartForOpportunity(${index})" style="width: 100%; padding: 10px; margin: 10px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: bold; cursor: pointer;">
+                        <button onclick="showChartForOpportunity(${index})" style="width: 100%; padding: 10px; margin: 5px 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: bold; cursor: pointer;">
                             📊 View Technical Chart
+                        </button>
+                        <button onclick="showKeltnerAnalysis('${opp.symbol}')" style="width: 100%; padding: 10px; margin: 5px 0; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: bold; cursor: pointer;">
+                            🎯 Multi-Timeframe Keltner Channels
                         </button>
                     ` : ''}
                     <div class="opp-details">
@@ -1449,6 +1633,288 @@
             if (opp && opp.technicalData && opp.technicalData.historicalData) {
                 showChart(opp.symbol, opp.technicalData, opp.technicalData.historicalData);
             }
+        }
+
+        // Show Multi-Timeframe Keltner Channel Analysis
+        async function showKeltnerAnalysis(symbol) {
+            const modal = document.getElementById('chartModal');
+            const title = document.getElementById('chartTitle');
+            const canvas = document.getElementById('technicalChart');
+            const legend = document.getElementById('chartLegend');
+            
+            // Show loading
+            title.textContent = `${symbol} - Multi-Timeframe Keltner Channels`;
+            legend.innerHTML = `
+                <div style="text-align: center; padding: 40px;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">🔄</div>
+                    <div style="font-size: 16px; font-weight: bold;">Fetching Multi-Timeframe Data...</div>
+                    <div style="font-size: 12px; margin-top: 10px; opacity: 0.7;">Analyzing 5m, 15m, 1h, 2h, 4h, Daily timeframes</div>
+                </div>
+            `;
+            modal.style.display = 'block';
+            
+            try {
+                // Fetch multi-timeframe data
+                const multiData = await fetchMultiTimeframeData(symbol);
+                
+                // Calculate Keltner Channels for each timeframe
+                const keltnerData = {};
+                const currentPrice = multiData['5m'] ? multiData['5m'].closes[multiData['5m'].closes.length - 1] : 0;
+                
+                for (const [tf, data] of Object.entries(multiData)) {
+                    if (data && data.closes.length > 20) {
+                        keltnerData[tf] = calculateKeltnerChannel(
+                            data.closes,
+                            data.highs,
+                            data.lows,
+                            20,  // EMA period
+                            20,  // ATR period
+                            2    // Multiplier
+                        );
+                    }
+                }
+                
+                // Detect alignments
+                const alignments = detectKeltnerAlignments(keltnerData, currentPrice);
+                
+                // Create comprehensive display
+                displayKeltnerCharts(symbol, keltnerData, multiData, alignments, currentPrice);
+                
+            } catch (error) {
+                console.error('Keltner analysis error:', error);
+                legend.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #d63031;">
+                        <div style="font-size: 40px; margin-bottom: 15px;">❌</div>
+                        <div style="font-size: 16px; font-weight: bold;">Error Loading Data</div>
+                        <div style="font-size: 12px; margin-top: 10px;">${error.message}</div>
+                    </div>
+                `;
+            }
+        }
+
+        function displayKeltnerCharts(symbol, keltnerData, rawData, alignments, currentPrice) {
+            const canvas = document.getElementById('technicalChart');
+            const legend = document.getElementById('chartLegend');
+            
+            // Use daily data for main chart
+            const dailyData = rawData['daily'];
+            if (!dailyData || !keltnerData['daily']) {
+                legend.innerHTML = '<div style="color: #d63031;">Insufficient daily data for display</div>';
+                return;
+            }
+            
+            const labels = dailyData.timestamps.slice(-60).map(ts => {
+                const date = new Date(ts * 1000);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+            
+            const prices = dailyData.closes.slice(-60);
+            const keltner = keltnerData['daily'];
+            const upper = keltner.upper.slice(-60);
+            const middle = keltner.middle.slice(-60);
+            const lower = keltner.lower.slice(-60);
+            
+            // Destroy previous chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            // Create chart
+            const ctx = canvas.getContext('2d');
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Price',
+                            data: prices,
+                            borderColor: '#2d3436',
+                            backgroundColor: 'rgba(45, 52, 54, 0.1)',
+                            borderWidth: 2.5,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            order: 1
+                        },
+                        {
+                            label: 'Upper Band (Daily)',
+                            data: upper,
+                            borderColor: '#d63031',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            borderDash: [5, 5],
+                            tension: 0.1,
+                            order: 2
+                        },
+                        {
+                            label: 'Middle (EMA 20)',
+                            data: middle,
+                            borderColor: '#0984e3',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            tension: 0.1,
+                            order: 3
+                        },
+                        {
+                            label: 'Lower Band (Daily)',
+                            data: lower,
+                            borderColor: '#00b894',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            borderDash: [5, 5],
+                            tension: 0.1,
+                            order: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 12,
+                                font: { size: 11, weight: 'bold' }
+                            }
+                        },
+                        tooltip: {
+                            enabled: true,
+                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) label += ': ';
+                                    if (context.parsed.y !== null) {
+                                        label += '$' + context.parsed.y.toFixed(2);
+                                    }
+                                    return label;
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `${symbol} - Daily Keltner Channel (20, 2.0)`,
+                            font: { size: 14, weight: 'bold' },
+                            padding: { bottom: 15 }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toFixed(2);
+                                },
+                                font: { size: 10 }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: { size: 9 }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Display Keltner values for all timeframes
+            let keltnerTable = '<div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-top: 15px;">';
+            keltnerTable += '<h3 style="font-size: 16px; margin-bottom: 15px; color: #2d3436;">📊 Multi-Timeframe Keltner Channel Values</h3>';
+            keltnerTable += '<table style="width: 100%; border-collapse: collapse; font-size: 12px;">';
+            keltnerTable += '<tr style="background: #2d3436; color: white;"><th style="padding: 8px;">Timeframe</th><th>Upper</th><th>Middle</th><th>Lower</th><th>Width</th></tr>';
+            
+            const timeframeOrder = ['5m', '15m', '1h', '2h', '4h', 'daily'];
+            for (const tf of timeframeOrder) {
+                if (keltnerData[tf]) {
+                    const k = keltnerData[tf];
+                    const lastIdx = k.middle.length - 1;
+                    const upper = k.upper[lastIdx];
+                    const middle = k.middle[lastIdx];
+                    const lower = k.lower[lastIdx];
+                    const width = ((upper - lower) / middle * 100).toFixed(2);
+                    
+                    keltnerTable += `<tr style="border-bottom: 1px solid #dfe6e9;">
+                        <td style="padding: 8px; font-weight: bold;">${tf}</td>
+                        <td style="color: #d63031;">$${upper.toFixed(2)}</td>
+                        <td style="color: #0984e3;">$${middle.toFixed(2)}</td>
+                        <td style="color: #00b894;">$${lower.toFixed(2)}</td>
+                        <td>${width}%</td>
+                    </tr>`;
+                }
+            }
+            keltnerTable += '</table></div>';
+            
+            // Display alignments
+            let alignmentHTML = '';
+            if (alignments.length > 0) {
+                alignmentHTML += '<div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-top: 15px; border-left: 4px solid #f39c12;">';
+                alignmentHTML += '<h3 style="font-size: 16px; margin-bottom: 10px; color: #856404;">🎯 Keltner Channel Alignments Detected!</h3>';
+                alignmentHTML += '<p style="font-size: 12px; margin-bottom: 10px;">When multiple timeframes align, these levels act as strong support/resistance:</p>';
+                
+                for (const alignment of alignments) {
+                    const tfText = alignment.timeframes.join(' & ');
+                    alignmentHTML += `
+                        <div style="background: white; padding: 10px; margin: 8px 0; border-radius: 8px; border-left: 3px solid #f39c12;">
+                            <div style="font-weight: bold; color: #2d3436;">${alignment.type} @ $${alignment.value}</div>
+                            <div style="font-size: 11px; color: #636e72; margin-top: 3px;">
+                                Timeframes: ${tfText} | ${alignment.significance}
+                            </div>
+                        </div>
+                    `;
+                }
+                alignmentHTML += '</div>';
+            } else {
+                alignmentHTML += '<div style="background: #e8f5e9; padding: 15px; border-radius: 10px; margin-top: 15px;">';
+                alignmentHTML += '<p style="font-size: 13px; color: #2d3436;">ℹ️ No significant alignments detected across timeframes at current price level.</p>';
+                alignmentHTML += '</div>';
+            }
+            
+            // Trading guidance
+            const currentUpper = keltnerData['daily'].upper[keltnerData['daily'].upper.length - 1];
+            const currentMiddle = keltnerData['daily'].middle[keltnerData['daily'].middle.length - 1];
+            const currentLower = keltnerData['daily'].lower[keltnerData['daily'].lower.length - 1];
+            
+            let position = '';
+            let positionColor = '';
+            if (currentPrice > currentUpper) {
+                position = 'ABOVE upper band - Overbought territory';
+                positionColor = '#d63031';
+            } else if (currentPrice < currentLower) {
+                position = 'BELOW lower band - Oversold territory';
+                positionColor = '#00b894';
+            } else if (currentPrice > currentMiddle) {
+                position = 'Above middle - Bullish zone';
+                positionColor = '#0984e3';
+            } else {
+                position = 'Below middle - Bearish zone';
+                positionColor = '#6c5ce7';
+            }
+            
+            const guidanceHTML = `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-top: 15px;">
+                    <h3 style="font-size: 16px; margin-bottom: 10px; color: #2d3436;">📈 Current Position</h3>
+                    <div style="font-size: 14px; font-weight: bold; color: ${positionColor}; margin-bottom: 10px;">
+                        ${position}
+                    </div>
+                    <div style="font-size: 12px; line-height: 1.6; color: #636e72;">
+                        <strong>Current Price:</strong> $${currentPrice.toFixed(2)}<br>
+                        <strong>Distance to Upper:</strong> ${((currentUpper - currentPrice) / currentPrice * 100).toFixed(2)}%<br>
+                        <strong>Distance to Lower:</strong> ${((currentPrice - currentLower) / currentPrice * 100).toFixed(2)}%<br>
+                        <strong>Channel Width:</strong> ${((currentUpper - currentLower) / currentMiddle * 100).toFixed(2)}%
+                    </div>
+                </div>
+            `;
+            
+            legend.innerHTML = keltnerTable + alignmentHTML + guidanceHTML;
         }
 
         function updateStatus(count) {
