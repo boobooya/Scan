@@ -654,6 +654,58 @@
         let currentChart = null;
         let keltnerCharts = {}; // Store multiple timeframe charts
 
+        // Multiple CORS proxy options with fallback
+        const CORS_PROXIES = [
+            'https://api.allorigins.win/raw?url=',
+            'https://corsproxy.io/?',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+        
+        let currentProxyIndex = 0;
+
+        // Fetch with proxy fallback
+        async function fetchWithProxy(url, retries = 3) {
+            let lastError = null;
+            
+            for (let attempt = 0; attempt < retries; attempt++) {
+                try {
+                    const proxy = CORS_PROXIES[currentProxyIndex];
+                    const proxyUrl = proxy + encodeURIComponent(url);
+                    
+                    console.log(`Attempt ${attempt + 1}: Using proxy ${currentProxyIndex + 1}/${CORS_PROXIES.length}`);
+                    
+                    const response = await fetch(proxyUrl, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log(`✓ Success with proxy ${currentProxyIndex + 1}`);
+                    return data;
+                    
+                } catch (error) {
+                    console.warn(`✗ Proxy ${currentProxyIndex + 1} failed:`, error.message);
+                    lastError = error;
+                    
+                    // Try next proxy
+                    currentProxyIndex = (currentProxyIndex + 1) % CORS_PROXIES.length;
+                    
+                    // Wait before retry
+                    if (attempt < retries - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                }
+            }
+            
+            throw new Error(`All proxies failed. Last error: ${lastError.message}`);
+        }
+
         // ========== KELTNER CHANNEL FUNCTIONS ==========
         
         // Calculate ATR (Average True Range)
@@ -1002,10 +1054,7 @@
                     else if (label.includes('h')) range = '5d';
                     
                     const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
-                    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
-                    
-                    const response = await fetch(proxyUrl);
-                    const data = await response.json();
+                    const data = await fetchWithProxy(yahooUrl);
                     
                     if (data.chart && data.chart.result && data.chart.result[0]) {
                         const result = data.chart.result[0];
@@ -1035,16 +1084,9 @@
             const startDate = endDate - (days * 24 * 60 * 60);
             
             const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${startDate}&period2=${endDate}&interval=1d`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
             
             try {
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-                
-                const data = await response.json();
+                const data = await fetchWithProxy(yahooUrl);
                 
                 if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
                     throw new Error(`No historical data for ${symbol}`);
@@ -1432,22 +1474,12 @@
         }
 
         async function scanSymbol(symbol, config) {
-            // Use AllOrigins CORS proxy - more reliable than corsproxy.io
-            
             try {
                 console.log(`Fetching options for ${symbol}...`);
                 
-                // Build Yahoo Finance URL
+                // Fetch initial options data with proxy fallback
                 const yahooUrl = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
-                
-                const response = await fetch(proxyUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
+                const data = await fetchWithProxy(yahooUrl);
 
                 console.log(`Options data received for ${symbol}`);
 
@@ -1487,15 +1519,7 @@
 
                 // Fetch options chain for specific expiration
                 const expYahooUrl = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}?date=${closestExpiration}`;
-                const expProxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(expYahooUrl)}`;
-                
-                const expResponse = await fetch(expProxyUrl);
-                
-                if (!expResponse.ok) {
-                    throw new Error(`HTTP ${expResponse.status} fetching expiration data`);
-                }
-                
-                const expData = await expResponse.json();
+                const expData = await fetchWithProxy(expYahooUrl);
                 
                 if (!expData.optionChain || !expData.optionChain.result || !expData.optionChain.result[0].options) {
                     console.warn(`No options chain for ${symbol} at expiration ${closestExpiration}`);
