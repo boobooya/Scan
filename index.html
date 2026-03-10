@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Options Scanner</title>
+    <title>Weekly Options Scanner - Fresh Build</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
@@ -23,36 +19,22 @@
             margin: 0 auto;
         }
 
-        .header {
+        .card {
             background: white;
-            padding: 30px;
             border-radius: 15px;
+            padding: 25px;
             margin-bottom: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
 
-        .header h1 {
+        h1 {
             color: #2d3436;
-            font-size: 28px;
             margin-bottom: 10px;
         }
 
-        .header p {
-            color: #636e72;
-            font-size: 14px;
-        }
-
-        .scan-controls {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .scan-button {
+        .scan-btn {
             width: 100%;
-            padding: 18px;
+            padding: 20px;
             background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
             border: none;
             border-radius: 12px;
@@ -60,180 +42,111 @@
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 206, 201, 0.4);
+            margin-bottom: 15px;
         }
 
-        .scan-button:disabled {
-            opacity: 0.6;
+        .scan-btn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
-        .progress-bar {
-            display: none;
-            background: #ecf0f1;
-            height: 30px;
-            border-radius: 15px;
-            overflow: hidden;
-            margin-top: 15px;
+        .status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: monospace;
+            font-size: 13px;
+            margin-bottom: 15px;
+            max-height: 200px;
+            overflow-y: auto;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #00b894, #00cec9);
-            transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 12px;
+        .status div {
+            margin: 3px 0;
         }
 
-        .results-container {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
+        .success { color: #00b894; }
+        .error { color: #d63031; }
+        .warning { color: #fdcb6e; }
+        .info { color: #0984e3; }
 
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #ecf0f1;
-        }
-
-        .results-title {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2d3436;
-        }
-
-        .results-count {
-            font-size: 14px;
-            color: #636e72;
-        }
-
-        .filter-tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .filter-tab {
-            padding: 10px 20px;
-            background: #ecf0f1;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .filter-tab.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .results-list {
+        .results-grid {
             display: grid;
             gap: 15px;
         }
 
-        .result-item {
+        .result-card {
             background: #f8f9fa;
-            border-radius: 12px;
             padding: 20px;
-            display: grid;
-            grid-template-columns: 100px 1fr auto;
-            gap: 20px;
-            align-items: center;
-            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
-        .result-item:hover {
+        .result-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
-        .result-symbol {
+        .result-card.bullish { border-left-color: #00b894; }
+        .result-card.bearish { border-left-color: #d63031; }
+
+        .symbol {
             font-size: 24px;
             font-weight: bold;
             color: #2d3436;
-            text-align: center;
+            margin-bottom: 10px;
         }
 
-        .result-info {
+        .details {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 10px;
+            font-size: 13px;
         }
 
-        .info-item {
-            display: flex;
-            flex-direction: column;
+        .detail-item {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
         }
 
-        .info-label {
-            font-size: 11px;
+        .label {
             color: #636e72;
+            font-size: 11px;
             margin-bottom: 3px;
         }
 
-        .info-value {
-            font-size: 14px;
-            font-weight: 600;
+        .value {
             color: #2d3436;
-        }
-
-        .signal-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 13px;
             font-weight: bold;
-            white-space: nowrap;
         }
 
-        .signal-bullish {
+        .badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .badge.bullish {
             background: #d4edda;
             color: #155724;
         }
 
-        .signal-bearish {
+        .badge.bearish {
             background: #f8d7da;
             color: #721c24;
         }
 
-        .signal-neutral {
+        .badge.neutral {
             background: #fff3cd;
             color: #856404;
         }
 
-        .analysis-button {
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 10px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #636e72;
-        }
-
-        .empty-state-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-        }
-
-        /* Modal for detailed analysis */
         .modal {
             display: none;
             position: fixed;
@@ -243,15 +156,15 @@
             bottom: 0;
             background: rgba(0,0,0,0.8);
             z-index: 9999;
-            overflow-y: auto;
             padding: 20px;
+            overflow-y: auto;
         }
 
         .modal-content {
             background: white;
-            border-radius: 20px;
-            max-width: 1000px;
+            max-width: 900px;
             margin: 0 auto;
+            border-radius: 15px;
             padding: 30px;
         }
 
@@ -259,187 +172,86 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
             border-bottom: 2px solid #ecf0f1;
         }
 
-        .modal-close {
+        .close-btn {
             background: #d63031;
             color: white;
             border: none;
             padding: 10px 20px;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .analysis-section {
-            margin-bottom: 30px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2d3436;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .chart-container {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        .signal-zones {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-
-        .signal-zone {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            border-left: 4px solid;
-        }
-
-        .signal-zone.bullish {
-            border-color: #00b894;
-        }
-
-        .signal-zone.bearish {
-            border-color: #d63031;
-        }
-
-        .zone-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-
-        .zone-price {
-            font-size: 24px;
-            font-weight: bold;
-            color: #2d3436;
-            margin-bottom: 10px;
-        }
-
-        .zone-description {
-            font-size: 13px;
-            color: #636e72;
-            line-height: 1.6;
-        }
-
-        .recommendations {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 25px;
-            border-radius: 12px;
-            color: white;
-        }
-
-        .recommendation-item {
-            background: rgba(255,255,255,0.1);
-            padding: 15px;
             border-radius: 8px;
-            margin-bottom: 15px;
-        }
-
-        .recommendation-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .rec-title {
+            cursor: pointer;
             font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 10px;
         }
 
-        .rec-details {
+        .signal-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .signal-box h3 {
+            margin-bottom: 15px;
+            color: #2d3436;
+        }
+
+        .recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .rec-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            font-size: 14px;
+            gap: 15px;
+            margin-top: 15px;
         }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
+        .rec-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 8px;
         }
 
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #ecf0f1;
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        canvas {
+            max-height: 300px;
+            margin: 20px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <div class="card">
             <h1>📊 Weekly Options Scanner</h1>
-            <p>Scanning 250+ stocks with Monday, Wednesday, and Friday expirations</p>
-        </div>
-
-        <div class="scan-controls">
-            <button class="scan-button" id="scanButton" onclick="startScan()">
-                🔍 Scan All Weekly Options
+            <p style="color: #636e72; margin-bottom: 20px;">Scanning stocks with Monday/Wednesday/Friday expirations (0-7 days)</p>
+            
+            <button class="scan-btn" id="scanBtn" onclick="startScan()">
+                🔍 Start Scanning
             </button>
-            <div class="progress-bar" id="progressBar">
-                <div class="progress-fill" id="progressFill">0%</div>
+
+            <div class="status" id="status">
+                <div class="info">Click "Start Scanning" to begin...</div>
             </div>
         </div>
 
-        <div class="results-container" id="resultsContainer" style="display: none;">
-            <div class="results-header">
-                <div class="results-title">Scan Results</div>
-                <div class="results-count" id="resultsCount">0 opportunities found</div>
-            </div>
-
-            <!-- Diagnostic Panel -->
-            <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #f39c12;" id="diagnosticPanel">
-                <div style="font-weight: bold; margin-bottom: 10px;">📊 Scan Diagnostic</div>
-                <div style="font-size: 13px; font-family: monospace;">
-                    <div>Symbols Scanned: <span id="diagScanned">0</span></div>
-                    <div>Successfully Fetched: <span id="diagSuccess">0</span></div>
-                    <div>Network Errors: <span id="diagErrors">0</span></div>
-                    <div>Not Weekly (DTE > 7): <span id="diagNotWeekly">0</span></div>
-                    <div>No Data Available: <span id="diagNoData">0</span></div>
-                    <div>Opportunities Found: <span id="diagFound">0</span></div>
-                </div>
-                <div style="margin-top: 10px; padding: 10px; background: white; border-radius: 5px; max-height: 150px; overflow-y: auto; font-size: 11px; font-family: monospace;" id="diagLog"></div>
-            </div>
-
-            <div class="filter-tabs">
-                <button class="filter-tab active" onclick="filterResults('all')">All</button>
-                <button class="filter-tab" onclick="filterResults('bullish')">🟢 Bullish</button>
-                <button class="filter-tab" onclick="filterResults('bearish')">🔴 Bearish</button>
-                <button class="filter-tab" onclick="filterResults('neutral')">🟡 Neutral</button>
-            </div>
-
-            <div class="results-list" id="resultsList"></div>
+        <div class="card" id="resultsCard" style="display: none;">
+            <h2 style="margin-bottom: 20px;">Results: <span id="count">0</span> Opportunities</h2>
+            <div class="results-grid" id="results"></div>
         </div>
     </div>
 
-    <!-- Analysis Modal -->
-    <div class="modal" id="analysisModal">
+    <div class="modal" id="modal">
         <div class="modal-content">
             <div class="modal-header">
                 <h2 id="modalTitle">Analysis</h2>
-                <button class="modal-close" onclick="closeAnalysis()">✕ Close</button>
+                <button class="close-btn" onclick="closeModal()">✕ Close</button>
             </div>
             <div id="modalBody"></div>
         </div>
@@ -447,650 +259,373 @@
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
-        // Comprehensive list of all weekly options symbols (250+)
-        const WEEKLY_OPTIONS_SYMBOLS = [
-            // Major Index ETFs
-            'SPY', 'QQQ', 'IWM', 'DIA', 'EEM', 'EFA', 'VXX', 'UVXY',
-            // Mega Cap Tech
-            'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'NVDA', 'TSLA',
-            'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL', 'ADBE', 'CSCO', 'AVGO',
-            // Financials
-            'JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'BLK', 'SCHW', 'AXP',
-            // Consumer
-            'WMT', 'HD', 'TGT', 'COST', 'NKE', 'SBUX', 'MCD', 'DIS',
-            // Healthcare
-            'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'ABT', 'MRK', 'LLY',
-            // Energy
-            'XLE', 'XOP', 'CVX', 'XOM', 'COP', 'SLB', 'HAL',
-            // Semiconductors
-            'TSM', 'QCOM', 'TXN', 'MU', 'AMAT', 'LRCX', 'KLAC',
-            // EVs
-            'F', 'GM', 'RIVN', 'LCID', 'NIO', 'LI', 'XPEV',
-            // Crypto
-            'COIN', 'MARA', 'RIOT', 'MSTR',
-            // Sector ETFs
-            'XLF', 'XLK', 'XLV', 'XLI', 'XLP', 'XLU', 'XLY',
-            // High Volatility
-            'GME', 'AMC', 'PLTR', 'SOFI',
-            // Others
-            'BABA', 'JD', 'BA', 'CAT', 'GE', 'GLD', 'SLV', 'TLT', 'USO'
+        // Core symbols with confirmed weekly options
+        const SYMBOLS = [
+            'SPY', 'QQQ', 'IWM', 'DIA',
+            'AAPL', 'MSFT', 'TSLA', 'NVDA', 'AMD', 'META', 'AMZN', 'GOOGL',
+            'JPM', 'BAC', 'GS', 'MS',
+            'XLE', 'XLF', 'XLK', 'XLV',
+            'GLD', 'SLV', 'TLT', 'USO',
+            'COIN', 'MARA', 'RIOT'
         ];
 
-        let scanResults = [];
-        let currentFilter = 'all';
+        let results = [];
         let currentChart = null;
-        let dataCache = {}; // Cache API responses
-        
-        // Diagnostic counters
-        let diagnostics = {
-            scanned: 0,
-            success: 0,
-            errors: 0,
-            notWeekly: 0,
-            noData: 0,
-            found: 0,
-            logs: []
-        };
 
-        function updateDiagnostics() {
-            document.getElementById('diagScanned').textContent = diagnostics.scanned;
-            document.getElementById('diagSuccess').textContent = diagnostics.success;
-            document.getElementById('diagErrors').textContent = diagnostics.errors;
-            document.getElementById('diagNotWeekly').textContent = diagnostics.notWeekly;
-            document.getElementById('diagNoData').textContent = diagnostics.noData;
-            document.getElementById('diagFound').textContent = diagnostics.found;
-            
-            const logDiv = document.getElementById('diagLog');
-            logDiv.innerHTML = diagnostics.logs.slice(-20).join('<br>');
-            logDiv.scrollTop = logDiv.scrollHeight;
+        function log(message, type = 'info') {
+            const status = document.getElementById('status');
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = message;
+            status.appendChild(div);
+            status.scrollTop = status.scrollHeight;
         }
 
-        function addDiagLog(message, type = 'info') {
-            const colors = {
-                'success': '#00b894',
-                'error': '#d63031',
-                'warning': '#fdcb6e',
-                'info': '#636e72'
-            };
-            diagnostics.logs.push(`<span style="color: ${colors[type]}">${message}</span>`);
-            updateDiagnostics();
-        }
-
-        // Multiple CORS proxies - try all of them
-        const CORS_PROXIES = [
-            'https://api.allorigins.win/raw?url=',
-            'https://corsproxy.io/?',
-            'https://api.codetabs.com/v1/proxy?quest=',
-            // Direct attempt (works on some networks)
-            ''
-        ];
-
-        let workingProxyIndex = 0;
-
-        // CORS proxy with fallback and auto-detection
-        async function fetchWithProxy(url, useCache = true) {
-            // Check cache first
-            if (useCache && dataCache[url]) {
-                const cached = dataCache[url];
-                const age = Date.now() - cached.timestamp;
-                if (age < 5 * 60 * 1000) { // 5 minute cache
-                    return cached.data;
-                }
-            }
-
-            // Try working proxy first
-            let proxiesToTry = [
-                CORS_PROXIES[workingProxyIndex],
-                ...CORS_PROXIES.filter((_, i) => i !== workingProxyIndex)
+        async function fetchData(url) {
+            const proxies = [
+                'https://api.allorigins.win/raw?url=',
+                'https://corsproxy.io/?'
             ];
 
-            for (let proxy of proxiesToTry) {
+            for (let proxy of proxies) {
                 try {
-                    const controller = new AbortController();
-                    const timeout = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-                    
-                    const fetchUrl = proxy ? proxy + encodeURIComponent(url) : url;
-                    
-                    const response = await fetch(fetchUrl, {
-                        signal: controller.signal,
-                        headers: {
-                            'Accept': 'application/json',
-                        }
+                    const response = await fetch(proxy + encodeURIComponent(url), {
+                        signal: AbortSignal.timeout(5000)
                     });
                     
-                    clearTimeout(timeout);
-                    
                     if (response.ok) {
-                        const data = await response.json();
-                        
-                        // Update working proxy if this one worked
-                        workingProxyIndex = CORS_PROXIES.indexOf(proxy);
-                        
-                        // Cache the result
-                        if (useCache) {
-                            dataCache[url] = {
-                                data: data,
-                                timestamp: Date.now()
-                            };
-                        }
-                        
-                        return data;
+                        return await response.json();
                     }
                 } catch (e) {
-                    // Try next proxy
                     continue;
                 }
             }
-            
-            throw new Error(`All proxies failed for ${url}`);
+            throw new Error('All proxies failed');
         }
 
         async function startScan() {
-            const button = document.getElementById('scanButton');
-            const progressBar = document.getElementById('progressBar');
-            const progressFill = document.getElementById('progressFill');
-            const resultsContainer = document.getElementById('resultsContainer');
-
-            button.disabled = true;
-            button.textContent = '🔄 Scanning...';
-            progressBar.style.display = 'block';
-            scanResults = [];
+            const btn = document.getElementById('scanBtn');
+            const status = document.getElementById('status');
             
-            // Reset diagnostics
-            diagnostics = {
-                scanned: 0,
-                success: 0,
-                errors: 0,
-                notWeekly: 0,
-                noData: 0,
-                found: 0,
-                logs: []
-            };
+            btn.disabled = true;
+            btn.textContent = '🔄 Scanning...';
+            status.innerHTML = '';
+            results = [];
 
-            const total = WEEKLY_OPTIONS_SYMBOLS.length;
-            let completed = 0;
+            log('🚀 Starting scan...', 'info');
+            log(`📊 Scanning ${SYMBOLS.length} symbols`, 'info');
 
-            // Show empty results immediately
-            resultsContainer.style.display = 'block';
-            displayResults();
-            updateDiagnostics();
+            let scanned = 0;
+            let found = 0;
+            let notWeekly = 0;
+            let errors = 0;
 
-            addDiagLog(`🚀 Starting scan of ${total} symbols...`, 'info');
-
-            // MAXIMUM PARALLELISM - Process ALL symbols at once!
-            const symbolPromises = WEEKLY_OPTIONS_SYMBOLS.map(async (symbol) => {
+            const promises = SYMBOLS.map(async (symbol) => {
                 try {
-                    diagnostics.scanned++;
-                    const analysis = await analyzeSymbol(symbol);
-                    if (analysis) {
-                        scanResults.push(analysis);
-                        diagnostics.found++;
-                        addDiagLog(`✓ ${symbol}: ${analysis.signal} (${analysis.daysToExp} DTE)`, 'success');
-                        
-                        // Update UI every 5 symbols for speed
-                        if (scanResults.length % 5 === 0) {
-                            displayResults(); // Live update
-                        }
+                    const data = await analyzeSymbol(symbol);
+                    scanned++;
+                    
+                    if (data) {
+                        results.push(data);
+                        found++;
+                        log(`✓ ${symbol}: ${data.signal} (${data.dte} DTE, Strike: $${data.strike})`, 'success');
+                    } else {
+                        notWeekly++;
                     }
-                } catch (error) {
-                    diagnostics.errors++;
-                    addDiagLog(`✗ ${symbol}: ${error.message}`, 'error');
+                    
+                    if (scanned % 5 === 0) {
+                        updateResults();
+                    }
+                } catch (e) {
+                    errors++;
+                    log(`✗ ${symbol}: ${e.message}`, 'error');
+                    scanned++;
                 }
-                
-                completed++;
-                
-                // Update progress every 5 symbols
-                if (completed % 5 === 0) {
-                    const percent = Math.round((completed / total) * 100);
-                    progressFill.style.width = percent + '%';
-                    progressFill.textContent = `${completed}/${total} (${percent}%) - Found ${scanResults.length}`;
-                    updateDiagnostics();
-                }
-                
-                return null;
             });
 
-            // Wait for ALL symbols to complete
-            await Promise.all(symbolPromises);
+            await Promise.all(promises);
 
-            // Final update
-            addDiagLog(`✅ Scan complete! Found ${diagnostics.found} opportunities`, diagnostics.found > 0 ? 'success' : 'warning');
-            progressFill.style.width = '100%';
-            progressFill.textContent = `Complete - Found ${scanResults.length} opportunities`;
-            displayResults();
-            updateDiagnostics();
-            
-            button.disabled = false;
-            button.textContent = '🔍 Scan All Weekly Options';
-            
-            setTimeout(() => {
-                progressBar.style.display = 'none';
-            }, 3000);
+            log(`\n✅ Scan complete!`, 'success');
+            log(`📊 Scanned: ${scanned}`, 'info');
+            log(`✓ Found: ${found}`, 'success');
+            log(`⚠ Not weekly: ${notWeekly}`, 'warning');
+            log(`✗ Errors: ${errors}`, 'error');
+
+            updateResults();
+            btn.disabled = false;
+            btn.textContent = '🔍 Start Scanning';
         }
 
         async function analyzeSymbol(symbol) {
-            try {
-                // Fetch options data with timeout
-                const url = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
-                const data = await fetchWithProxy(url);
+            // Fetch options data
+            const optUrl = `https://query2.finance.yahoo.com/v7/finance/options/${symbol}`;
+            const optData = await fetchData(optUrl);
 
-                if (!data || !data.optionChain || !data.optionChain.result || data.optionChain.result.length === 0) {
-                    diagnostics.noData++;
-                    addDiagLog(`${symbol}: No option chain`, 'warning');
-                    return null;
-                }
-
-                const result = data.optionChain.result[0];
-                const quote = result.quote;
-                
-                if (!quote || !quote.regularMarketPrice) {
-                    diagnostics.noData++;
-                    addDiagLog(`${symbol}: No quote`, 'warning');
-                    return null;
-                }
-                
-                const currentPrice = quote.regularMarketPrice;
-                const expirations = result.expirationDates || [];
-
-                if (expirations.length === 0) {
-                    diagnostics.noData++;
-                    addDiagLog(`${symbol}: No expirations`, 'warning');
-                    return null;
-                }
-
-                // Get nearest weekly expiration
-                const nextExpiration = expirations[0];
-                const expDate = new Date(nextExpiration * 1000);
-                const daysToExp = Math.round((expDate - new Date()) / (1000 * 60 * 60 * 24));
-
-                // Only include weekly options (0-7 days)
-                if (daysToExp > 7) {
-                    diagnostics.notWeekly++;
-                    addDiagLog(`${symbol}: DTE=${daysToExp} (not weekly)`, 'info');
-                    return null;
-                }
-
-                // Quick fetch of minimal historical data (last 30 days only for speed)
-                const historicalUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=30d`;
-                const histData = await fetchWithProxy(historicalUrl);
-
-                if (!histData || !histData.chart || !histData.chart.result || histData.chart.result.length === 0) {
-                    diagnostics.noData++;
-                    addDiagLog(`${symbol}: No historical data`, 'warning');
-                    return null;
-                }
-
-                const chartResult = histData.chart.result[0];
-                const quotes = chartResult.indicators.quote[0];
-                const closes = quotes.close.filter(p => p !== null && p !== undefined);
-                const highs = quotes.high.filter(p => p !== null && p !== undefined);
-                const lows = quotes.low.filter(p => p !== null && p !== undefined);
-
-                if (closes.length < 20) {
-                    diagnostics.noData++;
-                    addDiagLog(`${symbol}: Only ${closes.length} data points`, 'warning');
-                    return null;
-                }
-
-                diagnostics.success++;
-
-                // Fast technical calculations
-                const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-                const sma50 = closes.length >= 50 ? closes.slice(-50).reduce((a, b) => a + b, 0) / 50 : sma20;
-                
-                // Simple EMA calculation
-                const ema9 = calculateEMA(closes, 9);
-                const ema21 = calculateEMA(closes, 21);
-
-                // Quick signal determination
-                let signal = 'neutral';
-                let signalStrength = 0;
-
-                if (currentPrice > sma20 && sma20 > sma50 && ema9 > ema21) {
-                    signal = 'bullish';
-                    signalStrength = ((currentPrice - sma50) / sma50 * 100).toFixed(2);
-                } else if (currentPrice < sma20 && sma20 < sma50 && ema9 < ema21) {
-                    signal = 'bearish';
-                    signalStrength = ((sma50 - currentPrice) / sma50 * 100).toFixed(2);
-                }
-
-                // Quick support/resistance from recent data only
-                const recentHighs = highs.slice(-10);
-                const recentLows = lows.slice(-10);
-                const resistance = Math.max(...recentHighs);
-                const support = Math.min(...recentLows);
-
-                // Fast strike calculations
-                const atmStrike = Math.round(currentPrice / 5) * 5;
-                const callStrike = signal === 'bullish' ? atmStrike + 5 : atmStrike;
-                const putStrike = signal === 'bearish' ? atmStrike - 5 : atmStrike;
-
-                return {
-                    symbol,
-                    currentPrice,
-                    signal,
-                    signalStrength,
-                    daysToExp,
-                    expDate: expDate.toLocaleDateString(),
-                    sma20,
-                    sma50,
-                    ema9,
-                    ema21,
-                    resistance,
-                    support,
-                    atmStrike,
-                    callStrike,
-                    putStrike,
-                    historicalData: {
-                        timestamps: chartResult.timestamp,
-                        closes,
-                        highs,
-                        lows
-                    }
-                };
-            } catch (error) {
-                diagnostics.errors++;
+            if (!optData?.optionChain?.result?.[0]) {
                 return null;
             }
-        }
 
-        function calculateSMA(prices, period) {
-            if (prices.length < period) return null;
-            const slice = prices.slice(-period);
-            return slice.reduce((a, b) => a + b, 0) / period;
-        }
+            const chain = optData.optionChain.result[0];
+            const price = chain.quote?.regularMarketPrice;
+            const expirations = chain.expirationDates || [];
 
-        function calculateEMA(prices, period) {
-            if (prices.length < period) return null;
-            const multiplier = 2 / (period + 1);
-            let ema = prices.slice(0, period).reduce((a, b) => a + b, 0) / period;
-            for (let i = period; i < prices.length; i++) {
-                ema = (prices[i] - ema) * multiplier + ema;
+            if (!price || expirations.length === 0) {
+                return null;
             }
-            return ema;
+
+            // Check if weekly (0-7 days)
+            const nextExp = expirations[0];
+            const expDate = new Date(nextExp * 1000);
+            const dte = Math.round((expDate - new Date()) / (1000 * 60 * 60 * 24));
+
+            if (dte > 7 || dte < 0) {
+                return null; // Not a weekly
+            }
+
+            // Fetch price history
+            const histUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=60d`;
+            const histData = await fetchData(histUrl);
+
+            if (!histData?.chart?.result?.[0]) {
+                return null;
+            }
+
+            const quotes = histData.chart.result[0].indicators.quote[0];
+            const closes = quotes.close.filter(p => p != null);
+            const highs = quotes.high.filter(p => p != null);
+            const lows = quotes.low.filter(p => p != null);
+
+            if (closes.length < 20) {
+                return null;
+            }
+
+            // Calculate indicators
+            const sma20 = closes.slice(-20).reduce((a, b) => a + b) / 20;
+            const sma50 = closes.length >= 50 ? closes.slice(-50).reduce((a, b) => a + b) / 50 : sma20;
+
+            // Determine signal
+            let signal = 'neutral';
+            if (price > sma20 && sma20 > sma50) signal = 'bullish';
+            if (price < sma20 && sma20 < sma50) signal = 'bearish';
+
+            // Find support/resistance
+            const resistance = Math.max(...highs.slice(-20));
+            const support = Math.min(...lows.slice(-20));
+
+            // Calculate strike
+            const atm = Math.round(price / 5) * 5;
+            const strike = signal === 'bullish' ? atm + 5 : signal === 'bearish' ? atm - 5 : atm;
+
+            return {
+                symbol,
+                price: price.toFixed(2),
+                signal,
+                dte,
+                expDate: expDate.toLocaleDateString(),
+                strike,
+                atm,
+                sma20: sma20.toFixed(2),
+                sma50: sma50.toFixed(2),
+                resistance: resistance.toFixed(2),
+                support: support.toFixed(2),
+                history: {
+                    closes,
+                    highs,
+                    lows,
+                    timestamps: histData.chart.result[0].timestamp
+                }
+            };
         }
 
-        function displayResults() {
-            const resultsList = document.getElementById('resultsList');
-            const resultsCount = document.getElementById('resultsCount');
+        function updateResults() {
+            const resultsCard = document.getElementById('resultsCard');
+            const resultsDiv = document.getElementById('results');
+            const countSpan = document.getElementById('count');
 
-            const filtered = scanResults.filter(r => {
-                if (currentFilter === 'all') return true;
-                return r.signal === currentFilter;
+            if (results.length === 0) {
+                resultsCard.style.display = 'none';
+                return;
+            }
+
+            resultsCard.style.display = 'block';
+            countSpan.textContent = results.length;
+
+            // Sort by signal strength
+            const sorted = [...results].sort((a, b) => {
+                const order = { bullish: 0, bearish: 1, neutral: 2 };
+                return order[a.signal] - order[b.signal];
             });
 
-            // Sort by signal strength (strongest first)
-            filtered.sort((a, b) => Math.abs(parseFloat(b.signalStrength)) - Math.abs(parseFloat(a.signalStrength)));
-
-            resultsCount.textContent = `${filtered.length} opportunities found`;
-
-            if (filtered.length === 0 && scanResults.length === 0) {
-                resultsList.innerHTML = `
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <div>Scanning symbols...</div>
-                    </div>
-                `;
-                return;
-            }
-
-            if (filtered.length === 0) {
-                resultsList.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-state-icon">📊</div>
-                        <div>No opportunities found for "${currentFilter}" filter</div>
-                    </div>
-                `;
-                return;
-            }
-
-            resultsList.innerHTML = filtered.map((result, idx) => `
-                <div class="result-item" onclick="showAnalysis('${result.symbol}')" style="animation: fadeIn 0.3s ease ${idx * 0.05}s both;">
-                    <div class="result-symbol">${result.symbol}</div>
-                    <div class="result-info">
-                        <div class="info-item">
-                            <div class="info-label">Current Price</div>
-                            <div class="info-value">$${result.currentPrice.toFixed(2)}</div>
+            resultsDiv.innerHTML = sorted.map(r => `
+                <div class="result-card ${r.signal}" onclick='showDetail(${JSON.stringify(r)})'>
+                    <div class="symbol">${r.symbol}</div>
+                    <div class="details">
+                        <div class="detail-item">
+                            <div class="label">Current Price</div>
+                            <div class="value">$${r.price}</div>
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">Expiration</div>
-                            <div class="info-value">${result.expDate}</div>
+                        <div class="detail-item">
+                            <div class="label">Expiration</div>
+                            <div class="value">${r.expDate} (${r.dte}d)</div>
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">Signal Strength</div>
-                            <div class="info-value">${Math.abs(result.signalStrength)}%</div>
+                        <div class="detail-item">
+                            <div class="label">Recommended Strike</div>
+                            <div class="value">$${r.strike}</div>
                         </div>
-                        <div class="info-item">
-                            <div class="info-label">Recommended Strike</div>
-                            <div class="info-value">$${result.signal === 'bullish' ? result.callStrike : result.signal === 'bearish' ? result.putStrike : result.atmStrike}</div>
+                        <div class="detail-item">
+                            <div class="label">Strategy</div>
+                            <div class="value">${r.signal === 'bullish' ? 'Call' : r.signal === 'bearish' ? 'Put' : 'Straddle'}</div>
                         </div>
                     </div>
-                    <div>
-                        <div class="signal-badge signal-${result.signal}">
-                            ${result.signal === 'bullish' ? '🟢 Bullish' : result.signal === 'bearish' ? '🔴 Bearish' : '🟡 Neutral'}
-                        </div>
-                    </div>
+                    <span class="badge ${r.signal}">
+                        ${r.signal === 'bullish' ? '🟢 Bullish' : r.signal === 'bearish' ? '🔴 Bearish' : '🟡 Neutral'}
+                    </span>
                 </div>
             `).join('');
         }
 
-        // Add CSS animation
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-        `;
-        document.head.appendChild(style);
+        function showDetail(data) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
 
-        function filterResults(filter) {
-            currentFilter = filter;
-            
-            // Update active tab
-            document.querySelectorAll('.filter-tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            event.target.classList.add('active');
+            title.textContent = `${data.symbol} - Detailed Analysis`;
 
-            displayResults();
-        }
-
-        function showAnalysis(symbol) {
-            const result = scanResults.find(r => r.symbol === symbol);
-            if (!result) return;
-
-            const modal = document.getElementById('analysisModal');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
-
-            modalTitle.textContent = `${symbol} - Detailed Analysis`;
-            
-            modalBody.innerHTML = `
-                <div class="analysis-section">
-                    <div class="section-title">📈 Price Chart with Technical Indicators</div>
-                    <div class="chart-container">
-                        <canvas id="priceChart" height="300"></canvas>
-                    </div>
-                </div>
-
-                <div class="analysis-section">
-                    <div class="section-title">🎯 Trading Zones</div>
-                    <div class="signal-zones">
-                        <div class="signal-zone bullish">
-                            <div class="zone-title">🟢 Bullish Zone</div>
-                            <div class="zone-price">$${result.resistance.toFixed(2)}</div>
-                            <div class="zone-description">
-                                <strong>Resistance Level</strong><br>
-                                Price breaking above this level indicates strong bullish momentum.<br><br>
-                                <strong>Action:</strong> Consider call options above $${result.callStrike}
-                            </div>
+            body.innerHTML = `
+                <div class="signal-box">
+                    <h3>📊 Current Status</h3>
+                    <div class="rec-grid">
+                        <div class="detail-item">
+                            <div class="label">Current Price</div>
+                            <div class="value">$${data.price}</div>
                         </div>
-                        <div class="signal-zone bearish">
-                            <div class="zone-title">🔴 Bearish Zone</div>
-                            <div class="zone-price">$${result.support.toFixed(2)}</div>
-                            <div class="zone-description">
-                                <strong>Support Level</strong><br>
-                                Price breaking below this level indicates strong bearish momentum.<br><br>
-                                <strong>Action:</strong> Consider put options below $${result.putStrike}
-                            </div>
+                        <div class="detail-item">
+                            <div class="label">SMA(20)</div>
+                            <div class="value">$${data.sma20}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">SMA(50)</div>
+                            <div class="value">$${data.sma50}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">Signal</div>
+                            <div class="value">${data.signal.toUpperCase()}</div>
                         </div>
                     </div>
                 </div>
 
-                <div class="analysis-section">
-                    <div class="section-title">💡 Option Strike Recommendations</div>
-                    <div class="recommendations">
-                        ${result.signal === 'bullish' ? `
-                            <div class="recommendation-item">
-                                <div class="rec-title">🟢 BULLISH STRATEGY - Call Options</div>
-                                <div class="rec-details">
-                                    <div><strong>Recommended Strike:</strong> $${result.callStrike}</div>
-                                    <div><strong>Expiration:</strong> ${result.expDate} (${result.daysToExp} DTE)</div>
-                                    <div><strong>Entry:</strong> When price > $${result.sma20.toFixed(2)}</div>
-                                    <div><strong>Target:</strong> $${result.resistance.toFixed(2)}</div>
-                                </div>
-                            </div>
-                        ` : result.signal === 'bearish' ? `
-                            <div class="recommendation-item">
-                                <div class="rec-title">🔴 BEARISH STRATEGY - Put Options</div>
-                                <div class="rec-details">
-                                    <div><strong>Recommended Strike:</strong> $${result.putStrike}</div>
-                                    <div><strong>Expiration:</strong> ${result.expDate} (${result.daysToExp} DTE)</div>
-                                    <div><strong>Entry:</strong> When price < $${result.sma20.toFixed(2)}</div>
-                                    <div><strong>Target:</strong> $${result.support.toFixed(2)}</div>
-                                </div>
-                            </div>
-                        ` : `
-                            <div class="recommendation-item">
-                                <div class="rec-title">🟡 NEUTRAL STRATEGY - Straddle</div>
-                                <div class="rec-details">
-                                    <div><strong>Call Strike:</strong> $${result.callStrike}</div>
-                                    <div><strong>Put Strike:</strong> $${result.putStrike}</div>
-                                    <div><strong>Expiration:</strong> ${result.expDate} (${result.daysToExp} DTE)</div>
-                                    <div><strong>Strategy:</strong> Buy both call and put at ATM</div>
-                                </div>
-                            </div>
-                        `}
-
-                        <div class="recommendation-item">
-                            <div class="rec-title">📊 Technical Levels</div>
-                            <div class="rec-details">
-                                <div><strong>Current Price:</strong> $${result.currentPrice.toFixed(2)}</div>
-                                <div><strong>SMA(20):</strong> $${result.sma20.toFixed(2)}</div>
-                                <div><strong>SMA(50):</strong> $${result.sma50.toFixed(2)}</div>
-                                <div><strong>Signal Strength:</strong> ${result.signalStrength}%</div>
-                            </div>
+                <div class="signal-box">
+                    <h3>🎯 Key Levels</h3>
+                    <div class="rec-grid">
+                        <div class="detail-item">
+                            <div class="label">🔴 Resistance</div>
+                            <div class="value">$${data.resistance}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">🟢 Support</div>
+                            <div class="value">$${data.support}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">ATM Strike</div>
+                            <div class="value">$${data.atm}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="label">Days to Exp</div>
+                            <div class="value">${data.dte} days</div>
                         </div>
                     </div>
+                </div>
+
+                <div class="recommendation">
+                    <h3>💡 Trade Recommendation</h3>
+                    ${data.signal === 'bullish' ? `
+                        <p><strong>BULLISH SETUP - Buy Call Options</strong></p>
+                        <div class="rec-grid">
+                            <div class="rec-item"><strong>Strike:</strong> $${data.strike}</div>
+                            <div class="rec-item"><strong>Expiration:</strong> ${data.expDate}</div>
+                            <div class="rec-item"><strong>Entry:</strong> Price above $${data.sma20}</div>
+                            <div class="rec-item"><strong>Target:</strong> $${data.resistance}</div>
+                        </div>
+                        <p style="margin-top: 15px; font-size: 13px;">✅ Price is above SMA(20) and SMA(50), indicating uptrend. Consider buying call options at strike $${data.strike}.</p>
+                    ` : data.signal === 'bearish' ? `
+                        <p><strong>BEARISH SETUP - Buy Put Options</strong></p>
+                        <div class="rec-grid">
+                            <div class="rec-item"><strong>Strike:</strong> $${data.strike}</div>
+                            <div class="rec-item"><strong>Expiration:</strong> ${data.expDate}</div>
+                            <div class="rec-item"><strong>Entry:</strong> Price below $${data.sma20}</div>
+                            <div class="rec-item"><strong>Target:</strong> $${data.support}</div>
+                        </div>
+                        <p style="margin-top: 15px; font-size: 13px;">📉 Price is below SMA(20) and SMA(50), indicating downtrend. Consider buying put options at strike $${data.strike}.</p>
+                    ` : `
+                        <p><strong>NEUTRAL - Straddle Strategy</strong></p>
+                        <div class="rec-grid">
+                            <div class="rec-item"><strong>Call Strike:</strong> $${data.atm}</div>
+                            <div class="rec-item"><strong>Put Strike:</strong> $${data.atm}</div>
+                            <div class="rec-item"><strong>Expiration:</strong> ${data.expDate}</div>
+                            <div class="rec-item"><strong>Strategy:</strong> Buy both</div>
+                        </div>
+                        <p style="margin-top: 15px; font-size: 13px;">⚖️ No clear trend. Consider straddle (buy both call and put) to profit from volatility.</p>
+                    `}
+                </div>
+
+                <div class="signal-box">
+                    <h3>📈 Price Chart (60 Days)</h3>
+                    <canvas id="detailChart"></canvas>
                 </div>
             `;
 
             modal.style.display = 'block';
 
-            // Create chart
-            setTimeout(() => {
-                createPriceChart(result);
-            }, 100);
+            // Draw chart
+            setTimeout(() => drawChart(data), 100);
         }
 
-        function createPriceChart(result) {
-            const ctx = document.getElementById('priceChart');
+        function drawChart(data) {
+            const ctx = document.getElementById('detailChart');
             if (!ctx) return;
 
-            if (currentChart) {
-                currentChart.destroy();
-            }
+            if (currentChart) currentChart.destroy();
 
-            const labels = result.historicalData.timestamps.slice(-60).map(ts => {
-                const date = new Date(ts * 1000);
-                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-
-            const prices = result.historicalData.closes.slice(-60);
-
-            // Calculate SMAs for chart
-            const sma20Data = [];
-            const sma50Data = [];
-            for (let i = 0; i < prices.length; i++) {
-                const slice = result.historicalData.closes.slice(Math.max(0, result.historicalData.closes.length - 60 + i - 19), result.historicalData.closes.length - 60 + i + 1);
-                sma20Data.push(i >= 19 ? calculateSMA(slice, 20) : null);
-                
-                const slice50 = result.historicalData.closes.slice(Math.max(0, result.historicalData.closes.length - 60 + i - 49), result.historicalData.closes.length - 60 + i + 1);
-                sma50Data.push(i >= 49 ? calculateSMA(slice50, 50) : null);
-            }
+            const labels = data.history.timestamps.slice(-60).map(ts => 
+                new Date(ts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            );
 
             currentChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Price',
-                            data: prices,
-                            borderColor: '#2d3436',
-                            borderWidth: 2.5,
-                            pointRadius: 0,
-                        },
-                        {
-                            label: 'SMA(20)',
-                            data: sma20Data,
-                            borderColor: '#0984e3',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            pointRadius: 0,
-                        },
-                        {
-                            label: 'SMA(50)',
-                            data: sma50Data,
-                            borderColor: '#6c5ce7',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            pointRadius: 0,
-                        },
-                        {
-                            label: 'Resistance',
-                            data: Array(prices.length).fill(result.resistance),
-                            borderColor: '#d63031',
-                            borderWidth: 2,
-                            borderDash: [10, 5],
-                            pointRadius: 0,
-                        },
-                        {
-                            label: 'Support',
-                            data: Array(prices.length).fill(result.support),
-                            borderColor: '#00b894',
-                            borderWidth: 2,
-                            borderDash: [10, 5],
-                            pointRadius: 0,
-                        }
-                    ]
+                    labels,
+                    datasets: [{
+                        label: 'Price',
+                        data: data.history.closes.slice(-60),
+                        borderColor: '#2d3436',
+                        borderWidth: 2,
+                        pointRadius: 0
+                    }, {
+                        label: 'Resistance',
+                        data: Array(60).fill(data.resistance),
+                        borderColor: '#d63031',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }, {
+                        label: 'Support',
+                        data: Array(60).fill(data.support),
+                        borderColor: '#00b894',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top',
-                        },
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                        }
+                        legend: { display: true, position: 'top' }
                     },
                     scales: {
                         y: {
                             ticks: {
-                                callback: function(value) {
-                                    return '$' + value.toFixed(2);
-                                }
+                                callback: v => '$' + v.toFixed(2)
                             }
                         }
                     }
@@ -1098,18 +633,13 @@
             });
         }
 
-        function closeAnalysis() {
-            document.getElementById('analysisModal').style.display = 'none';
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
             if (currentChart) {
                 currentChart.destroy();
                 currentChart = null;
             }
         }
-
-        // Auto-scan on load (optional - comment out if you want manual trigger)
-        // window.addEventListener('load', () => {
-        //     setTimeout(startScan, 1000);
-        // });
     </script>
 </body>
 </html>
