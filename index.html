@@ -3,84 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Options Scanner - Alpha Vantage Only</title>
+    <title>Weekly Options Scanner - Compact List</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #f5f6fa;
             min-height: 100vh;
-            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 13px;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
-        }
-
-        .card {
-            background: white;
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        h1 {
-            color: #2d3436;
-            margin-bottom: 10px;
-        }
-
-        .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #0984e3;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .scan-btn {
-            width: 100%;
             padding: 20px;
-            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            margin: 15px 0;
-        }
-
-        .scan-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
         }
 
         .controls {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 15px;
-            margin: 15px 0;
-        }
-
-        .input-group {
-            background: #f8f9fa;
-            padding: 15px;
+            background: white;
+            padding: 20px;
             border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
         }
 
-        .input-group label {
+        .control-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        label {
             display: block;
-            font-weight: bold;
+            font-weight: 600;
             margin-bottom: 8px;
+            font-size: 13px;
             color: #2d3436;
         }
 
-        .input-group input {
+        input, select {
             width: 100%;
             padding: 10px;
             border: 2px solid #dfe6e9;
@@ -88,727 +67,1072 @@
             font-size: 14px;
         }
 
-        .quick-select {
+        .scan-btn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .scan-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .quick-btns {
             display: flex;
-            gap: 10px;
+            gap: 8px;
+            flex-wrap: wrap;
             margin-top: 10px;
         }
 
         .quick-btn {
-            padding: 8px 15px;
+            padding: 6px 12px;
             background: #0984e3;
             color: white;
             border: none;
             border-radius: 6px;
+            font-size: 11px;
             cursor: pointer;
-            font-size: 12px;
         }
 
         .progress {
             background: #ecf0f1;
-            height: 30px;
-            border-radius: 15px;
+            height: 6px;
+            border-radius: 3px;
             overflow: hidden;
             margin: 15px 0;
+            display: none;
         }
 
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #00b894, #00cec9);
             transition: width 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
+        }
+
+        .progress-text {
             font-size: 12px;
-        }
-
-        .status {
-            background: #2d3436;
-            color: #00ff00;
-            padding: 15px;
-            border-radius: 10px;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 300px;
-            overflow-y: auto;
-            margin: 15px 0;
-        }
-
-        .status div {
-            margin: 2px 0;
-        }
-
-        .results-grid {
-            display: grid;
-            gap: 20px;
-        }
-
-        .result-card {
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            border-left: 5px solid #667eea;
-            transition: all 0.3s;
-        }
-
-        .result-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .result-card.bullish { 
-            border-left-color: #00b894;
-            background: linear-gradient(135deg, #d4edda 0%, #ffffff 100%);
-        }
-        
-        .result-card.bearish { 
-            border-left-color: #d63031;
-            background: linear-gradient(135deg, #f8d7da 0%, #ffffff 100%);
-        }
-
-        .result-header {
-            display: grid;
-            grid-template-columns: auto 1fr auto;
-            gap: 20px;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #ecf0f1;
-        }
-
-        .symbol {
-            font-size: 32px;
-            font-weight: bold;
-            color: #2d3436;
-        }
-
-        .price-info {
-            text-align: center;
-        }
-
-        .price {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2d3436;
-        }
-
-        .price-label {
-            font-size: 11px;
             color: #636e72;
-            text-transform: uppercase;
-        }
-
-        .change {
-            font-size: 16px;
-            font-weight: bold;
+            text-align: center;
             margin-top: 5px;
         }
 
-        .change.positive { color: #00b894; }
-        .change.negative { color: #d63031; }
-
-        .badge-large {
-            padding: 12px 24px;
-            border-radius: 25px;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .badge-large.bullish { background: #00b894; color: white; }
-        .badge-large.bearish { background: #d63031; color: white; }
-        .badge-large.neutral { background: #fdcb6e; color: white; }
-
-        .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .metric-card {
+        .results-container {
             background: white;
-            padding: 15px;
             border-radius: 10px;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            display: none;
         }
 
-        .metric-label {
-            font-size: 11px;
-            color: #636e72;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
+        .results-header {
+            padding: 15px 20px;
+            border-bottom: 2px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        .metric-value {
-            font-size: 20px;
+        .results-title {
+            font-size: 18px;
             font-weight: bold;
             color: #2d3436;
         }
 
-        .metric-subvalue {
-            font-size: 12px;
+        .results-count {
+            font-size: 13px;
             color: #636e72;
-            margin-top: 3px;
         }
 
-        .recommendation-box {
+        .filter-tabs {
+            display: flex;
+            gap: 5px;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ecf0f1;
+            background: #f8f9fa;
+        }
+
+        .filter-tab {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #dfe6e9;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .filter-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .results-table thead {
+            background: #f8f9fa;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .results-table th {
+            padding: 12px 15px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 700;
+            color: #636e72;
+            text-transform: uppercase;
+            border-bottom: 2px solid #dfe6e9;
+        }
+
+        .results-table th.right {
+            text-align: right;
+        }
+
+        .results-table th.center {
+            text-align: center;
+        }
+
+        .results-table tbody tr {
+            border-bottom: 1px solid #ecf0f1;
+            transition: background 0.2s;
+        }
+
+        .results-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .results-table td {
+            padding: 12px 15px;
+            font-size: 13px;
+            color: #2d3436;
+        }
+
+        .symbol-cell {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .price-cell {
+            font-weight: 600;
+        }
+
+        .change-positive {
+            color: #00b894;
+            font-weight: 600;
+        }
+
+        .change-negative {
+            color: #d63031;
+            font-weight: 600;
+        }
+
+        .signal-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .signal-bullish {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .signal-bearish {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .signal-neutral {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .di-cross {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .di-cross.bullish {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .di-cross.bearish {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .di-cross.near {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence-high {
+            color: #00b894;
+            font-weight: 700;
+        }
+
+        .confidence-medium {
+            color: #fdcb6e;
+            font-weight: 600;
+        }
+
+        .confidence-low {
+            color: #636e72;
+            font-weight: 500;
+        }
+
+        .view-btn {
+            padding: 6px 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .view-btn:hover {
+            background: #5568d3;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 9999;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 1200px;
+            margin: 20px auto;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .modal-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            padding: 25px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .zone-box {
             padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+
+        .zone-box.bullish {
+            background: #d4edda;
+            border-color: #00b894;
+        }
+
+        .zone-box.bearish {
+            background: #f8d7da;
+            border-color: #d63031;
+        }
+
+        .zone-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #2d3436;
+        }
+
+        .zone-price {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .zone-box.bullish .zone-price {
+            color: #00b894;
+        }
+
+        .zone-box.bearish .zone-price {
+            color: #d63031;
+        }
+
+        .zone-desc {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #636e72;
+        }
+
+        .chart-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2d3436;
+        }
+
+        .recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
         }
 
         .rec-title {
             font-size: 18px;
             font-weight: bold;
             margin-bottom: 15px;
-            text-transform: uppercase;
         }
 
         .rec-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
+            gap: 15px;
         }
 
         .rec-item {
             background: rgba(255,255,255,0.15);
-            padding: 12px;
+            padding: 15px;
             border-radius: 8px;
         }
 
-        .rec-item-label {
+        .rec-label {
             font-size: 11px;
             opacity: 0.9;
             margin-bottom: 5px;
         }
 
-        .rec-item-value {
-            font-size: 16px;
+        .rec-value {
+            font-size: 18px;
             font-weight: bold;
         }
 
-        .analysis-text {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255,255,255,0.2);
-            font-size: 14px;
-            line-height: 1.6;
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #636e72;
         }
 
-        .timestamp {
-            font-size: 11px;
-            color: #636e72;
-            text-align: right;
-            margin-top: 15px;
-            padding-top: 10px;
-            border-top: 1px solid #ecf0f1;
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .control-row {
+                grid-template-columns: 1fr;
+            }
+
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .results-table {
+                font-size: 11px;
+            }
+
+            .results-table th,
+            .results-table td {
+                padding: 8px 10px;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>📊 Weekly Options Scanner</h1>
+        <p>250+ stocks with Mon/Wed/Fri expirations - Compact list view with detailed analysis</p>
+    </div>
+
     <div class="container">
-        <div class="card">
-            <h1>📊 Alpha Vantage Options Scanner</h1>
-            <p style="color: #636e72; margin-bottom: 20px;">
-                Professional options analysis using comprehensive Alpha Vantage data
-            </p>
-
-            <div class="info-box">
-                <strong>✅ Guaranteed to work on GitHub Pages!</strong><br>
-                This scanner uses ONLY Alpha Vantage API which has zero CORS restrictions. It combines multiple technical indicators to give you professional-grade analysis.
-                <br><br>
-                <strong>📊 All Weekly Options Included:</strong> The scanner now includes 250+ stocks with Monday, Wednesday, and Friday weekly options expirations. Click "⭐ ALL Weekly Options" to scan everything, or choose a category to scan specific sectors.
-            </div>
-
-            <div class="controls">
-                <div class="input-group">
-                    <label>📝 Symbols to Scan (comma-separated):</label>
-                    <input type="text" id="symbolInput" value="SPY,QQQ,IWM,DIA,AAPL,MSFT,NVDA,TSLA,AMD,META,AMZN,GOOGL,JPM,BAC,GS,MS,WFC,XLE,XLF,XLK,XLV,GLD,SLV,TLT" placeholder="Enter symbols separated by commas">
-                    <div class="quick-select">
-                        <button class="quick-btn" onclick="setSymbols(ALL_WEEKLY_SYMBOLS)">⭐ ALL Weekly Options (250+)</button>
-                        <button class="quick-btn" onclick="setSymbols('SPY,QQQ,IWM,DIA,EEM,EFA,VXX,UVXY')">📈 Index ETFs</button>
-                        <button class="quick-btn" onclick="setSymbols('AAPL,MSFT,GOOGL,GOOG,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO')">💻 Mega Tech</button>
-                        <button class="quick-btn" onclick="setSymbols('JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF')">🏦 Financials</button>
-                        <button class="quick-btn" onclick="setSymbols('XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,XLC')">📊 Sector ETFs</button>
-                        <button class="quick-btn" onclick="setSymbols('GLD,SLV,GDX,GDXJ,TLT,USO,UNG,DBA')">💰 Commodities</button>
+        <div class="controls">
+            <div class="control-row">
+                <div>
+                    <label>Symbols to Scan (comma-separated)</label>
+                    <input type="text" id="symbolInput" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
+                    <div class="quick-btns">
+                        <button class="quick-btn" onclick="loadPreset('all')">⭐ All 250+</button>
+                        <button class="quick-btn" onclick="loadPreset('etfs')">📈 ETFs</button>
+                        <button class="quick-btn" onclick="loadPreset('tech')">💻 Tech</button>
+                        <button class="quick-btn" onclick="loadPreset('finance')">🏦 Finance</button>
+                        <button class="quick-btn" onclick="loadPreset('energy')">⚡ Energy</button>
                     </div>
                 </div>
-
-                <div class="input-group">
-                    <label>⏱️ Scan Speed:</label>
-                    <select id="speedSelect" style="width: 100%; padding: 10px; border: 2px solid #dfe6e9; border-radius: 8px;">
-                        <option value="fast">⚡ Fast (15s wait) - May hit limits</option>
-                        <option value="normal" selected>🚀 Normal (20s wait) - Recommended</option>
-                        <option value="safe">🐢 Safe (30s wait) - Never fails</option>
-                        <option value="ultra">🚀🚀 Ultra Fast (12s wait) - For small lists only</option>
+                <div>
+                    <label>Scan Speed</label>
+                    <select id="speedSelect">
+                        <option value="12">⚡ Ultra (12s)</option>
+                        <option value="15">🚀 Fast (15s)</option>
+                        <option value="20" selected>✅ Normal (20s)</option>
+                        <option value="30">🐢 Safe (30s)</option>
                     </select>
-                    <div style="margin-top: 10px; font-size: 12px; color: #636e72;">
-                        <strong>Note:</strong> Scanning 250+ symbols will take 80-120 minutes. Consider scanning in batches.
-                    </div>
                 </div>
+                <button class="scan-btn" id="scanBtn" onclick="startScan()">🔍 Start Scan</button>
             </div>
-
-            <button class="scan-btn" id="scanBtn" onclick="startScan()">
-                🔍 Start Comprehensive Scan
-            </button>
-
-            <div class="progress" style="display: none;" id="progress">
-                <div class="progress-bar" id="progressBar">0%</div>
+            
+            <div class="progress" id="progress">
+                <div class="progress-bar" id="progressBar"></div>
             </div>
-
-            <div class="status" id="status" style="display: none;"></div>
+            <div class="progress-text" id="progressText"></div>
         </div>
 
-        <div class="card" id="resultsCard" style="display: none;">
-            <h2 style="margin-bottom: 25px;">
-                📊 Analysis Results: <span id="count">0</span> Symbols
-            </h2>
-            <div class="results-grid" id="results"></div>
+        <div class="results-container" id="resultsContainer">
+            <div class="results-header">
+                <div class="results-title">Scan Results</div>
+                <div class="results-count" id="resultsCount">0 opportunities</div>
+            </div>
+
+            <div class="filter-tabs">
+                <button class="filter-tab active" onclick="filterResults('all')">All</button>
+                <button class="filter-tab" onclick="filterResults('bullish')">🟢 Bullish</button>
+                <button class="filter-tab" onclick="filterResults('bearish')">🔴 Bearish</button>
+                <button class="filter-tab" onclick="filterResults('neutral')">🟡 Neutral</button>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Symbol</th>
+                            <th class="right">Price</th>
+                            <th class="right">Change</th>
+                            <th class="center">Signal</th>
+                            <th class="right">ADX</th>
+                            <th class="right">+DI</th>
+                            <th class="right">-DI</th>
+                            <th class="center">DI Cross</th>
+                            <th class="right">Strike</th>
+                            <th class="center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody">
+                        <tr>
+                            <td colspan="10" class="empty-state">
+                                <div class="empty-icon">📊</div>
+                                <div>Click "Start Scan" to analyze weekly options</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
+    <!-- Analysis Modal -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modalTitle">Analysis</div>
+                <button class="close-btn" onclick="closeModal()">✕ Close</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         const API_KEY = '7UOSK3Z2XFXU992W';
-        let results = [];
+        
+        const PRESETS = {
+            all: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,UVXY,AAPL,MSFT,GOOGL,GOOG,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,KLAC,ASML,SNOW,NOW,DDOG,NET,ZS,CRWD,OKTA,WDAY,TEAM,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,BK,STT,FITB,HBAN,RF,CFG,KEY,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,LYFT,DASH,ETSY,SHOP,EBAY,LOW,BBY,DG,DLTR,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,CI,REGN,VRTX,BIIB,ISRG,DHR,SYK,BSX,ELV,HUM,MRNA,BNTX,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,PXD,DVN,FANG,HES,GLD,SLV,GDX,GDXJ,NEM,FCX,GOLD,AEM,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,LHX,DE,EMR,ETN,FDX,NSC,UNP,CSX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,ON,SWKS,MPWR,MRVL,F,GM,RIVN,LCID,NIO,LI,XPEV,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,HOOD,AFRM,ILMN,EXAS,TDOC,GME,AMC,BBBY,BB,PLTR,WISH,CLOV,SPG,PLD,AMT,CCI,EQIX,PSA,O,WELL,BABA,JD,PDD,BIDU,BILI,TME,TLRY,CGC,SNDL,ACB,CRON,APHA,BRK.B,AIG,PGR,ALL,MET,PRU,TRV,AFL,NEE,DUK,SO,D,AEP,EXC,SRE,PEG,PG,KO,PEP,MDLZ,CL,KHC,GIS,K,JBLU,ALK,CCL,NCLH,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,XLC,IYR,KRE,SMH,IBB,XRT,VNQ,GDX,XOP,ITB,XHB,REMX,SQQQ,TQQQ,SPXU,SPXL,TNA,TZA,FAS,FAZ,ERX,ERY,TLT,IEF,SHY,LQD,HYG,JNK,TIP,AGG,USO,UNG,DBA,DBC,CORN,WEAT,SOYB,MARA,RIOT,MSTR,SI,HUT,BITF,CLSK,ZM,DOCU,TWLO,SPLK,ESTC,ATVI,EA,TTWO,DKNG,PENN,MGM,WYNN,ROKU,PARA,WBD,SPOT,FUBO,PANW,FTNT,CYBR,S,QLYS,CHKP,ARKK,ARKW,ARKG,ARKF,TAN,ICLN,LIT,XBI,JETS,BOTZ,FINX,HACK,CLOU',
+            etfs: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,UVXY,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY',
+            tech: 'AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO',
+            finance: 'JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF',
+            energy: 'XLE,XOP,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO'
+        };
 
-        // Comprehensive list of ALL stocks with weekly options (Mon/Wed/Fri expirations)
-        const ALL_WEEKLY_SYMBOLS = [
-            // Major Index ETFs
-            'SPY', 'QQQ', 'IWM', 'DIA', 'EEM', 'EFA', 'VXX', 'UVXY',
-            
-            // FAANG + Mega Cap Tech
-            'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'NVDA', 'TSLA',
-            'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL', 'ADBE', 'CSCO', 'AVGO',
-            'QCOM', 'TXN', 'MU', 'AMAT', 'LRCX', 'KLAC', 'ASML', 'SNOW',
-            'NOW', 'DDOG', 'NET', 'ZS', 'CRWD', 'OKTA', 'WDAY', 'TEAM',
-            
-            // Financial Services
-            'JPM', 'BAC', 'WFC', 'C', 'GS', 'MS', 'BLK', 'SCHW', 'AXP',
-            'USB', 'PNC', 'TFC', 'COF', 'BK', 'STT', 'FITB', 'HBAN',
-            'RF', 'CFG', 'KEY', 'BBT', 'MTB', 'ALLY', 'SOFI',
-            
-            // Consumer & Retail
-            'WMT', 'HD', 'TGT', 'COST', 'NKE', 'SBUX', 'MCD', 'DIS',
-            'CMCSA', 'BKNG', 'ABNB', 'UBER', 'LYFT', 'DASH', 'ETSY',
-            'SHOP', 'EBAY', 'LOW', 'BBY', 'DG', 'DLTR',
-            
-            // Healthcare & Pharma
-            'JNJ', 'UNH', 'PFE', 'ABBV', 'TMO', 'ABT', 'MRK', 'LLY',
-            'AMGN', 'GILD', 'BMY', 'CVS', 'CI', 'REGN', 'VRTX', 'BIIB',
-            'ISRG', 'DHR', 'SYK', 'BSX', 'ELV', 'HUM', 'MRNA', 'BNTX',
-            
-            // Energy & Commodities
-            'XLE', 'XOP', 'OXY', 'CVX', 'XOM', 'COP', 'SLB', 'HAL',
-            'MPC', 'PSX', 'VLO', 'EOG', 'PXD', 'DVN', 'FANG', 'HES',
-            
-            // Metals & Mining
-            'GLD', 'SLV', 'GDX', 'GDXJ', 'NEM', 'FCX', 'GOLD', 'AEM',
-            
-            // Industrials & Defense
-            'BA', 'CAT', 'GE', 'MMM', 'HON', 'UPS', 'RTX', 'LMT',
-            'NOC', 'GD', 'LHX', 'DE', 'EMR', 'ETN', 'FDX', 'NSC',
-            'UNP', 'CSX', 'DAL', 'UAL', 'LUV', 'AAL',
-            
-            // Semiconductor (Additional)
-            'TSM', 'MCHP', 'NXPI', 'ON', 'SWKS', 'MPWR', 'MRVL',
-            
-            // Electric Vehicles & Auto
-            'F', 'GM', 'RIVN', 'LCID', 'NIO', 'LI', 'XPEV', 'PLUG',
-            
-            // Communications & Social Media
-            'T', 'VZ', 'TMUS', 'SNAP', 'PINS', 'TWTR', 'MTCH', 'RBLX',
-            
-            // E-commerce & Payments
-            'PYPL', 'SQ', 'V', 'MA', 'COIN', 'HOOD', 'AFRM',
-            
-            // Biotech (Additional)
-            'ILMN', 'CELG', 'ALXN', 'EXAS', 'TDOC',
-            
-            // High Volatility / Meme Stocks
-            'GME', 'AMC', 'BBBY', 'BB', 'PLTR', 'WISH', 'CLOV',
-            
-            // REITs
-            'SPG', 'PLD', 'AMT', 'CCI', 'EQIX', 'PSA', 'O', 'WELL',
-            
-            // Chinese ADRs
-            'BABA', 'JD', 'PDD', 'BIDU', 'BILI', 'TME',
-            
-            // Cannabis
-            'TLRY', 'CGC', 'SNDL', 'ACB', 'CRON', 'APHA',
-            
-            // Insurance
-            'BRK.B', 'AIG', 'PGR', 'ALL', 'MET', 'PRU', 'TRV', 'AFL',
-            
-            // Utilities
-            'NEE', 'DUK', 'SO', 'D', 'AEP', 'EXC', 'SRE', 'PEG',
-            
-            // Consumer Staples
-            'PG', 'KO', 'PEP', 'MDLZ', 'CL', 'KHC', 'GIS', 'K',
-            
-            // Airlines & Travel
-            'JBLU', 'ALK', 'CCL', 'NCLH', 'RCL', 'MAR', 'HLT',
-            
-            // Banks - Regional
-            'ZION', 'CBSH', 'WTFC', 'PACW', 'WAL', 'FHN',
-            
-            // Sector ETFs
-            'XLF', 'XLK', 'XLV', 'XLI', 'XLP', 'XLU', 'XLY',
-            'XLB', 'XLRE', 'XLC', 'IYR', 'KRE', 'SMH', 'IBB', 'XRT',
-            'VNQ', 'GDX', 'XOP', 'ITB', 'XHB', 'REMX',
-            
-            // Volatility & Inverse
-            'UVXY', 'SVXY', 'SQQQ', 'TQQQ', 'SPXU', 'SPXL',
-            'TNA', 'TZA', 'FAS', 'FAZ', 'ERX', 'ERY',
-            
-            // Bond ETFs
-            'TLT', 'IEF', 'SHY', 'LQD', 'HYG', 'JNK', 'TIP', 'AGG',
-            
-            // Commodity ETFs
-            'USO', 'UNG', 'DBA', 'DBC', 'CORN', 'WEAT', 'SOYB',
-            
-            // Crypto-Related
-            'MARA', 'RIOT', 'MSTR', 'SI', 'HUT', 'BITF', 'CLSK',
-            
-            // Cloud & Software
-            'ZM', 'DOCU', 'TWLO', 'SPLK', 'DDOG', 'ESTC',
-            
-            // Gaming
-            'ATVI', 'EA', 'TTWO', 'DKNG', 'PENN', 'MGM', 'WYNN',
-            
-            // Streaming & Media
-            'ROKU', 'PARA', 'WBD', 'SPOT', 'FUBO',
-            
-            // Cybersecurity
-            'PANW', 'FTNT', 'CYBR', 'S', 'QLYS', 'CHKP',
-            
-            // Additional High Volume
-            'ARKK', 'ARKW', 'ARKG', 'ARKF', 'TAN', 'ICLN', 'LIT', 'XBI',
-            'JETS', 'BOTZ', 'FINX', 'HACK', 'CLOU'
-        ].join(',');
+        let allResults = [];
+        let filteredResults = [];
+        let currentFilter = 'all';
+        let currentChart = null;
 
-        function log(message, color = '#00ff00') {
-            const status = document.getElementById('status');
-            status.style.display = 'block';
-            const div = document.createElement('div');
-            div.style.color = color;
-            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            status.appendChild(div);
-            status.scrollTop = status.scrollHeight;
-        }
-
-        function setSymbols(symbols) {
-            document.getElementById('symbolInput').value = symbols;
+        function loadPreset(preset) {
+            document.getElementById('symbolInput').value = PRESETS[preset];
         }
 
         async function startScan() {
             const btn = document.getElementById('scanBtn');
-            const status = document.getElementById('status');
+            const input = document.getElementById('symbolInput').value.trim();
+            const speed = parseInt(document.getElementById('speedSelect').value) * 1000;
             const progress = document.getElementById('progress');
             const progressBar = document.getElementById('progressBar');
-            const input = document.getElementById('symbolInput').value.trim();
-            const speed = document.getElementById('speedSelect').value;
+            const progressText = document.getElementById('progressText');
 
             if (!input) {
-                alert('Please enter at least one symbol');
+                alert('Please enter symbols to scan');
                 return;
             }
 
             const symbols = input.split(',').map(s => s.trim().toUpperCase()).filter(s => s);
-            const waitTime = speed === 'ultra' ? 12000 : 
-                           speed === 'fast' ? 15000 : 
-                           speed === 'normal' ? 20000 : 30000;
 
             btn.disabled = true;
             btn.textContent = '🔄 Scanning...';
-            status.innerHTML = '';
             progress.style.display = 'block';
-            results = [];
-
-            log('🚀 Starting Alpha Vantage comprehensive scan...', '#00ffff');
-            log(`📊 Analyzing ${symbols.length} symbols`, '#ffff00');
-            log(`⏱️ Wait time between calls: ${waitTime/1000}s`, '#808080');
+            allResults = [];
+            updateTable();
 
             const total = symbols.length;
             let completed = 0;
 
             for (let symbol of symbols) {
                 try {
-                    log(`📈 Fetching data for ${symbol}...`, '#ffffff');
                     const data = await analyzeSymbol(symbol);
-                    
                     if (data) {
-                        results.push(data);
-                        log(`✓ ${symbol}: ${data.signal.toUpperCase()} - Price $${data.price} (SMA20: $${data.sma20}, RSI: ${data.rsi})`, 
-                            data.signal === 'bullish' ? '#00ff00' : data.signal === 'bearish' ? '#ff0000' : '#ffff00');
-                        updateResults();
+                        allResults.push(data);
+                        updateTable();
                     }
                 } catch (e) {
-                    log(`✗ ${symbol}: ${e.message}`, '#ff0000');
+                    console.error(`${symbol}:`, e.message);
                 }
-                
+
                 completed++;
                 const percent = Math.round((completed / total) * 100);
                 progressBar.style.width = percent + '%';
-                progressBar.textContent = `${completed}/${total} (${percent}%)`;
+                progressText.textContent = `${completed}/${total} (${percent}%) - Found ${allResults.length} opportunities`;
 
-                // Wait between symbols
                 if (completed < total) {
-                    log(`⏳ Waiting ${waitTime/1000}s before next symbol...`, '#808080');
-                    await sleep(waitTime);
+                    await sleep(speed);
                 }
             }
 
-            log(`\n✅ Scan complete! Analyzed ${results.length} symbols`, '#00ff00');
             btn.disabled = false;
-            btn.textContent = '🔍 Start Comprehensive Scan';
+            btn.textContent = '🔍 Start Scan';
+            progressText.textContent = `✅ Complete - ${allResults.length} opportunities found`;
         }
 
         async function analyzeSymbol(symbol) {
-            // Fetch 1: Daily time series for price and change
+            // Get daily data
             const dailyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
             const dailyRes = await fetch(dailyUrl);
             const dailyData = await dailyRes.json();
 
-            if (dailyData.Note || dailyData['Error Message']) {
-                throw new Error('API limit or invalid symbol');
-            }
-
-            if (!dailyData['Time Series (Daily)']) {
-                throw new Error('No price data');
-            }
+            if (!dailyData['Time Series (Daily)']) return null;
 
             const timeSeries = dailyData['Time Series (Daily)'];
             const dates = Object.keys(timeSeries).sort().reverse();
-            const latestDate = dates[0];
-            const prevDate = dates[1];
-            
-            const latest = timeSeries[latestDate];
-            const prev = timeSeries[prevDate];
-            
+            const latest = timeSeries[dates[0]];
+            const prev = timeSeries[dates[1]];
+
             const price = parseFloat(latest['4. close']);
             const prevClose = parseFloat(prev['4. close']);
             const change = price - prevClose;
             const changePercent = (change / prevClose * 100);
-            const high = parseFloat(latest['2. high']);
-            const low = parseFloat(latest['3. low']);
-            const volume = parseInt(latest['5. volume']);
 
-            // Get last 60 days for calculations
             const closes = dates.slice(0, 60).map(d => parseFloat(timeSeries[d]['4. close']));
             const highs = dates.slice(0, 60).map(d => parseFloat(timeSeries[d]['2. high']));
             const lows = dates.slice(0, 60).map(d => parseFloat(timeSeries[d]['3. low']));
 
-            // Fetch 2: SMA(20)
-            await sleep(2000); // Small delay between API calls
+            // Get SMA20
+            await sleep(2000);
             const sma20Url = `https://www.alphavantage.co/query?function=SMA&symbol=${symbol}&interval=daily&time_period=20&series_type=close&apikey=${API_KEY}`;
             const sma20Res = await fetch(sma20Url);
             const sma20Data = await sma20Res.json();
-            
-            const sma20Value = sma20Data['Technical Analysis: SMA'] ? 
-                Object.values(sma20Data['Technical Analysis: SMA'])[0]?.SMA : null;
-            const sma20 = sma20Value ? parseFloat(sma20Value) : null;
+            const sma20 = sma20Data['Technical Analysis: SMA'] ? 
+                parseFloat(Object.values(sma20Data['Technical Analysis: SMA'])[0]?.SMA) : null;
 
-            // Fetch 3: SMA(50)
+            // Get SMA50
             await sleep(2000);
             const sma50Url = `https://www.alphavantage.co/query?function=SMA&symbol=${symbol}&interval=daily&time_period=50&series_type=close&apikey=${API_KEY}`;
             const sma50Res = await fetch(sma50Url);
             const sma50Data = await sma50Res.json();
-            
-            const sma50Value = sma50Data['Technical Analysis: SMA'] ? 
-                Object.values(sma50Data['Technical Analysis: SMA'])[0]?.SMA : null;
-            const sma50 = sma50Value ? parseFloat(sma50Value) : null;
+            const sma50 = sma50Data['Technical Analysis: SMA'] ? 
+                parseFloat(Object.values(sma50Data['Technical Analysis: SMA'])[0]?.SMA) : null;
 
-            // Fetch 4: RSI(14)
+            // Get RSI
             await sleep(2000);
             const rsiUrl = `https://www.alphavantage.co/query?function=RSI&symbol=${symbol}&interval=daily&time_period=14&series_type=close&apikey=${API_KEY}`;
             const rsiRes = await fetch(rsiUrl);
             const rsiData = await rsiRes.json();
-            
-            const rsiValue = rsiData['Technical Analysis: RSI'] ? 
-                Object.values(rsiData['Technical Analysis: RSI'])[0]?.RSI : null;
-            const rsi = rsiValue ? parseFloat(rsiValue) : null;
+            const rsi = rsiData['Technical Analysis: RSI'] ? 
+                parseFloat(Object.values(rsiData['Technical Analysis: RSI'])[0]?.RSI) : null;
 
-            // Fetch 5: MACD
+            // Get ADX (Average Directional Index)
             await sleep(2000);
-            const macdUrl = `https://www.alphavantage.co/query?function=MACD&symbol=${symbol}&interval=daily&series_type=close&apikey=${API_KEY}`;
-            const macdRes = await fetch(macdUrl);
-            const macdData = await macdRes.json();
+            const adxUrl = `https://www.alphavantage.co/query?function=ADX&symbol=${symbol}&interval=daily&time_period=14&apikey=${API_KEY}`;
+            const adxRes = await fetch(adxUrl);
+            const adxData = await adxRes.json();
             
-            const macdLatest = macdData['Technical Analysis: MACD'] ? 
-                Object.values(macdData['Technical Analysis: MACD'])[0] : null;
-            const macd = macdLatest?.MACD ? parseFloat(macdLatest.MACD) : null;
-            const macdSignal = macdLatest?.MACD_Signal ? parseFloat(macdLatest.MACD_Signal) : null;
+            let adx = null;
+            let adxValues = [];
+            if (adxData['Technical Analysis: ADX']) {
+                const adxSeries = Object.values(adxData['Technical Analysis: ADX']).slice(0, 3);
+                adxValues = adxSeries.map(v => parseFloat(v.ADX));
+                adx = adxValues[0];
+            }
 
-            // Calculate support/resistance
-            const resistance = Math.max(...highs.slice(0, 20));
-            const support = Math.min(...lows.slice(0, 20));
+            // Get PLUS_DI (Positive Directional Indicator)
+            await sleep(2000);
+            const plusDiUrl = `https://www.alphavantage.co/query?function=PLUS_DI&symbol=${symbol}&interval=daily&time_period=14&apikey=${API_KEY}`;
+            const plusDiRes = await fetch(plusDiUrl);
+            const plusDiData = await plusDiRes.json();
+            
+            let plusDi = null;
+            let plusDiValues = [];
+            if (plusDiData['Technical Analysis: PLUS_DI']) {
+                const plusDiSeries = Object.values(plusDiData['Technical Analysis: PLUS_DI']).slice(0, 3);
+                plusDiValues = plusDiSeries.map(v => parseFloat(v.PLUS_DI));
+                plusDi = plusDiValues[0];
+            }
 
-            // Determine signal
-            let signal = 'neutral';
-            let strength = 0;
-            let analysis = '';
+            // Get MINUS_DI (Negative Directional Indicator)
+            await sleep(2000);
+            const minusDiUrl = `https://www.alphavantage.co/query?function=MINUS_DI&symbol=${symbol}&interval=daily&time_period=14&apikey=${API_KEY}`;
+            const minusDiRes = await fetch(minusDiUrl);
+            const minusDiData = await minusDiRes.json();
+            
+            let minusDi = null;
+            let minusDiValues = [];
+            if (minusDiData['Technical Analysis: MINUS_DI']) {
+                const minusDiSeries = Object.values(minusDiData['Technical Analysis: MINUS_DI']).slice(0, 3);
+                minusDiValues = minusDiSeries.map(v => parseFloat(v.MINUS_DI));
+                minusDi = minusDiValues[0];
+            }
 
-            if (sma20 && sma50 && rsi) {
-                if (price > sma20 && sma20 > sma50 && rsi < 70 && (macd && macdSignal ? macd > macdSignal : true)) {
-                    signal = 'bullish';
-                    strength = ((price - sma50) / sma50 * 100);
-                    analysis = `Strong bullish trend. Price above both SMA(20) and SMA(50). RSI at ${rsi.toFixed(1)} shows room to run. ${macd && macdSignal && macd > macdSignal ? 'MACD confirms uptrend.' : ''}`;
-                } else if (price < sma20 && sma20 < sma50 && rsi > 30 && (macd && macdSignal ? macd < macdSignal : true)) {
-                    signal = 'bearish';
-                    strength = ((sma50 - price) / sma50 * 100);
-                    analysis = `Bearish trend established. Price below both moving averages. RSI at ${rsi.toFixed(1)} indicates downward pressure. ${macd && macdSignal && macd < macdSignal ? 'MACD confirms downtrend.' : ''}`;
-                } else {
-                    analysis = `Mixed signals. Price relative to SMA(20): ${price > sma20 ? 'above' : 'below'}. RSI at ${rsi.toFixed(1)} is ${rsi > 70 ? 'overbought' : rsi < 30 ? 'oversold' : 'neutral'}. Consider range-bound strategies.`;
+            // Detect DI crossover (when +DI crosses -DI in last 3 periods)
+            let diCrossover = null;
+            let diStrength = null;
+            
+            if (plusDiValues.length >= 3 && minusDiValues.length >= 3) {
+                // Check if crossover occurred in last 3 periods
+                for (let i = 0; i < 2; i++) {
+                    const current = plusDiValues[i] - minusDiValues[i];
+                    const prev = plusDiValues[i + 1] - minusDiValues[i + 1];
+                    
+                    // Bullish crossover: +DI crosses above -DI
+                    if (current > 0 && prev <= 0) {
+                        diCrossover = 'bullish';
+                        diStrength = Math.abs(plusDiValues[i] - minusDiValues[i]).toFixed(2);
+                        break;
+                    }
+                    // Bearish crossover: +DI crosses below -DI
+                    else if (current < 0 && prev >= 0) {
+                        diCrossover = 'bearish';
+                        diStrength = Math.abs(plusDiValues[i] - minusDiValues[i]).toFixed(2);
+                        break;
+                    }
+                }
+
+                // If no crossover, check if they are close (within 5 points)
+                if (!diCrossover) {
+                    const diff = Math.abs(plusDi - minusDi);
+                    if (diff < 5) {
+                        diCrossover = 'near';
+                        diStrength = diff.toFixed(2);
+                    }
                 }
             }
 
-            // Calculate strikes
+            // Determine signal (enhanced with ADX and DI)
+            let signal = 'neutral';
+            let signalConfidence = 'low';
+            
+            if (sma20 && sma50 && rsi) {
+                // Base signal from moving averages
+                const baseSignal = price > sma20 && sma20 > sma50 ? 'bullish' : 
+                                  price < sma20 && sma20 < sma50 ? 'bearish' : 'neutral';
+                
+                // ADX confirmation (>25 indicates strong trend)
+                const adxStrong = adx && adx > 25;
+                
+                // DI confirmation
+                const diConfirms = (baseSignal === 'bullish' && plusDi && minusDi && plusDi > minusDi) ||
+                                  (baseSignal === 'bearish' && plusDi && minusDi && minusDi > plusDi);
+                
+                if (baseSignal === 'bullish' && rsi < 70) {
+                    signal = 'bullish';
+                    if (adxStrong && diConfirms) signalConfidence = 'high';
+                    else if (adxStrong || diConfirms) signalConfidence = 'medium';
+                } else if (baseSignal === 'bearish' && rsi > 30) {
+                    signal = 'bearish';
+                    if (adxStrong && diConfirms) signalConfidence = 'high';
+                    else if (adxStrong || diConfirms) signalConfidence = 'medium';
+                }
+            }
+
+            const resistance = Math.max(...highs.slice(0, 20));
+            const support = Math.min(...lows.slice(0, 20));
             const atm = Math.round(price / 5) * 5;
-            const callStrike = atm + 5;
-            const putStrike = atm - 5;
-            const recommendedStrike = signal === 'bullish' ? callStrike : signal === 'bearish' ? putStrike : atm;
+            const recommendedStrike = signal === 'bullish' ? atm + 5 : signal === 'bearish' ? atm - 5 : atm;
 
             return {
                 symbol,
                 price: price.toFixed(2),
                 change: change.toFixed(2),
                 changePercent: changePercent.toFixed(2),
-                high: high.toFixed(2),
-                low: low.toFixed(2),
-                volume: volume.toLocaleString(),
                 signal,
-                strength: Math.abs(strength).toFixed(2),
+                signalConfidence,
                 sma20: sma20 ? sma20.toFixed(2) : 'N/A',
                 sma50: sma50 ? sma50.toFixed(2) : 'N/A',
                 rsi: rsi ? rsi.toFixed(1) : 'N/A',
-                macd: macd ? macd.toFixed(3) : 'N/A',
-                macdSignal: macdSignal ? macdSignal.toFixed(3) : 'N/A',
+                adx: adx ? adx.toFixed(1) : 'N/A',
+                plusDi: plusDi ? plusDi.toFixed(1) : 'N/A',
+                minusDi: minusDi ? minusDi.toFixed(1) : 'N/A',
+                diCrossover,
+                diStrength,
                 resistance: resistance.toFixed(2),
                 support: support.toFixed(2),
                 atm,
-                callStrike,
-                putStrike,
                 recommendedStrike,
-                analysis,
-                timestamp: new Date().toLocaleString()
+                history: { closes, highs, lows, timestamps: dates.slice(0, 60) }
             };
         }
 
-        function updateResults() {
-            const resultsCard = document.getElementById('resultsCard');
-            const resultsDiv = document.getElementById('results');
-            const countSpan = document.getElementById('count');
+        function filterResults(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            updateTable();
+        }
 
-            if (results.length === 0) {
-                resultsCard.style.display = 'none';
+        function updateTable() {
+            const container = document.getElementById('resultsContainer');
+            const tbody = document.getElementById('resultsBody');
+            const count = document.getElementById('resultsCount');
+
+            if (allResults.length === 0) {
+                container.style.display = 'none';
                 return;
             }
 
-            resultsCard.style.display = 'block';
-            countSpan.textContent = results.length;
+            filteredResults = currentFilter === 'all' ? allResults : 
+                allResults.filter(r => r.signal === currentFilter);
 
-            // Sort by signal then strength
-            const sorted = [...results].sort((a, b) => {
+            container.style.display = 'block';
+            count.textContent = `${filteredResults.length} opportunities`;
+
+            if (filteredResults.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="empty-state">
+                            <div class="empty-icon">🔍</div>
+                            <div>No ${currentFilter} signals found</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            // Sort: bullish first, then bearish, then neutral
+            const sorted = [...filteredResults].sort((a, b) => {
                 const order = { bullish: 0, bearish: 1, neutral: 2 };
-                if (order[a.signal] !== order[b.signal]) {
-                    return order[a.signal] - order[b.signal];
-                }
-                return parseFloat(b.strength) - parseFloat(a.strength);
+                return order[a.signal] - order[b.signal];
             });
 
-            resultsDiv.innerHTML = sorted.map(r => `
-                <div class="result-card ${r.signal}">
-                    <div class="result-header">
-                        <div class="symbol">${r.symbol}</div>
-                        <div class="price-info">
-                            <div class="price-label">Current Price</div>
-                            <div class="price">$${r.price}</div>
-                            <div class="change ${parseFloat(r.change) >= 0 ? 'positive' : 'negative'}">
-                                ${parseFloat(r.change) >= 0 ? '+' : ''}${r.change} (${parseFloat(r.changePercent) >= 0 ? '+' : ''}${r.changePercent}%)
-                            </div>
+            tbody.innerHTML = sorted.map((r, idx) => {
+                // Determine DI crossover display
+                let diCrossDisplay = '-';
+                if (r.diCrossover === 'bullish') {
+                    diCrossDisplay = '<span class="di-cross bullish">↗ BULL</span>';
+                } else if (r.diCrossover === 'bearish') {
+                    diCrossDisplay = '<span class="di-cross bearish">↘ BEAR</span>';
+                } else if (r.diCrossover === 'near') {
+                    diCrossDisplay = '<span class="di-cross near">≈ NEAR</span>';
+                }
+
+                // Signal badge with confidence
+                const signalText = r.signal === 'bullish' ? '🟢 BUY' : 
+                                  r.signal === 'bearish' ? '🔴 SELL' : '🟡 HOLD';
+                const confidenceClass = `confidence-${r.signalConfidence}`;
+
+                return `
+                <tr>
+                    <td class="symbol-cell">${r.symbol}</td>
+                    <td class="right price-cell">$${r.price}</td>
+                    <td class="right ${parseFloat(r.change) >= 0 ? 'change-positive' : 'change-negative'}">
+                        ${parseFloat(r.change) >= 0 ? '+' : ''}${r.change} (${parseFloat(r.changePercent) >= 0 ? '+' : ''}${r.changePercent}%)
+                    </td>
+                    <td class="center">
+                        <span class="signal-badge signal-${r.signal}">
+                            ${signalText}
+                        </span>
+                        <div style="font-size: 9px; margin-top: 2px;" class="${confidenceClass}">
+                            ${r.signalConfidence.toUpperCase()}
                         </div>
-                        <div class="badge-large ${r.signal}">
-                            ${r.signal === 'bullish' ? '🟢 BULLISH' : r.signal === 'bearish' ? '🔴 BEARISH' : '🟡 NEUTRAL'}
+                    </td>
+                    <td class="right">${r.adx}</td>
+                    <td class="right" style="color: #00b894; font-weight: 600;">${r.plusDi}</td>
+                    <td class="right" style="color: #d63031; font-weight: 600;">${r.minusDi}</td>
+                    <td class="center">${diCrossDisplay}</td>
+                    <td class="right">$${r.recommendedStrike}</td>
+                    <td class="center">
+                        <button class="view-btn" onclick="showAnalysis(${idx})">📊 Analyze</button>
+                    </td>
+                </tr>
+            `;
+            }).join('');
+        }
+
+        function showAnalysis(idx) {
+            const data = filteredResults[idx];
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            title.textContent = `${data.symbol} - Detailed Analysis`;
+
+            const bullishZone = data.signal === 'bullish' ? data.resistance : data.sma20;
+            const bearishZone = data.signal === 'bearish' ? data.support : data.sma20;
+
+            body.innerHTML = `
+                <div class="analysis-grid">
+                    <div class="zone-box bullish">
+                        <div class="zone-title">🟢 BULLISH ZONE</div>
+                        <div class="zone-price">$${bullishZone}</div>
+                        <div class="zone-desc">
+                            <strong>Entry Signal:</strong> Price breaking above $${bullishZone}<br>
+                            <strong>Resistance Level:</strong> $${data.resistance}<br>
+                            <strong>SMA(20):</strong> $${data.sma20}<br>
+                            ${data.diCrossover === 'bullish' ? '<strong>🎯 +DI crossed above -DI!</strong> Strong bullish momentum<br>' : ''}
+                            <strong>Action:</strong> Buy CALL options at strike $${data.signal === 'bullish' ? data.recommendedStrike : data.atm}
                         </div>
                     </div>
 
-                    <div class="metrics-grid">
-                        <div class="metric-card">
-                            <div class="metric-label">SMA(20)</div>
-                            <div class="metric-value">${r.sma20}</div>
+                    <div class="zone-box bearish">
+                        <div class="zone-title">🔴 BEARISH ZONE</div>
+                        <div class="zone-price">$${bearishZone}</div>
+                        <div class="zone-desc">
+                            <strong>Entry Signal:</strong> Price breaking below $${bearishZone}<br>
+                            <strong>Support Level:</strong> $${data.support}<br>
+                            <strong>SMA(50):</strong> $${data.sma50}<br>
+                            ${data.diCrossover === 'bearish' ? '<strong>🎯 -DI crossed above +DI!</strong> Strong bearish momentum<br>' : ''}
+                            <strong>Action:</strong> Buy PUT options at strike $${data.signal === 'bearish' ? data.recommendedStrike : data.atm}
                         </div>
-                        <div class="metric-card">
-                            <div class="metric-label">SMA(50)</div>
-                            <div class="metric-value">${r.sma50}</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">RSI(14)</div>
-                            <div class="metric-value">${r.rsi}</div>
-                            <div class="metric-subvalue">${parseFloat(r.rsi) > 70 ? 'Overbought' : parseFloat(r.rsi) < 30 ? 'Oversold' : 'Neutral'}</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Resistance</div>
-                            <div class="metric-value">$${r.resistance}</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Support</div>
-                            <div class="metric-value">$${r.support}</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-label">Volume</div>
-                            <div class="metric-value" style="font-size: 16px;">${r.volume}</div>
-                        </div>
-                    </div>
-
-                    <div class="recommendation-box">
-                        <div class="rec-title">
-                            ${r.signal === 'bullish' ? '📈 Bullish Strategy - Buy Call Options' : 
-                              r.signal === 'bearish' ? '📉 Bearish Strategy - Buy Put Options' : 
-                              '⚖️ Neutral Strategy - Straddle/Iron Condor'}
-                        </div>
-                        <div class="rec-grid">
-                            <div class="rec-item">
-                                <div class="rec-item-label">Recommended Strike</div>
-                                <div class="rec-item-value">$${r.recommendedStrike}</div>
-                            </div>
-                            <div class="rec-item">
-                                <div class="rec-item-label">ATM Strike</div>
-                                <div class="rec-item-value">$${r.atm}</div>
-                            </div>
-                            <div class="rec-item">
-                                <div class="rec-item-label">Call Strike</div>
-                                <div class="rec-item-value">$${r.callStrike}</div>
-                            </div>
-                            <div class="rec-item">
-                                <div class="rec-item-label">Put Strike</div>
-                                <div class="rec-item-value">$${r.putStrike}</div>
-                            </div>
-                            <div class="rec-item">
-                                <div class="rec-item-label">Signal Strength</div>
-                                <div class="rec-item-value">${r.strength}%</div>
-                            </div>
-                            <div class="rec-item">
-                                <div class="rec-item-label">Strategy Type</div>
-                                <div class="rec-item-value">${r.signal === 'bullish' ? 'Long Call' : r.signal === 'bearish' ? 'Long Put' : 'Straddle'}</div>
-                            </div>
-                        </div>
-                        <div class="analysis-text">
-                            <strong>Analysis:</strong> ${r.analysis}
-                        </div>
-                    </div>
-
-                    <div class="timestamp">
-                        Last updated: ${r.timestamp}
                     </div>
                 </div>
-            `).join('');
+
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                    <h3 style="margin-bottom: 15px; color: #2d3436;">📊 Directional Movement Analysis (ADX + DI)</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div style="background: white; padding: 15px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: #636e72; margin-bottom: 5px;">ADX (Trend Strength)</div>
+                            <div style="font-size: 24px; font-weight: bold; color: ${parseFloat(data.adx) > 25 ? '#00b894' : '#636e72'};">
+                                ${data.adx}
+                            </div>
+                            <div style="font-size: 10px; margin-top: 5px; color: #636e72;">
+                                ${parseFloat(data.adx) > 25 ? '✅ Strong trend' : parseFloat(data.adx) > 20 ? '⚠️ Moderate' : '❌ Weak trend'}
+                            </div>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: #636e72; margin-bottom: 5px;">+DI (Bullish Pressure)</div>
+                            <div style="font-size: 24px; font-weight: bold; color: #00b894;">
+                                ${data.plusDi}
+                            </div>
+                            <div style="font-size: 10px; margin-top: 5px; color: #636e72;">
+                                Positive directional strength
+                            </div>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px;">
+                            <div style="font-size: 11px; color: #636e72; margin-bottom: 5px;">-DI (Bearish Pressure)</div>
+                            <div style="font-size: 24px; font-weight: bold; color: #d63031;">
+                                ${data.minusDi}
+                            </div>
+                            <div style="font-size: 10px; margin-top: 5px; color: #636e72;">
+                                Negative directional strength
+                            </div>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border: 2px solid ${data.diCrossover === 'bullish' ? '#00b894' : data.diCrossover === 'bearish' ? '#d63031' : '#fdcb6e'};">
+                            <div style="font-size: 11px; color: #636e72; margin-bottom: 5px;">DI Crossover Status</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #2d3436;">
+                                ${data.diCrossover === 'bullish' ? '↗ BULLISH' : data.diCrossover === 'bearish' ? '↘ BEARISH' : data.diCrossover === 'near' ? '≈ NEAR' : 'NONE'}
+                            </div>
+                            <div style="font-size: 10px; margin-top: 5px; color: #636e72;">
+                                ${data.diCrossover === 'bullish' ? '🎯 +DI crossed above -DI (Last 3 bars)' : 
+                                  data.diCrossover === 'bearish' ? '🎯 -DI crossed above +DI (Last 3 bars)' : 
+                                  data.diCrossover === 'near' ? `⚠️ Within ${data.diStrength} points` : 
+                                  'No crossover detected'}
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid #0984e3;">
+                        <strong>📖 How to Use ADX + DI:</strong><br>
+                        <ul style="margin-left: 20px; margin-top: 8px; line-height: 1.8; font-size: 13px;">
+                            <li><strong>ADX > 25:</strong> Strong trend (good for directional trades)</li>
+                            <li><strong>ADX < 20:</strong> Weak trend (better for range-bound strategies)</li>
+                            <li><strong>+DI > -DI:</strong> Bullish momentum (buy calls)</li>
+                            <li><strong>-DI > +DI:</strong> Bearish momentum (buy puts)</li>
+                            <li><strong>DI Crossover:</strong> Potential trend reversal signal</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="chart-section">
+                    <div class="chart-title">📈 Price Chart with Signals (60 Days)</div>
+                    <canvas id="analysisChart" style="max-height: 300px;"></canvas>
+                </div>
+
+                <div class="recommendation">
+                    <div class="rec-title">
+                        ${data.signal === 'bullish' ? '🟢 BULLISH RECOMMENDATION - Buy Call Options' : 
+                          data.signal === 'bearish' ? '🔴 BEARISH RECOMMENDATION - Buy Put Options' :
+                          '🟡 NEUTRAL - No Clear Signal'}
+                    </div>
+                    <div class="rec-grid">
+                        <div class="rec-item">
+                            <div class="rec-label">Current Price</div>
+                            <div class="rec-value">$${data.price}</div>
+                        </div>
+                        <div class="rec-item">
+                            <div class="rec-label">Recommended Strike</div>
+                            <div class="rec-value">$${data.recommendedStrike}</div>
+                        </div>
+                        <div class="rec-item">
+                            <div class="rec-label">Signal Confidence</div>
+                            <div class="rec-value">${data.signalConfidence.toUpperCase()}</div>
+                        </div>
+                        <div class="rec-item">
+                            <div class="rec-label">ADX Strength</div>
+                            <div class="rec-value">${data.adx}</div>
+                        </div>
+                        <div class="rec-item">
+                            <div class="rec-label">Strategy</div>
+                            <div class="rec-value">${data.signal === 'bullish' ? 'Long Call' : data.signal === 'bearish' ? 'Long Put' : 'Straddle'}</div>
+                        </div>
+                        <div class="rec-item">
+                            <div class="rec-label">Entry Confirmation</div>
+                            <div class="rec-value">${data.diCrossover ? 'DI Cross' : 'Price Action'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            modal.style.display = 'block';
+            setTimeout(() => drawChart(data), 100);
+        }
+
+        function drawChart(data) {
+            const ctx = document.getElementById('analysisChart');
+            if (!ctx) return;
+
+            if (currentChart) currentChart.destroy();
+
+            const labels = data.history.timestamps.map((ts, i) => {
+                const date = new Date(ts);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Price',
+                        data: data.history.closes,
+                        borderColor: '#2d3436',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false
+                    }, {
+                        label: 'Bullish Zone',
+                        data: Array(60).fill(data.resistance),
+                        borderColor: '#00b894',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }, {
+                        label: 'Bearish Zone',
+                        data: Array(60).fill(data.support),
+                        borderColor: '#d63031',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false
+                    }, {
+                        label: 'SMA(20)',
+                        data: Array(60).fill(parseFloat(data.sma20)),
+                        borderColor: '#0984e3',
+                        borderWidth: 1,
+                        borderDash: [2, 2],
+                        pointRadius: 0,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: v => '$' + v.toFixed(2)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
         }
 
         function sleep(ms) {
