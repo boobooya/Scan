@@ -3,408 +3,358 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Options Scanner - Swing Breakout</title>
+    <title>5-Min Swing Breakout Scanner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0f1117;
-            color: #e0e0e0;
+            background: #0b0d14;
+            color: #dde1f0;
             min-height: 100vh;
         }
 
         .header {
-            background: linear-gradient(135deg, #1a1d2e 0%, #16213e 100%);
-            border-bottom: 1px solid #2a2d3e;
-            padding: 22px 24px;
+            background: #111420;
+            border-bottom: 1px solid #1e2235;
+            padding: 18px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .header h1 { font-size: 22px; color: #fff; margin-bottom: 4px; }
-        .header p { font-size: 12px; color: #7a8099; }
+        .header-left h1 { font-size: 20px; color: #fff; font-weight: 700; }
+        .header-left p  { font-size: 11px; color: #5a6080; margin-top: 3px; }
 
-        .container { max-width: 1700px; margin: 0 auto; padding: 20px; }
+        .header-badge {
+            background: rgba(79,110,247,0.15);
+            border: 1px solid rgba(79,110,247,0.35);
+            color: #7b9bff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+        }
 
+        .container { max-width: 1800px; margin: 0 auto; padding: 18px 20px; }
+
+        /* ── CONTROLS ── */
         .controls {
-            background: #1a1d2e;
-            border: 1px solid #2a2d3e;
-            padding: 20px;
+            background: #111420;
+            border: 1px solid #1e2235;
+            padding: 18px 20px;
             border-radius: 10px;
-            margin-bottom: 18px;
+            margin-bottom: 16px;
         }
 
         .control-row {
             display: grid;
-            grid-template-columns: 1fr 160px 160px auto;
-            gap: 14px;
+            grid-template-columns: 1fr 130px 130px 130px auto;
+            gap: 12px;
             align-items: end;
         }
 
         label {
             display: block;
-            font-weight: 600;
-            margin-bottom: 6px;
-            font-size: 11px;
-            color: #7a8099;
+            font-size: 10px;
+            font-weight: 700;
+            color: #5a6080;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.6px;
+            margin-bottom: 6px;
         }
 
         input, select {
             width: 100%;
-            padding: 9px 12px;
-            background: #0f1117;
-            border: 1px solid #2a2d3e;
+            padding: 9px 11px;
+            background: #0b0d14;
+            border: 1px solid #1e2235;
             border-radius: 7px;
             font-size: 13px;
-            color: #e0e0e0;
+            color: #dde1f0;
             outline: none;
+            transition: border-color 0.15s;
         }
 
         input:focus, select:focus { border-color: #4f6ef7; }
-
-        select option { background: #1a1d2e; }
+        select option { background: #111420; }
 
         .scan-btn {
-            padding: 10px 28px;
+            padding: 10px 24px;
             background: linear-gradient(135deg, #4f6ef7, #7c3aed);
             border: none;
             border-radius: 7px;
-            color: white;
+            color: #fff;
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
             white-space: nowrap;
-            letter-spacing: 0.3px;
+            transition: opacity 0.15s;
         }
 
-        .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .scan-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-        .quick-btns {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
+        .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
 
         .quick-btn {
-            padding: 5px 11px;
-            background: #252840;
-            color: #9ba3c4;
-            border: 1px solid #2a2d3e;
+            padding: 4px 10px;
+            background: #1a1d2e;
+            color: #7a84aa;
+            border: 1px solid #1e2235;
             border-radius: 5px;
             font-size: 11px;
             cursor: pointer;
-            transition: all 0.15s;
+            transition: all 0.12s;
         }
 
-        .quick-btn:hover { background: #2e3354; color: #fff; }
+        .quick-btn:hover { background: #252840; color: #fff; border-color: #4f6ef7; }
 
-        .progress { background: #252840; height: 4px; border-radius: 2px; overflow: hidden; margin: 14px 0 6px; display: none; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, #4f6ef7, #7c3aed); transition: width 0.3s; }
-        .progress-text { font-size: 11px; color: #7a8099; text-align: center; }
+        /* progress */
+        .progress { background: #1a1d2e; height: 3px; border-radius: 2px; overflow: hidden; margin: 12px 0 5px; display: none; }
+        .progress-bar { height: 100%; background: linear-gradient(90deg, #4f6ef7, #7c3aed); transition: width 0.3s; width: 0; }
+        .progress-text { font-size: 11px; color: #5a6080; text-align: center; min-height: 16px; }
 
-        /* Signal legend row */
+        /* legend */
         .legend-row {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid #2a2d3e;
-            font-size: 11px;
-            color: #7a8099;
+            display: flex; gap: 18px; align-items: center;
+            margin-top: 12px; padding-top: 12px;
+            border-top: 1px solid #1e2235;
+            font-size: 11px; color: #5a6080; flex-wrap: wrap;
         }
 
-        .legend-dot {
-            width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px;
-        }
+        .ldot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
 
+        /* ── RESULTS ── */
         .results-container {
-            background: #1a1d2e;
-            border: 1px solid #2a2d3e;
+            background: #111420;
+            border: 1px solid #1e2235;
             border-radius: 10px;
             overflow: hidden;
             display: none;
         }
 
         .results-header {
-            padding: 14px 20px;
-            border-bottom: 1px solid #2a2d3e;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #16192a;
+            padding: 13px 20px;
+            border-bottom: 1px solid #1e2235;
+            display: flex; justify-content: space-between; align-items: center;
+            background: #0e1020;
         }
 
-        .results-title { font-size: 15px; font-weight: 700; color: #fff; }
-        .results-count { font-size: 12px; color: #7a8099; }
+        .results-title { font-size: 14px; font-weight: 700; color: #fff; }
+        .results-meta  { font-size: 11px; color: #5a6080; }
 
         .filter-tabs {
-            display: flex;
-            gap: 6px;
-            padding: 10px 20px;
-            border-bottom: 1px solid #2a2d3e;
-            background: #16192a;
+            display: flex; gap: 6px; padding: 10px 20px;
+            border-bottom: 1px solid #1e2235; background: #0e1020; flex-wrap: wrap;
         }
 
         .filter-tab {
-            padding: 6px 14px;
-            background: #252840;
-            border: 1px solid #2a2d3e;
-            border-radius: 5px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            color: #9ba3c4;
+            padding: 5px 13px;
+            background: #1a1d2e; border: 1px solid #1e2235;
+            border-radius: 5px; font-size: 11px; font-weight: 700;
+            cursor: pointer; color: #7a84aa; transition: all 0.12s;
         }
 
-        .filter-tab.active { background: #4f6ef7; color: white; border-color: #4f6ef7; }
+        .filter-tab.active { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
 
-        .results-table { width: 100%; border-collapse: collapse; }
+        .tbl-wrap { overflow-x: auto; }
 
-        .results-table thead { background: #16192a; position: sticky; top: 0; z-index: 10; }
+        table { width: 100%; border-collapse: collapse; }
 
-        .results-table th {
-            padding: 11px 14px;
-            text-align: left;
-            font-size: 10px;
-            font-weight: 700;
-            color: #7a8099;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #2a2d3e;
+        thead { background: #0e1020; position: sticky; top: 0; z-index: 10; }
+
+        th {
+            padding: 10px 13px; text-align: left;
+            font-size: 10px; font-weight: 700; color: #5a6080;
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 1px solid #1e2235; white-space: nowrap;
         }
 
-        .results-table th.right { text-align: right; }
-        .results-table th.center { text-align: center; }
+        th.r { text-align: right; }
+        th.c { text-align: center; }
 
-        .results-table tbody tr { border-bottom: 1px solid #1e2235; transition: background 0.15s; }
-        .results-table tbody tr:hover { background: #1e2235; }
+        tbody tr { border-bottom: 1px solid #161825; transition: background 0.12s; }
+        tbody tr:hover { background: #161825; }
 
-        .results-table td { padding: 11px 14px; font-size: 13px; color: #c8cde4; }
+        td { padding: 10px 13px; font-size: 12px; color: #b0b8d8; white-space: nowrap; }
 
-        .symbol-cell { font-weight: 700; font-size: 14px; color: #fff; }
-        .price-cell { font-weight: 600; color: #fff; }
+        .sym  { font-weight: 800; font-size: 14px; color: #fff; }
+        .prc  { font-weight: 700; color: #fff; text-align: right; }
+        .r    { text-align: right; }
+        .c    { text-align: center; }
 
-        .change-positive { color: #22d3a0; font-weight: 600; }
-        .change-negative { color: #f87171; font-weight: 600; }
+        .pos  { color: #22d3a0; font-weight: 700; }
+        .neg  { color: #f87171; font-weight: 700; }
 
-        /* Swing signal badges */
-        .signal-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: 0.3px;
+        /* signal pill */
+        .sig {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 3px 9px; border-radius: 20px;
+            font-size: 11px; font-weight: 800; letter-spacing: 0.3px;
         }
 
-        .signal-buy  { background: rgba(34,211,160,0.15); color: #22d3a0; border: 1px solid rgba(34,211,160,0.3); }
-        .signal-sell { background: rgba(248,113,113,0.15); color: #f87171; border: 1px solid rgba(248,113,113,0.3); }
-        .signal-neutral { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+        .sig-buy  { background: rgba(34,211,160,0.12); color: #22d3a0; border: 1px solid rgba(34,211,160,0.28); }
+        .sig-sell { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.28); }
+        .sig-watch{ background: rgba(251,191,36,0.10);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.22); }
 
-        /* Option type pill */
-        .opt-pill {
+        /* option pill */
+        .opt {
             display: inline-block;
-            padding: 3px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
+            padding: 3px 9px; border-radius: 12px;
+            font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
         }
 
-        .opt-call { background: rgba(34,211,160,0.2); color: #22d3a0; border: 1px solid rgba(34,211,160,0.4); }
-        .opt-put  { background: rgba(248,113,113,0.2); color: #f87171; border: 1px solid rgba(248,113,113,0.4); }
-        .opt-none { color: #7a8099; font-size: 12px; }
+        .opt-call { background: rgba(34,211,160,0.18); color: #22d3a0; border: 1px solid rgba(34,211,160,0.38); }
+        .opt-put  { background: rgba(248,113,113,0.18); color: #f87171; border: 1px solid rgba(248,113,113,0.38); }
+        .opt-none { color: #5a6080; font-size: 12px; }
 
-        .stop-cell { font-size: 11px; color: #7a8099; }
+        .conf-high   { color: #22d3a0; font-weight: 700; font-size: 10px; }
+        .conf-medium { color: #fbbf24; font-weight: 600; font-size: 10px; }
+        .conf-low    { color: #5a6080; font-size: 10px; }
 
-        .confidence-high   { color: #22d3a0; font-weight: 700; font-size: 10px; }
-        .confidence-medium { color: #fbbf24; font-weight: 600; font-size: 10px; }
-        .confidence-low    { color: #7a8099; font-size: 10px; }
-
-        .view-btn {
-            padding: 5px 12px;
-            background: #252840;
-            color: #9ba3c4;
-            border: 1px solid #2a2d3e;
-            border-radius: 5px;
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.15s;
+        .detail-btn {
+            padding: 4px 11px; background: #1a1d2e; color: #7a84aa;
+            border: 1px solid #1e2235; border-radius: 5px;
+            font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.12s;
         }
+        .detail-btn:hover { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
 
-        .view-btn:hover { background: #4f6ef7; color: white; border-color: #4f6ef7; }
+        .empty-state { text-align: center; padding: 50px 20px; color: #5a6080; }
+        .empty-icon  { font-size: 36px; margin-bottom: 10px; }
 
-        /* Modal */
+        /* ── MODAL ── */
         .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 9999;
-            overflow-y: auto;
-            padding: 20px;
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.88); z-index: 9999;
+            overflow-y: auto; padding: 20px;
         }
 
         .modal-content {
-            background: #1a1d2e;
-            border: 1px solid #2a2d3e;
-            max-width: 1100px;
-            margin: 20px auto;
-            border-radius: 12px;
-            overflow: hidden;
+            background: #111420; border: 1px solid #1e2235;
+            max-width: 1050px; margin: 20px auto;
+            border-radius: 12px; overflow: hidden;
         }
 
-        .modal-header {
+        .modal-hdr {
             background: linear-gradient(135deg, #4f6ef7, #7c3aed);
-            color: white;
-            padding: 22px 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 20px 26px; display: flex;
+            justify-content: space-between; align-items: center;
         }
 
-        .modal-title { font-size: 20px; font-weight: 700; }
+        .modal-hdr-title { font-size: 18px; font-weight: 700; color: #fff; }
+        .modal-hdr-sub   { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
 
         .close-btn {
-            background: rgba(255,255,255,0.15);
-            color: white;
-            border: none;
-            padding: 7px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
+            background: rgba(255,255,255,0.14); color: #fff;
+            border: none; padding: 7px 14px; border-radius: 6px;
+            cursor: pointer; font-weight: 700; font-size: 13px;
         }
 
-        .modal-body { padding: 28px; }
+        .modal-body { padding: 24px; }
 
-        .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        /* zones */
+        .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
 
-        .zone-box {
-            padding: 18px;
-            border-radius: 10px;
-            border-left: 4px solid;
+        .zone {
+            padding: 16px; border-radius: 9px; border-left: 4px solid;
         }
 
-        .zone-box.bullish { background: rgba(34,211,160,0.08); border-color: #22d3a0; }
-        .zone-box.bearish { background: rgba(248,113,113,0.08); border-color: #f87171; }
+        .zone.bull { background: rgba(34,211,160,0.07); border-color: #22d3a0; }
+        .zone.bear { background: rgba(248,113,113,0.07); border-color: #f87171; }
 
-        .zone-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #fff; }
-        .zone-price { font-size: 26px; font-weight: 800; margin-bottom: 8px; }
-        .zone-box.bullish .zone-price { color: #22d3a0; }
-        .zone-box.bearish .zone-price { color: #f87171; }
-        .zone-desc { font-size: 12px; line-height: 1.7; color: #9ba3c4; }
+        .zone-ttl { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+        .zone-price { font-size: 24px; font-weight: 800; margin-bottom: 7px; }
+        .zone.bull .zone-price { color: #22d3a0; }
+        .zone.bear .zone-price { color: #f87171; }
+        .zone-desc { font-size: 12px; line-height: 1.75; color: #7a84aa; }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 12px;
-            margin-bottom: 20px;
+        /* stats row */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 18px; }
+
+        .stat {
+            background: #0b0d14; border: 1px solid #1e2235;
+            padding: 13px; border-radius: 8px;
         }
 
-        .stat-card {
-            background: #0f1117;
-            border: 1px solid #2a2d3e;
-            padding: 14px;
-            border-radius: 8px;
+        .stat-lbl { font-size: 10px; color: #5a6080; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+        .stat-val { font-size: 20px; font-weight: 700; color: #fff; }
+        .stat-sub { font-size: 10px; color: #5a6080; margin-top: 3px; }
+
+        /* swing cards */
+        .swing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+
+        .sw-card {
+            padding: 14px; border-radius: 8px; border: 1px solid;
         }
 
-        .stat-label { font-size: 10px; color: #7a8099; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-        .stat-value { font-size: 22px; font-weight: 700; color: #fff; }
-        .stat-sub { font-size: 10px; margin-top: 4px; color: #7a8099; }
+        .sw-card.low  { background: rgba(34,211,160,0.06); border-color: rgba(34,211,160,0.28); }
+        .sw-card.high { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.28); }
 
-        .chart-section {
-            background: #0f1117;
-            border: 1px solid #2a2d3e;
-            padding: 18px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+        .sw-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #5a6080; margin-bottom: 6px; }
+        .sw-val { font-size: 20px; font-weight: 800; }
+        .sw-card.low  .sw-val { color: #22d3a0; }
+        .sw-card.high .sw-val { color: #f87171; }
+        .sw-sub { font-size: 11px; color: #5a6080; margin-top: 4px; line-height: 1.6; }
+
+        /* chart */
+        .chart-box {
+            background: #0b0d14; border: 1px solid #1e2235;
+            padding: 16px; border-radius: 9px; margin-bottom: 18px;
         }
 
-        .chart-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; color: #fff; }
+        .chart-ttl { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 12px; }
 
-        .recommendation {
-            background: linear-gradient(135deg, #4f6ef7 0%, #7c3aed 100%);
-            color: white;
-            padding: 22px;
-            border-radius: 10px;
+        /* rec */
+        .rec {
+            background: linear-gradient(135deg, #4f6ef7, #7c3aed);
+            color: #fff; padding: 20px; border-radius: 10px;
         }
 
-        .rec-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+        .rec-ttl { font-size: 15px; font-weight: 700; margin-bottom: 13px; }
+        .rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; }
+        .rec-item { background: rgba(255,255,255,0.12); padding: 13px; border-radius: 8px; }
+        .rec-lbl  { font-size: 10px; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .rec-val  { font-size: 17px; font-weight: 700; }
 
-        .rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-
-        .rec-item { background: rgba(255,255,255,0.12); padding: 14px; border-radius: 8px; }
-        .rec-label { font-size: 10px; opacity: 0.8; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .rec-value { font-size: 18px; font-weight: 700; }
-
-        .empty-state { text-align: center; padding: 50px 20px; color: #7a8099; }
-        .empty-icon { font-size: 40px; margin-bottom: 12px; }
-
-        /* Swing detail box */
-        .swing-info {
-            background: #0f1117;
-            border: 1px solid #2a2d3e;
-            border-radius: 10px;
-            padding: 18px;
-            margin-bottom: 20px;
+        /* timestamps */
+        .ts-badge {
+            font-size: 10px; color: #5a6080;
+            background: #1a1d2e; border: 1px solid #1e2235;
+            padding: 2px 8px; border-radius: 10px; margin-left: 8px;
         }
-
-        .swing-info h3 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 14px; }
-
-        .swing-levels {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        .swing-level-card {
-            padding: 14px;
-            border-radius: 8px;
-            border: 1px solid;
-        }
-
-        .swing-level-card.low  { background: rgba(34,211,160,0.07); border-color: rgba(34,211,160,0.3); }
-        .swing-level-card.high { background: rgba(248,113,113,0.07); border-color: rgba(248,113,113,0.3); }
-
-        .swing-level-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; color: #7a8099; }
-        .swing-level-val   { font-size: 20px; font-weight: 700; }
-        .swing-level-card.low  .swing-level-val { color: #22d3a0; }
-        .swing-level-card.high .swing-level-val { color: #f87171; }
-        .swing-level-sub { font-size: 11px; margin-top: 4px; color: #7a8099; }
 
         @media (max-width: 900px) {
             .control-row { grid-template-columns: 1fr 1fr; }
-            .analysis-grid, .swing-levels { grid-template-columns: 1fr; }
-            .results-table { font-size: 11px; }
-            .results-table th, .results-table td { padding: 8px 10px; }
+            .zones, .swing-cards { grid-template-columns: 1fr; }
+            th, td { padding: 8px 9px; }
         }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>⚡ Weekly Options Scanner — Swing Breakout</h1>
-    <p>5-min swing low/high breakout signals · ATM CALL on buy · ATM PUT on sell · Alpha Vantage data</p>
+    <div class="header-left">
+        <h1>⚡ 5-Min Swing Breakout Scanner</h1>
+        <p>Detects swing low/high breakouts on 5-minute bars · ATM CALL on buy · ATM PUT on sell</p>
+    </div>
+    <div class="header-badge">5-MIN INTRADAY</div>
 </div>
 
 <div class="container">
+
+    <!-- CONTROLS -->
     <div class="controls">
         <div class="control-row">
             <div>
                 <label>Symbols to Scan (comma-separated)</label>
                 <input type="text" id="symbolInput" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
                 <div class="quick-btns">
-                    <button class="quick-btn" onclick="loadPreset('all')">⭐ All 250+</button>
                     <button class="quick-btn" onclick="loadPreset('etfs')">📈 ETFs</button>
                     <button class="quick-btn" onclick="loadPreset('tech')">💻 Tech</button>
                     <button class="quick-btn" onclick="loadPreset('finance')">🏦 Finance</button>
                     <button class="quick-btn" onclick="loadPreset('energy')">⚡ Energy</button>
+                    <button class="quick-btn" onclick="loadPreset('all')">⭐ All 250+</button>
                 </div>
             </div>
             <div>
@@ -417,15 +367,22 @@
                 </select>
             </div>
             <div>
-                <label>Scan Speed</label>
-                <select id="speedSelect">
-                    <option value="12">⚡ Ultra (12s)</option>
-                    <option value="15">🚀 Fast (15s)</option>
-                    <option value="20" selected>✅ Normal (20s)</option>
-                    <option value="30">🐢 Safe (30s)</option>
+                <label>Output Size</label>
+                <select id="outputSize">
+                    <option value="compact">Compact (~100 bars)</option>
+                    <option value="full" selected>Full (~390 bars)</option>
                 </select>
             </div>
-            <button class="scan-btn" id="scanBtn" onclick="startScan()">🔍 Start Scan</button>
+            <div>
+                <label>Delay (sec)</label>
+                <select id="speedSelect">
+                    <option value="13">13s (fast)</option>
+                    <option value="16" selected>16s (normal)</option>
+                    <option value="22">22s (safe)</option>
+                    <option value="30">30s (slow)</option>
+                </select>
+            </div>
+            <button class="scan-btn" id="scanBtn" onclick="startScan()">🔍 Scan 5-Min</button>
         </div>
 
         <div class="progress" id="progress">
@@ -434,60 +391,69 @@
         <div class="progress-text" id="progressText"></div>
 
         <div class="legend-row">
-            <span><span class="legend-dot" style="background:#22d3a0"></span>BUY — close broke above left candle high of swing low → ATM CALL</span>
-            <span><span class="legend-dot" style="background:#f87171"></span>SELL — close broke below left candle low of swing high → ATM PUT</span>
-            <span><span class="legend-dot" style="background:#fbbf24"></span>No signal on last completed bar</span>
+            <span><span class="ldot" style="background:#22d3a0"></span>BUY — 5-min close broke above left-candle HIGH of swing low → ATM CALL</span>
+            <span><span class="ldot" style="background:#f87171"></span>SELL — 5-min close broke below left-candle LOW of swing high → ATM PUT</span>
+            <span><span class="ldot" style="background:#fbbf24"></span>WATCH — no breakout on last completed 5-min bar</span>
+            <span style="margin-left:auto; color:#5a6080;">Alpha Vantage · TIME_SERIES_INTRADAY · interval=5min</span>
         </div>
     </div>
 
+    <!-- RESULTS -->
     <div class="results-container" id="resultsContainer">
         <div class="results-header">
-            <div class="results-title">Scan Results</div>
-            <div class="results-count" id="resultsCount">0 results</div>
+            <div class="results-title">5-Min Scan Results</div>
+            <div class="results-meta" id="resultsMeta">—</div>
         </div>
 
         <div class="filter-tabs">
-            <button class="filter-tab active" onclick="filterResults('all', event)">All</button>
-            <button class="filter-tab" onclick="filterResults('buy', event)">🟢 Buy (CALL)</button>
-            <button class="filter-tab" onclick="filterResults('sell', event)">🔴 Sell (PUT)</button>
-            <button class="filter-tab" onclick="filterResults('neutral', event)">🟡 No Signal</button>
+            <button class="filter-tab active" onclick="filterResults('all',event)">All</button>
+            <button class="filter-tab" onclick="filterResults('buy',event)">🟢 BUY / CALL</button>
+            <button class="filter-tab" onclick="filterResults('sell',event)">🔴 SELL / PUT</button>
+            <button class="filter-tab" onclick="filterResults('neutral',event)">🟡 Watch</button>
         </div>
 
-        <div style="overflow-x: auto;">
-            <table class="results-table">
+        <div class="tbl-wrap">
+            <table>
                 <thead>
                     <tr>
                         <th>Symbol</th>
-                        <th class="right">Price</th>
-                        <th class="right">Change</th>
-                        <th class="center">Signal</th>
-                        <th class="center">Option Type</th>
-                        <th class="right">ATM Strike</th>
-                        <th class="right">Stop Level</th>
-                        <th class="right">Swing Low</th>
-                        <th class="right">Swing High</th>
-                        <th class="center">Confidence</th>
-                        <th class="center">Detail</th>
+                        <th class="r">Last Price</th>
+                        <th class="r">Bar Change</th>
+                        <th class="r">Bar Time</th>
+                        <th class="c">Signal</th>
+                        <th class="c">Option</th>
+                        <th class="r">ATM Strike</th>
+                        <th class="r">Stop Loss</th>
+                        <th class="r">Swing Low</th>
+                        <th class="r">Swing High</th>
+                        <th class="r">Buy Trigger</th>
+                        <th class="r">Sell Trigger</th>
+                        <th class="c">Confidence</th>
+                        <th class="c">Detail</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody">
                     <tr>
-                        <td colspan="11" class="empty-state">
+                        <td colspan="14" class="empty-state">
                             <div class="empty-icon">📊</div>
-                            <div>Click "Start Scan" to detect swing breakout signals</div>
+                            <div>Click "Scan 5-Min" to detect live swing breakout signals</div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
 </div>
 
-<!-- Modal -->
+<!-- MODAL -->
 <div class="modal" id="modal">
     <div class="modal-content">
-        <div class="modal-header">
-            <div class="modal-title" id="modalTitle">Analysis</div>
+        <div class="modal-hdr">
+            <div>
+                <div class="modal-hdr-title" id="modalTitle">Analysis</div>
+                <div class="modal-hdr-sub" id="modalSub"></div>
+            </div>
             <button class="close-btn" onclick="closeModal()">✕ Close</button>
         </div>
         <div class="modal-body" id="modalBody"></div>
@@ -499,434 +465,406 @@
 const API_KEY = '7UOSK3Z2XFXU992W';
 
 const PRESETS = {
-    all: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,UVXY,AAPL,MSFT,GOOGL,GOOG,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,KLAC,ASML,SNOW,NOW,DDOG,NET,ZS,CRWD,OKTA,WDAY,TEAM,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,BK,STT,FITB,HBAN,RF,CFG,KEY,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,LYFT,DASH,ETSY,SHOP,EBAY,LOW,BBY,DG,DLTR,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,CI,REGN,VRTX,BIIB,ISRG,DHR,SYK,BSX,ELV,HUM,MRNA,BNTX,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,PXD,DVN,FANG,HES,GLD,SLV,GDX,GDXJ,NEM,FCX,GOLD,AEM,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,LHX,DE,EMR,ETN,FDX,NSC,UNP,CSX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,ON,SWKS,MPWR,MRVL,F,GM,RIVN,LCID,NIO,LI,XPEV,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,HOOD,AFRM,ILMN,EXAS,TDOC,GME,AMC,BB,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,O,WELL,BABA,JD,PDD,BIDU,BILI,TME,TLRY,CGC,BRK.B,AIG,PGR,ALL,MET,PRU,TRV,AFL,NEE,DUK,SO,D,AEP,EXC,SRE,PEG,PG,KO,PEP,MDLZ,CL,KHC,GIS,K,CCL,NCLH,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,XLC,IYR,KRE,SMH,IBB,XRT,VNQ,XOP,ITB,XHB,SQQQ,TQQQ,SPXU,SPXL,TNA,TZA,FAS,FAZ,ERX,ERY,TLT,IEF,SHY,LQD,HYG,JNK,TIP,AGG,USO,UNG,MARA,RIOT,MSTR,ZM,DOCU,TWLO,DKNG,PENN,MGM,WYNN,ROKU,PANW,FTNT,CYBR,S,ARKK,ARKW,ARKG,TAN,ICLN,LIT,XBI,JETS',
-    etfs: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,UVXY,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,SQQQ,TQQQ,TLT,GLD,SLV,USO',
-    tech: 'AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,MU,SNOW,NOW,DDOG',
-    finance: 'JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,BK,SOFI,V,MA,PYPL',
-    energy: 'XLE,XOP,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,OXY,EOG,HES,DVN'
+    all: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,PANW,FTNT,DKNG,ROKU,ARKK',
+    etfs: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,GLD,SLV,GDX,TLT,HYG,USO,SQQQ,TQQQ,SPXL',
+    tech: 'AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,MU,SNOW,NOW,DDOG,NET,ZS,CRWD,PANW,FTNT,PLTR',
+    finance: 'JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,V,MA,PYPL,SQ,COIN',
+    energy: 'XLE,XOP,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,OXY,EOG,GLD,SLV,GDX,USO'
 };
 
-let allResults = [];
+let allResults    = [];
 let filteredResults = [];
 let currentFilter = 'all';
-let currentChart = null;
+let currentChart  = null;
 
-function loadPreset(preset) {
-    document.getElementById('symbolInput').value = PRESETS[preset];
-}
+function loadPreset(p) { document.getElementById('symbolInput').value = PRESETS[p]; }
 
-// ─── SWING BREAKOUT LOGIC ──────────────────────────────────────────────────
-// Runs on the closes/highs/lows arrays (most recent bar = index 0)
-// leftBars / rightBars: how many bars each side to confirm a pivot
-function detectSwingSignal(closes, highs, lows, leftBars, rightBars) {
-    const len = closes.length;
-    const needed = leftBars + rightBars + 2; // +1 for left-candle offset
-
-    if (len < needed) return { signal: 'neutral', swingLow: null, swingHigh: null,
-        leftLowHigh: null, leftHighLow: null, stopLong: null, stopShort: null };
-
-    // ── Find latest confirmed swing low ──
-    let latestSwingLow = null;
-    let leftOfSwingLow_High = null;
-
-    for (let i = rightBars; i < len - leftBars - 1; i++) {
-        // i is the candidate pivot bar (most recent pivot wins)
-        const candidateLow = lows[i];
-
-        // must be lowest in [i-rightBars .. i+leftBars] window
-        // Note: array index 0 = most recent, so i+rightBars = older bars
-        let isLowest = true;
-        for (let j = i - rightBars; j <= i + leftBars; j++) {
-            if (j < 0 || j >= len) continue;
-            if (j !== i && lows[j] <= candidateLow) { isLowest = false; break; }
-        }
-
-        if (isLowest) {
-            // Confirm: bars to the LEFT (older, higher index) are all higher
-            let confirmed = true;
-            for (let j = i + 1; j <= i + leftBars; j++) {
-                if (j >= len) { confirmed = false; break; }
-                if (lows[j] <= candidateLow) { confirmed = false; break; }
-            }
-            if (confirmed) {
-                latestSwingLow = candidateLow;
-                leftOfSwingLow_High = highs[i + 1]; // candle immediately left of pivot
-                break;
-            }
-        }
-    }
-
-    // ── Find latest confirmed swing high ──
-    let latestSwingHigh = null;
-    let leftOfSwingHigh_Low = null;
-
-    for (let i = rightBars; i < len - leftBars - 1; i++) {
-        const candidateHigh = highs[i];
-
-        let isHighest = true;
-        for (let j = i - rightBars; j <= i + leftBars; j++) {
-            if (j < 0 || j >= len) continue;
-            if (j !== i && highs[j] >= candidateHigh) { isHighest = false; break; }
-        }
-
-        if (isHighest) {
-            let confirmed = true;
-            for (let j = i + 1; j <= i + leftBars; j++) {
-                if (j >= len) { confirmed = false; break; }
-                if (highs[j] >= candidateHigh) { confirmed = false; break; }
-            }
-            if (confirmed) {
-                latestSwingHigh = candidateHigh;
-                leftOfSwingHigh_Low = lows[i + 1];
-                break;
-            }
-        }
-    }
-
-    // ── Check entry conditions on bar 0 (current) vs bar 1 (previous) ──
-    let signal = 'neutral';
-    let stopLevel = null;
-
-    const curClose  = closes[0];
-    const prevClose = closes[1];
-
-    if (leftOfSwingLow_High !== null && latestSwingLow !== null) {
-        // BUY: current close broke above left-candle high of swing low
-        // AND current close is above the swing low (not already stopped)
-        if (curClose > leftOfSwingLow_High &&
-            prevClose <= leftOfSwingLow_High &&
-            curClose > latestSwingLow) {
-            signal = 'buy';
-            stopLevel = latestSwingLow;
-        }
-    }
-
-    if (signal === 'neutral' && leftOfSwingHigh_Low !== null && latestSwingHigh !== null) {
-        // SELL: current close broke below left-candle low of swing high
-        if (curClose < leftOfSwingHigh_Low &&
-            prevClose >= leftOfSwingHigh_Low &&
-            curClose < latestSwingHigh) {
-            signal = 'sell';
-            stopLevel = latestSwingHigh;
-        }
-    }
-
-    return {
-        signal,
-        swingLow:  latestSwingLow,
-        swingHigh: latestSwingHigh,
-        leftLowHigh:  leftOfSwingLow_High,
-        leftHighLow:  leftOfSwingHigh_Low,
-        stopLevel
-    };
-}
-
-// ── ATM strike rounding ──
-function atmStrike(price) {
+// ─── ATM STRIKE ────────────────────────────────────────────────────────────
+function calcATM(price) {
     const interval = price < 25 ? 0.5 : price < 200 ? 1 : 5;
     return Math.round(price / interval) * interval;
 }
 
-// ─── MAIN SCAN ─────────────────────────────────────────────────────────────
-async function startScan() {
-    const btn       = document.getElementById('scanBtn');
-    const input     = document.getElementById('symbolInput').value.trim();
-    const speed     = parseInt(document.getElementById('speedSelect').value) * 1000;
-    const swingBars = parseInt(document.getElementById('swingBars').value);
-    const progress  = document.getElementById('progress');
-    const progressBar  = document.getElementById('progressBar');
-    const progressText = document.getElementById('progressText');
+// ─── SWING BREAKOUT DETECTOR (5-min bars) ─────────────────────────────────
+// bars[] = [{time, open, high, low, close}] newest-first
+function detectSwing(bars, leftBars, rightBars) {
+    const len    = bars.length;
+    const needed = leftBars + rightBars + 3;
 
-    if (!input) { alert('Please enter symbols to scan'); return; }
+    const empty = { signal:'neutral', swingLow:null, swingHigh:null,
+                    leftLowHigh:null, leftHighLow:null, stopLevel:null };
+
+    if (len < needed) return empty;
+
+    const closes = bars.map(b => b.close);
+    const highs  = bars.map(b => b.high);
+    const lows   = bars.map(b => b.low);
+
+    // ── latest swing LOW ──
+    let swingLow = null, leftLowHigh = null;
+
+    for (let i = rightBars; i < len - leftBars - 1; i++) {
+        const cLow = lows[i];
+        let ok = true;
+        for (let j = i - rightBars; j <= i + leftBars; j++) {
+            if (j < 0 || j >= len || j === i) continue;
+            if (lows[j] <= cLow) { ok = false; break; }
+        }
+        if (ok) {
+            swingLow    = cLow;
+            leftLowHigh = highs[i + 1];   // left candle = one bar older
+            break;
+        }
+    }
+
+    // ── latest swing HIGH ──
+    let swingHigh = null, leftHighLow = null;
+
+    for (let i = rightBars; i < len - leftBars - 1; i++) {
+        const cHigh = highs[i];
+        let ok = true;
+        for (let j = i - rightBars; j <= i + leftBars; j++) {
+            if (j < 0 || j >= len || j === i) continue;
+            if (highs[j] >= cHigh) { ok = false; break; }
+        }
+        if (ok) {
+            swingHigh   = cHigh;
+            leftHighLow = lows[i + 1];
+            break;
+        }
+    }
+
+    // ── entry check on bar[0] vs bar[1] (5-min close) ──
+    const cur  = closes[0];
+    const prev = closes[1];
+    let signal = 'neutral', stopLevel = null;
+
+    if (leftLowHigh !== null && swingLow !== null) {
+        if (cur > leftLowHigh && prev <= leftLowHigh && cur > swingLow) {
+            signal    = 'buy';
+            stopLevel = swingLow;
+        }
+    }
+
+    if (signal === 'neutral' && leftHighLow !== null && swingHigh !== null) {
+        if (cur < leftHighLow && prev >= leftHighLow && cur < swingHigh) {
+            signal    = 'sell';
+            stopLevel = swingHigh;
+        }
+    }
+
+    return { signal, swingLow, swingHigh, leftLowHigh, leftHighLow, stopLevel };
+}
+
+// ─── FETCH 5-MIN BARS ──────────────────────────────────────────────────────
+async function fetch5Min(symbol, outputSize) {
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY`
+              + `&symbol=${encodeURIComponent(symbol)}`
+              + `&interval=5min`
+              + `&outputsize=${outputSize}`
+              + `&apikey=${API_KEY}`;
+
+    const res  = await fetch(url);
+    const json = await res.json();
+
+    const series = json['Time Series (5min)'];
+    if (!series) return null;
+
+    // Sort newest-first
+    const times = Object.keys(series).sort().reverse();
+    if (times.length < 20) return null;
+
+    const bars = times.map(t => ({
+        time:  t,
+        open:  parseFloat(series[t]['1. open']),
+        high:  parseFloat(series[t]['2. high']),
+        low:   parseFloat(series[t]['3. low']),
+        close: parseFloat(series[t]['4. close']),
+        vol:   parseInt(series[t]['5. volume'])
+    }));
+
+    return bars;
+}
+
+// ─── SCAN ──────────────────────────────────────────────────────────────────
+async function startScan() {
+    const btn        = document.getElementById('scanBtn');
+    const input      = document.getElementById('symbolInput').value.trim();
+    const delay      = parseInt(document.getElementById('speedSelect').value) * 1000;
+    const swingBars  = parseInt(document.getElementById('swingBars').value);
+    const outputSize = document.getElementById('outputSize').value;
+    const progressEl = document.getElementById('progress');
+    const progressBar= document.getElementById('progressBar');
+    const progressTxt= document.getElementById('progressText');
+
+    if (!input) { alert('Enter at least one symbol'); return; }
 
     const symbols = input.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 
     btn.disabled = true;
-    btn.textContent = '🔄 Scanning...';
-    progress.style.display = 'block';
+    btn.textContent = '🔄 Scanning…';
+    progressEl.style.display = 'block';
+    progressBar.style.width  = '0%';
     allResults = [];
     updateTable();
 
     for (let i = 0; i < symbols.length; i++) {
+        const sym = symbols[i];
         try {
-            const data = await analyzeSymbol(symbols[i], swingBars);
-            if (data) { allResults.push(data); updateTable(); }
+            const bars = await fetch5Min(sym, outputSize);
+            if (bars) {
+                const result = buildResult(sym, bars, swingBars);
+                allResults.push(result);
+                updateTable();
+            }
         } catch(e) {
-            console.error(`${symbols[i]}:`, e.message);
+            console.warn(`${sym}:`, e.message);
         }
 
         const pct = Math.round(((i + 1) / symbols.length) * 100);
         progressBar.style.width = pct + '%';
-        const buyCount  = allResults.filter(r => r.signal === 'buy').length;
-        const sellCount = allResults.filter(r => r.signal === 'sell').length;
-        progressText.textContent =
-            `${i+1}/${symbols.length} (${pct}%) · BUY: ${buyCount} · SELL: ${sellCount}`;
 
-        if (i < symbols.length - 1) await sleep(speed);
+        const buys  = allResults.filter(r => r.signal === 'buy').length;
+        const sells = allResults.filter(r => r.signal === 'sell').length;
+        progressTxt.textContent =
+            `${i+1}/${symbols.length} · ${pct}% · BUY: ${buys} · SELL: ${sells} · Done: ${allResults.length}`;
+
+        if (i < symbols.length - 1) await sleep(delay);
     }
 
     btn.disabled = false;
-    btn.textContent = '🔍 Start Scan';
-    const buyCount  = allResults.filter(r => r.signal === 'buy').length;
-    const sellCount = allResults.filter(r => r.signal === 'sell').length;
-    progressText.textContent =
-        `✅ Done · ${allResults.length} scanned · BUY: ${buyCount} · SELL: ${sellCount}`;
+    btn.textContent = '🔍 Scan 5-Min';
+
+    const buys  = allResults.filter(r => r.signal === 'buy').length;
+    const sells = allResults.filter(r => r.signal === 'sell').length;
+    progressTxt.textContent =
+        `✅ Complete · ${allResults.length} scanned · BUY signals: ${buys} · SELL signals: ${sells}`;
 }
 
-async function analyzeSymbol(symbol, swingBars) {
-    // ── Daily OHLC ──
-    const dailyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`;
-    const dailyRes = await fetch(dailyUrl);
-    const dailyData = await dailyRes.json();
-    if (!dailyData['Time Series (Daily)']) return null;
+function buildResult(symbol, bars, swingBars) {
+    const cur  = bars[0];
+    const prev = bars[1];
 
-    const ts    = dailyData['Time Series (Daily)'];
-    const dates = Object.keys(ts).sort().reverse();
-    if (dates.length < 30) return null;
+    const price     = cur.close;
+    const change    = cur.close - prev.close;
+    const changePct = (change / prev.close * 100);
+    const barTime   = cur.time;
 
-    const latest = ts[dates[0]];
-    const prev   = ts[dates[1]];
-    const price  = parseFloat(latest['4. close']);
-    const change = price - parseFloat(prev['4. close']);
-    const changePct = (change / parseFloat(prev['4. close']) * 100);
+    const swing = detectSwing(bars, swingBars, swingBars);
 
-    // Build arrays newest-first (matches TOS array convention)
-    const closes = dates.slice(0, 80).map(d => parseFloat(ts[d]['4. close']));
-    const highs  = dates.slice(0, 80).map(d => parseFloat(ts[d]['2. high']));
-    const lows   = dates.slice(0, 80).map(d => parseFloat(ts[d]['3. low']));
+    const strike  = calcATM(price);
+    const optType = swing.signal === 'buy' ? 'CALL'
+                  : swing.signal === 'sell' ? 'PUT' : null;
 
-    // ── Swing Breakout Signal ──
-    const swing = detectSwingSignal(closes, highs, lows, swingBars, swingBars);
-
-    // ── ATM strike + option type ──
-    const strike   = atmStrike(price);
-    const optType  = swing.signal === 'buy' ? 'CALL' : swing.signal === 'sell' ? 'PUT' : null;
-
-    // ── Confidence: based on how far price broke past trigger ──
+    // Confidence: how far price broke past the trigger line
     let confidence = 'low';
     if (swing.signal !== 'neutral') {
         const trigger = swing.signal === 'buy' ? swing.leftLowHigh : swing.leftHighLow;
-        const breakPct = Math.abs(price - trigger) / trigger * 100;
-        if (breakPct >= 0.5) confidence = 'high';
-        else if (breakPct >= 0.2) confidence = 'medium';
+        const brk = Math.abs(price - trigger) / trigger * 100;
+        if (brk >= 0.4) confidence = 'high';
+        else if (brk >= 0.15) confidence = 'medium';
     }
 
-    // ── SMA20 for chart overlay (single extra call) ──
-    await sleep(1500);
-    const smaUrl = `https://www.alphavantage.co/query?function=SMA&symbol=${symbol}&interval=daily&time_period=20&series_type=close&apikey=${API_KEY}`;
-    const smaRes  = await fetch(smaUrl);
-    const smaData = await smaRes.json();
-    const sma20   = smaData['Technical Analysis: SMA']
-        ? parseFloat(Object.values(smaData['Technical Analysis: SMA'])[0]?.SMA)
-        : null;
-
     return {
-        symbol,
-        price:      price.toFixed(2),
-        change:     change.toFixed(2),
-        changePct:  changePct.toFixed(2),
-        signal:     swing.signal,         // 'buy' | 'sell' | 'neutral'
-        optType,                          // 'CALL' | 'PUT' | null
-        strike,
-        stopLevel:  swing.stopLevel ? swing.stopLevel.toFixed(2) : null,
-        swingLow:   swing.swingLow  ? swing.swingLow.toFixed(2)  : null,
-        swingHigh:  swing.swingHigh ? swing.swingHigh.toFixed(2) : null,
-        leftLowHigh:  swing.leftLowHigh  ? swing.leftLowHigh.toFixed(2)  : null,
-        leftHighLow:  swing.leftHighLow  ? swing.leftHighLow.toFixed(2)  : null,
-        confidence,
-        sma20: sma20 ? sma20.toFixed(2) : null,
-        history: { closes, highs, lows, dates: dates.slice(0, 80) }
+        symbol, price, change, changePct, barTime,
+        signal:    swing.signal,
+        optType,   strike, confidence,
+        stopLevel: swing.stopLevel,
+        swingLow:  swing.swingLow,
+        swingHigh: swing.swingHigh,
+        leftLowHigh:  swing.leftLowHigh,
+        leftHighLow:  swing.leftHighLow,
+        bars  // keep for charting
     };
 }
 
 // ─── TABLE ─────────────────────────────────────────────────────────────────
-function filterResults(filter, event) {
-    currentFilter = filter;
+function filterResults(f, e) {
+    currentFilter = f;
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    if (event) event.target.classList.add('active');
+    if (e) e.target.classList.add('active');
     updateTable();
+}
+
+function fmt(v, decimals = 2) {
+    return v !== null && v !== undefined ? '$' + v.toFixed(decimals) : '—';
 }
 
 function updateTable() {
     const container = document.getElementById('resultsContainer');
     const tbody     = document.getElementById('resultsBody');
-    const count     = document.getElementById('resultsCount');
+    const meta      = document.getElementById('resultsMeta');
 
     if (allResults.length === 0) { container.style.display = 'none'; return; }
 
-    filteredResults = currentFilter === 'all' ? allResults
+    filteredResults = currentFilter === 'all' ? [...allResults]
         : allResults.filter(r => r.signal === currentFilter);
 
     container.style.display = 'block';
-    count.textContent = `${filteredResults.length} of ${allResults.length} symbols`;
+
+    const buys  = allResults.filter(r => r.signal === 'buy').length;
+    const sells = allResults.filter(r => r.signal === 'sell').length;
+    meta.textContent =
+        `${allResults.length} scanned · BUY: ${buys} · SELL: ${sells} · showing ${filteredResults.length}`;
 
     if (filteredResults.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" class="empty-state"><div class="empty-icon">🔍</div><div>No ${currentFilter} signals found yet</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="14" class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <div>No ${currentFilter} signals on the 5-min chart</div>
+        </td></tr>`;
         return;
     }
 
-    // Sort: buy first, sell second, neutral last
     const order = { buy: 0, sell: 1, neutral: 2 };
     const sorted = [...filteredResults].sort((a, b) => order[a.signal] - order[b.signal]);
 
     tbody.innerHTML = sorted.map((r, idx) => {
-        const changePos = parseFloat(r.change) >= 0;
+        const isPos = r.change >= 0;
 
-        const signalHtml = r.signal === 'buy'
-            ? `<span class="signal-badge signal-buy">▲ BUY</span>`
+        const sigHtml = r.signal === 'buy'
+            ? `<span class="sig sig-buy">▲ BUY</span>`
             : r.signal === 'sell'
-            ? `<span class="signal-badge signal-sell">▼ SELL</span>`
-            : `<span class="signal-badge signal-neutral">— WATCH</span>`;
+            ? `<span class="sig sig-sell">▼ SELL</span>`
+            : `<span class="sig sig-watch">— WATCH</span>`;
 
         const optHtml = r.optType === 'CALL'
-            ? `<span class="opt-pill opt-call">CALL</span>`
+            ? `<span class="opt opt-call">CALL</span>`
             : r.optType === 'PUT'
-            ? `<span class="opt-pill opt-put">PUT</span>`
+            ? `<span class="opt opt-put">PUT</span>`
             : `<span class="opt-none">—</span>`;
 
-        const confClass = `confidence-${r.confidence}`;
+        // format bar time to just HH:MM
+        const timeStr = r.barTime ? r.barTime.split(' ')[1]?.slice(0,5) ?? r.barTime : '—';
 
-        return `
-        <tr>
-            <td class="symbol-cell">${r.symbol}</td>
-            <td class="right price-cell">$${r.price}</td>
-            <td class="right ${changePos ? 'change-positive' : 'change-negative'}">
-                ${changePos ? '+' : ''}${r.change} (${changePos ? '+' : ''}${r.changePct}%)
+        return `<tr>
+            <td class="sym">${r.symbol}</td>
+            <td class="prc">${fmt(r.price)}</td>
+            <td class="r ${isPos ? 'pos' : 'neg'}">
+                ${isPos ? '+' : ''}${r.change.toFixed(2)} (${isPos ? '+' : ''}${r.changePct.toFixed(2)}%)
             </td>
-            <td class="center">${signalHtml}</td>
-            <td class="center">${optHtml}</td>
-            <td class="right" style="font-weight:700;color:#fff;">$${r.strike}</td>
-            <td class="right stop-cell">${r.stopLevel ? '$' + r.stopLevel : '—'}</td>
-            <td class="right" style="color:#22d3a0;">${r.swingLow ? '$' + r.swingLow : '—'}</td>
-            <td class="right" style="color:#f87171;">${r.swingHigh ? '$' + r.swingHigh : '—'}</td>
-            <td class="center"><span class="${confClass}">${r.confidence.toUpperCase()}</span></td>
-            <td class="center"><button class="view-btn" onclick="showAnalysis(${idx})">📊 Detail</button></td>
+            <td class="r" style="color:#5a6080;font-size:11px;">${timeStr}</td>
+            <td class="c">${sigHtml}</td>
+            <td class="c">${optHtml}</td>
+            <td class="r" style="font-weight:700;color:#fff;">${fmt(r.strike)}</td>
+            <td class="r" style="color:#fbbf24;">${fmt(r.stopLevel)}</td>
+            <td class="r" style="color:#22d3a0;">${fmt(r.swingLow)}</td>
+            <td class="r" style="color:#f87171;">${fmt(r.swingHigh)}</td>
+            <td class="r" style="color:#6ee7b7;font-size:11px;">${fmt(r.leftLowHigh)}</td>
+            <td class="r" style="color:#fca5a5;font-size:11px;">${fmt(r.leftHighLow)}</td>
+            <td class="c"><span class="conf-${r.confidence}">${r.confidence.toUpperCase()}</span></td>
+            <td class="c"><button class="detail-btn" onclick="showDetail(${idx})">📊 Detail</button></td>
         </tr>`;
     }).join('');
 }
 
 // ─── MODAL ─────────────────────────────────────────────────────────────────
-function showAnalysis(idx) {
-    const r = filteredResults[idx];
-    document.getElementById('modalTitle').textContent = `${r.symbol} — Swing Breakout Analysis`;
-
+function showDetail(idx) {
+    const r    = filteredResults[idx];
     const isBuy  = r.signal === 'buy';
     const isSell = r.signal === 'sell';
 
+    document.getElementById('modalTitle').textContent = `${r.symbol} — 5-Min Swing Breakout`;
+    document.getElementById('modalSub').textContent   =
+        `Last bar: ${r.barTime}  ·  Close: ${fmt(r.price)}  ·  `
+      + (isBuy ? 'BUY signal → ATM CALL' : isSell ? 'SELL signal → ATM PUT' : 'No signal');
+
     document.getElementById('modalBody').innerHTML = `
-        <div class="analysis-grid">
-            <div class="zone-box bullish">
-                <div class="zone-title">🟢 BUY TRIGGER (CALL)</div>
-                <div class="zone-price">${r.leftLowHigh ? '$' + r.leftLowHigh : 'N/A'}</div>
+        <div class="zones">
+            <div class="zone bull">
+                <div class="zone-ttl">🟢 BUY TRIGGER — ATM CALL</div>
+                <div class="zone-price">${fmt(r.leftLowHigh)}</div>
                 <div class="zone-desc">
-                    <strong>Trigger:</strong> Close above left-candle high of swing low<br>
-                    <strong>Swing Low:</strong> $${r.swingLow ?? 'N/A'}<br>
-                    <strong>Stop if:</strong> Close below swing low ($${r.swingLow ?? 'N/A'})<br>
-                    <strong>ATM CALL Strike:</strong> $${r.strike}<br>
-                    ${isBuy ? '<strong style="color:#22d3a0">✅ Signal fired on last bar</strong>' : ''}
+                    <strong>Trigger line:</strong> Left-candle HIGH of swing low<br>
+                    <strong>Swing low level:</strong> ${fmt(r.swingLow)}<br>
+                    <strong>Stop loss:</strong> Close below ${fmt(r.swingLow)} on 5-min bar<br>
+                    <strong>ATM CALL strike:</strong> ${fmt(r.strike)}<br>
+                    ${isBuy ? '<strong style="color:#22d3a0">✅ Signal fired on last 5-min bar</strong>' : ''}
                 </div>
             </div>
-            <div class="zone-box bearish">
-                <div class="zone-title">🔴 SELL TRIGGER (PUT)</div>
-                <div class="zone-price">${r.leftHighLow ? '$' + r.leftHighLow : 'N/A'}</div>
+            <div class="zone bear">
+                <div class="zone-ttl">🔴 SELL TRIGGER — ATM PUT</div>
+                <div class="zone-price">${fmt(r.leftHighLow)}</div>
                 <div class="zone-desc">
-                    <strong>Trigger:</strong> Close below left-candle low of swing high<br>
-                    <strong>Swing High:</strong> $${r.swingHigh ?? 'N/A'}<br>
-                    <strong>Stop if:</strong> Close above swing high ($${r.swingHigh ?? 'N/A'})<br>
-                    <strong>ATM PUT Strike:</strong> $${r.strike}<br>
-                    ${isSell ? '<strong style="color:#f87171">✅ Signal fired on last bar</strong>' : ''}
+                    <strong>Trigger line:</strong> Left-candle LOW of swing high<br>
+                    <strong>Swing high level:</strong> ${fmt(r.swingHigh)}<br>
+                    <strong>Stop loss:</strong> Close above ${fmt(r.swingHigh)} on 5-min bar<br>
+                    <strong>ATM PUT strike:</strong> ${fmt(r.strike)}<br>
+                    ${isSell ? '<strong style="color:#f87171">✅ Signal fired on last 5-min bar</strong>' : ''}
                 </div>
             </div>
         </div>
 
-        <div class="swing-info">
-            <h3>📐 Swing Level Detail</h3>
-            <div class="swing-levels">
-                <div class="swing-level-card low">
-                    <div class="swing-level-label">Latest Swing Low</div>
-                    <div class="swing-level-val">${r.swingLow ? '$' + r.swingLow : 'N/A'}</div>
-                    <div class="swing-level-sub">Left-candle high (buy trigger): ${r.leftLowHigh ? '$' + r.leftLowHigh : 'N/A'}</div>
-                    <div class="swing-level-sub">Stop loss if long: close below $${r.swingLow ?? 'N/A'}</div>
+        <div class="swing-cards">
+            <div class="sw-card low">
+                <div class="sw-lbl">Latest Swing Low (5-min)</div>
+                <div class="sw-val">${fmt(r.swingLow)}</div>
+                <div class="sw-sub">
+                    Left-candle high (buy trigger): ${fmt(r.leftLowHigh)}<br>
+                    Stop if long: close below ${fmt(r.swingLow)}
                 </div>
-                <div class="swing-level-card high">
-                    <div class="swing-level-label">Latest Swing High</div>
-                    <div class="swing-level-val">${r.swingHigh ? '$' + r.swingHigh : 'N/A'}</div>
-                    <div class="swing-level-sub">Left-candle low (sell trigger): ${r.leftHighLow ? '$' + r.leftHighLow : 'N/A'}</div>
-                    <div class="swing-level-sub">Stop loss if short: close above $${r.swingHigh ?? 'N/A'}</div>
+            </div>
+            <div class="sw-card high">
+                <div class="sw-lbl">Latest Swing High (5-min)</div>
+                <div class="sw-val">${fmt(r.swingHigh)}</div>
+                <div class="sw-sub">
+                    Left-candle low (sell trigger): ${fmt(r.leftHighLow)}<br>
+                    Stop if short: close above ${fmt(r.swingHigh)}
                 </div>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Current Price</div>
-                <div class="stat-value">$${r.price}</div>
-                <div class="stat-sub ${parseFloat(r.change) >= 0 ? 'change-positive' : 'change-negative'}" style="font-size:12px;">
-                    ${parseFloat(r.change) >= 0 ? '+' : ''}${r.change} (${r.changePct}%)
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-lbl">Last 5-min Close</div>
+                <div class="stat-val">${fmt(r.price)}</div>
+                <div class="stat-sub ${r.change >= 0 ? 'pos' : 'neg'}" style="font-size:11px;">
+                    ${r.change >= 0 ? '+' : ''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Signal</div>
-                <div class="stat-value" style="color:${isBuy ? '#22d3a0' : isSell ? '#f87171' : '#fbbf24'}">
+            <div class="stat">
+                <div class="stat-lbl">Signal</div>
+                <div class="stat-val" style="color:${isBuy ? '#22d3a0' : isSell ? '#f87171' : '#fbbf24'}">
                     ${isBuy ? 'BUY' : isSell ? 'SELL' : 'WATCH'}
                 </div>
                 <div class="stat-sub">Confidence: ${r.confidence.toUpperCase()}</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Option to Buy</div>
-                <div class="stat-value" style="color:${isBuy ? '#22d3a0' : isSell ? '#f87171' : '#7a8099'}">
+            <div class="stat">
+                <div class="stat-lbl">Option to Buy</div>
+                <div class="stat-val" style="color:${isBuy ? '#22d3a0' : isSell ? '#f87171' : '#5a6080'}">
                     ${r.optType ?? '—'}
                 </div>
-                <div class="stat-sub">ATM strike $${r.strike}</div>
+                <div class="stat-sub">ATM strike ${fmt(r.strike)}</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Stop Level</div>
-                <div class="stat-value" style="color:#fbbf24;">${r.stopLevel ? '$' + r.stopLevel : '—'}</div>
-                <div class="stat-sub">${isBuy ? 'Close below swing low' : isSell ? 'Close above swing high' : 'No active stop'}</div>
+            <div class="stat">
+                <div class="stat-lbl">Stop Level</div>
+                <div class="stat-val" style="color:#fbbf24;">${fmt(r.stopLevel)}</div>
+                <div class="stat-sub">${isBuy ? 'Close below swing low' : isSell ? 'Close above swing high' : '—'}</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">SMA(20)</div>
-                <div class="stat-value">${r.sma20 ? '$' + r.sma20 : 'N/A'}</div>
-                <div class="stat-sub">20-day moving average</div>
+            <div class="stat">
+                <div class="stat-lbl">Bar Time</div>
+                <div class="stat-val" style="font-size:14px;">${r.barTime?.split(' ')[1] ?? '—'}</div>
+                <div class="stat-sub">${r.barTime?.split(' ')[0] ?? ''}</div>
             </div>
         </div>
 
-        <div class="chart-section">
-            <div class="chart-title">📈 Price Chart — Last 60 Bars with Swing Levels</div>
-            <canvas id="analysisChart" style="max-height:300px;"></canvas>
+        <div class="chart-box">
+            <div class="chart-ttl">📈 5-Min Price Chart — Last 78 Bars with Swing Levels</div>
+            <canvas id="detailChart" style="max-height:300px;"></canvas>
         </div>
 
-        <div class="recommendation">
-            <div class="rec-title">
-                ${isBuy  ? '🟢 BUY SIGNAL — Purchase ATM CALL Option' :
-                  isSell ? '🔴 SELL SIGNAL — Purchase ATM PUT Option' :
-                           '🟡 NO SIGNAL — Monitor for breakout'}
+        <div class="rec">
+            <div class="rec-ttl">
+                ${isBuy  ? '🟢 BUY SIGNAL — Buy ATM CALL Option'
+                : isSell ? '🔴 SELL SIGNAL — Buy ATM PUT Option'
+                :           '🟡 NO SIGNAL — Watch for breakout'}
             </div>
             <div class="rec-grid">
-                <div class="rec-item">
-                    <div class="rec-label">Stock</div>
-                    <div class="rec-value">${r.symbol}</div>
-                </div>
-                <div class="rec-item">
-                    <div class="rec-label">Current Price</div>
-                    <div class="rec-value">$${r.price}</div>
-                </div>
-                <div class="rec-item">
-                    <div class="rec-label">Option Type</div>
-                    <div class="rec-value">${r.optType ?? '—'}</div>
-                </div>
-                <div class="rec-item">
-                    <div class="rec-label">ATM Strike</div>
-                    <div class="rec-value">$${r.strike}</div>
-                </div>
-                <div class="rec-item">
-                    <div class="rec-label">Stop Loss</div>
-                    <div class="rec-value">${r.stopLevel ? '$' + r.stopLevel : '—'}</div>
-                </div>
-                <div class="rec-item">
-                    <div class="rec-label">Expiry Preference</div>
-                    <div class="rec-value">Weekly ≤7 DTE</div>
-                </div>
+                <div class="rec-item"><div class="rec-lbl">Symbol</div><div class="rec-val">${r.symbol}</div></div>
+                <div class="rec-item"><div class="rec-lbl">5-Min Price</div><div class="rec-val">${fmt(r.price)}</div></div>
+                <div class="rec-item"><div class="rec-lbl">Option Type</div><div class="rec-val">${r.optType ?? '—'}</div></div>
+                <div class="rec-item"><div class="rec-lbl">ATM Strike</div><div class="rec-val">${fmt(r.strike)}</div></div>
+                <div class="rec-item"><div class="rec-lbl">Stop Loss</div><div class="rec-val">${fmt(r.stopLevel)}</div></div>
+                <div class="rec-item"><div class="rec-lbl">DTE Pref</div><div class="rec-val">≤ 7 days</div></div>
             </div>
         </div>
     `;
@@ -936,69 +874,61 @@ function showAnalysis(idx) {
 }
 
 function drawChart(r) {
-    const ctx = document.getElementById('analysisChart');
+    const ctx = document.getElementById('detailChart');
     if (!ctx) return;
     if (currentChart) currentChart.destroy();
 
-    const labels = r.history.dates.slice(0, 60).map(d =>
-        new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    );
+    const barsToShow = r.bars.slice(0, 78).reverse(); // oldest first for chart
+    const labels  = barsToShow.map(b => b.time.split(' ')[1]?.slice(0,5) ?? b.time);
+    const closes  = barsToShow.map(b => b.close);
+    const len     = barsToShow.length;
 
     const datasets = [{
-        label: 'Close',
-        data: r.history.closes.slice(0, 60),
+        label: 'Close (5-min)',
+        data: closes,
         borderColor: '#c8cde4',
-        borderWidth: 2,
+        borderWidth: 1.5,
         pointRadius: 0,
-        fill: false
+        fill: false,
+        tension: 0.1
     }];
 
     if (r.swingLow) datasets.push({
-        label: 'Swing Low',
-        data: Array(60).fill(parseFloat(r.swingLow)),
+        label: `Swing Low ${fmt(r.swingLow)}`,
+        data: Array(len).fill(r.swingLow),
         borderColor: '#22d3a0',
         borderWidth: 1.5,
-        borderDash: [5, 5],
+        borderDash: [6, 4],
         pointRadius: 0,
         fill: false
     });
 
     if (r.swingHigh) datasets.push({
-        label: 'Swing High',
-        data: Array(60).fill(parseFloat(r.swingHigh)),
+        label: `Swing High ${fmt(r.swingHigh)}`,
+        data: Array(len).fill(r.swingHigh),
         borderColor: '#f87171',
         borderWidth: 1.5,
-        borderDash: [5, 5],
+        borderDash: [6, 4],
         pointRadius: 0,
         fill: false
     });
 
     if (r.leftLowHigh) datasets.push({
-        label: 'Buy Trigger',
-        data: Array(60).fill(parseFloat(r.leftLowHigh)),
-        borderColor: '#22d3a0',
+        label: `Buy Trigger ${fmt(r.leftLowHigh)}`,
+        data: Array(len).fill(r.leftLowHigh),
+        borderColor: '#4ade80',
         borderWidth: 1,
-        borderDash: [2, 4],
+        borderDash: [2, 5],
         pointRadius: 0,
         fill: false
     });
 
     if (r.leftHighLow) datasets.push({
-        label: 'Sell Trigger',
-        data: Array(60).fill(parseFloat(r.leftHighLow)),
-        borderColor: '#f87171',
+        label: `Sell Trigger ${fmt(r.leftHighLow)}`,
+        data: Array(len).fill(r.leftHighLow),
+        borderColor: '#fb923c',
         borderWidth: 1,
-        borderDash: [2, 4],
-        pointRadius: 0,
-        fill: false
-    });
-
-    if (r.sma20) datasets.push({
-        label: 'SMA(20)',
-        data: Array(60).fill(parseFloat(r.sma20)),
-        borderColor: '#7c3aed',
-        borderWidth: 1,
-        borderDash: [3, 3],
+        borderDash: [2, 5],
         pointRadius: 0,
         fill: false
     });
@@ -1011,14 +941,19 @@ function drawChart(r) {
             maintainAspectRatio: false,
             plugins: {
                 legend: {
-                    display: true,
-                    position: 'top',
-                    labels: { color: '#9ba3c4', font: { size: 11 }, boxWidth: 20 }
+                    display: true, position: 'top',
+                    labels: { color: '#7a84aa', font: { size: 10 }, boxWidth: 18 }
                 }
             },
             scales: {
-                x: { ticks: { color: '#7a8099', font: { size: 10 }, maxTicksLimit: 10 }, grid: { color: '#1e2235' } },
-                y: { ticks: { color: '#7a8099', callback: v => '$' + v.toFixed(2) }, grid: { color: '#1e2235' } }
+                x: {
+                    ticks: { color: '#5a6080', font: { size: 9 }, maxTicksLimit: 12 },
+                    grid: { color: '#161825' }
+                },
+                y: {
+                    ticks: { color: '#5a6080', callback: v => '$' + v.toFixed(2) },
+                    grid: { color: '#161825' }
+                }
             }
         }
     });
