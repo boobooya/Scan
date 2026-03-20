@@ -1283,170 +1283,95 @@ function togglePanel(id){
 //  RENDER ALL INDICATOR PANELS
 // ═══════════════════════════════════════════════
 function renderAllPanels(r){
-    modalCharts.forEach(c=>c.destroy());
-    modalCharts=[];
+    // Destroy any existing charts
+    modalCharts.forEach(c=>{ try{c.destroy();}catch(e){} });
+    modalCharts = [];
 
-    const bars=r.bars;
-    const show=bars.slice(0,Math.min(bars.length,60)).reverse();
-    const len=show.length;
+    const bars = r.bars;
+    const N    = Math.min(bars.length, 60);
+    // show = oldest first (index 0 = oldest)
+    const show = bars.slice(0, N).reverse();
 
-    const avKey=Object.keys(AV_TF).find(k=>AV_TF[k].label===r.tfLabel);
-    const yfKey=Object.keys(YF_TF).find(k=>YF_TF[k].label===r.tfLabel);
-    const tfUnit=avKey?AV_TF[avKey].chartUnit:yfKey?YF_TF[yfKey].chartUnit:'day';
-    const tfMs={minute:5*60000,hour:60*60000,day:86400000,week:7*86400000,month:30*86400000};
-    const step=tfMs[tfUnit]||86400000;
-    const now=Date.now();
+    // ── Timestamps ──
+    // Use index-based x-axis (linear) — avoids all time-adapter issues
+    const xs     = show.map((_, i) => i);           // 0,1,2,...,N-1
+    const labels = show.map(b => b.time || '');      // string labels for x ticks
 
-    // Build candle data: x = numeric timestamp, o/h/l/c = price values
-    const candleData = show.map((b, i) => {
-        const ts = b.timestamp ? Number(b.timestamp) : (now - (len - 1 - i) * step);
-        return { x: ts, o: b.open, h: b.high, l: b.low, c: b.close };
-    });
-    const firstTs=candleData[0].x,lastTs=candleData[len-1].x;
-    const closes_fwd=show.map(b=>b.close);
-    const closes_all=bars.map(b=>b.close);
+    // Price arrays
+    const opens  = show.map(b => b.open);
+    const highs  = show.map(b => b.high);
+    const lows   = show.map(b => b.low);
+    const closes = show.map(b => b.close);
 
-    const tdFmts={minute:'HH:mm',hour:'MM/dd HH:mm',day:'MMM dd',week:'MMM dd yy',month:"MMM ''yy"};
+    const priceHigh = Math.max(...highs);
+    const priceLow  = Math.min(...lows);
+    const pricePad  = Math.max((priceHigh - priceLow) * 0.06, priceHigh * 0.001);
 
-    function makeTimeAxis(){return{type:'time',time:{unit:tfUnit,displayFormats:tdFmts},ticks:{font:{size:9},maxTicksLimit:12,color:'#636e72'},grid:{color:'#ecf0f1'}};}
-    function makePriceAxis(label){return{ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:9}},grid:{color:'#ecf0f1'},title:{display:!!label,text:label||''}};}
-    function hline(val,lbl,color,dash){
-        return{label:lbl,type:'line',
-            data:[{x:firstTs,y:val},{x:lastTs,y:val}],
-            borderColor:color,borderWidth:1.5,
-            borderDash:dash||[6,4],
-            pointRadius:0,fill:false,
-            parsing:false,
-            yAxisID:'y'
+    // For forecast/hurst we need timestamps
+    const step     = r.bars[0].timestamp && r.bars[1].timestamp
+                   ? Math.abs(r.bars[0].timestamp - r.bars[1].timestamp)
+                   : 300000;
+    const lastTs   = r.bars[0].timestamp || Date.now();
+    const firstTs  = lastTs - (N - 1) * step;
+
+    // x-tick callback: show label every ~8 bars
+    function xTick(val, idx) {
+        if (idx % Math.max(1, Math.floor(N / 8)) !== 0) return '';
+        return labels[idx] || '';
+    }
+
+    function makeXAxis() {
+        return {
+            type: 'linear',
+            min: 0, max: N - 1,
+            ticks: { callback: xTick, font:{size:9}, color:'#636e72', maxRotation:0 },
+            grid: { color:'#ecf0f1' }
         };
     }
 
-    // ──────────────────────────────────────────
-    //  PANEL 1: Candle + Forecast + Hurst Arcs
-    // ──────────────────────────────────────────
-    const fcast=computeForecast(bars,r.fcastBars,r.fcastLB||100);
-    const hurst=computeHurst(bars);
-    const fcastBars=r.fcastBars;
-    const fcastTs=Array.from({length:fcastBars},(_,i)=>lastTs+(i+1)*step);
-
-    // ──────────────────────────────────────────
-    //  PANEL 1: OHLC + Forecast + Hurst Arcs
-    //  Uses a plain line chart with a candle-drawing afterDraw plugin.
-    //  No external plugin needed — pure Chart.js 4.
-    // ──────────────────────────────────────────
-    const fcast  = computeForecast(bars, r.fcastBars, r.fcastLB || 100);
-    const hurst  = computeHurst(bars);
-    const fcastBars = r.fcastBars;
-    const fcastTs   = Array.from({length: fcastBars}, (_, i) => lastTs + (i + 1) * step);
-
-    // Price range for y-axis fitting
-    const allH = show.map(b => b.h || b.high);
-    const allL = show.map(b => b.l || b.low);
-    const priceHigh = Math.max(...allH);
-    const priceLow  = Math.min(...allL);
-    const pricePad  = (priceHigh - priceLow) * 0.05 || 1;
-
-    // Hurst arcs as sine lines
-    const priceMid   = (priceHigh + priceLow) / 2;
-    const priceRange = (priceHigh - priceLow) || 1;
-
-    function hurstArc(cycleLen, color, label, phase0) {
-        const pts = [];
-        for (let i = 0; i < cycleLen; i++) {
-            const frac = i / (cycleLen - 1);
-            pts.push({
-                x: lastTs - (cycleLen - 1 - i) * step,
-                y: priceMid + (priceRange * 0.18) * Math.sin(Math.PI * frac + phase0)
-            });
-        }
-        return { label, data: pts, borderColor: color, borderWidth: 1.5,
-                 borderDash: [4,3], pointRadius: 0, fill: false, tension: 0,
-                 parsing: false };
+    function makeYAxis(mn, mx) {
+        const pad = (mx - mn) * 0.05 || 1;
+        return {
+            min: mn - pad, max: mx + pad,
+            ticks: { callback: v => '$' + Number(v).toFixed(2), color:'#636e72', font:{size:9} },
+            grid: { color:'#ecf0f1' }
+        };
     }
 
-    // Close line (invisible — used to feed the candle plugin with bar data)
-    const closePts  = show.map((b, i) => ({ x: candleData[i].x, y: b.close }));
-
-    const ds1 = [];
-
-    // ── invisible close line — carries OHLC in extra field for plugin ──
-    ds1.push({
-        label:       '__candles__',
-        data:        candleData.map(d => ({ x: d.x, y: d.c, _ohlc: d })),
-        borderColor: 'transparent',
-        backgroundColor: 'transparent',
-        pointRadius: 0,
-        fill:        false,
-        parsing:     false,
-        tension:     0
-    });
-
-    // Overlay lines
-    function hlineMain(val, lbl, color, dash) {
-        return { label: lbl, data: [{x: firstTs, y: val}, {x: lastTs, y: val}],
-                 borderColor: color, borderWidth: 1.5, borderDash: dash || [6,4],
-                 pointRadius: 0, fill: false, parsing: false };
+    function linePts(arr) {
+        return arr.map((v, i) => ({ x: i, y: v }));
     }
 
-    if (r.swing.swingLow)     ds1.push(hlineMain(r.swing.swingLow,     'Swing Low',    '#00b894', [6,4]));
-    if (r.swing.swingHigh)    ds1.push(hlineMain(r.swing.swingHigh,    'Swing High',   '#d63031', [6,4]));
-    if (r.swing.leftLowHigh)  ds1.push(hlineMain(r.swing.leftLowHigh,  'Buy Trigger',  '#00cec9', [2,5]));
-    if (r.swing.leftHighLow)  ds1.push(hlineMain(r.swing.leftHighLow,  'Sell Trigger', '#e17055', [2,5]));
-    if (r.channel.resistance) ds1.push(hlineMain(r.channel.resistance, 'Chan R',       '#6c5ce7', [8,3]));
-    if (r.channel.support)    ds1.push(hlineMain(r.channel.support,    'Chan S',       '#a29bfe', [8,3]));
+    // ──────────────────────────────────────────
+    //  PANEL 1: Candles + Forecast + Hurst
+    // ──────────────────────────────────────────
+    const fcast    = computeForecast(r.bars, r.fcastBars, r.fcastLB || 100);
+    const hurst    = computeHurst(r.bars);
+    const fcastN   = r.fcastBars;
+    const priceMid = (priceHigh + priceLow) / 2;
 
-    // Forecast
-    if (fcast) {
-        const bridge = [{x: lastTs, y: r.price}, ...fcastTs.map((ts, i) => ({x: ts, y: fcast.center[i]}))];
-        const upper  = [{x: lastTs, y: r.price}, ...fcastTs.map((ts, i) => ({x: ts, y: fcast.upper[i]}))];
-        const lower  = [{x: lastTs, y: r.price}, ...fcastTs.map((ts, i) => ({x: ts, y: fcast.lower[i]}))];
-        ds1.push({ label: `Forecast (${fcastBars}b)`, data: bridge, borderColor: 'rgba(80,80,80,0.85)', borderWidth: 2, borderDash: [6,4], pointRadius: [0, ...Array(fcastBars).fill(3)], pointBackgroundColor: 'rgba(80,80,80,0.5)', fill: false, parsing: false, tension: 0.3 });
-        ds1.push({ label: 'Upper 1.5σ', data: upper, borderColor: 'rgba(120,120,120,0.5)', borderWidth: 1.5, borderDash: [3,5], pointRadius: 0, fill: false, parsing: false, tension: 0.3 });
-        ds1.push({ label: 'Lower 1.5σ', data: lower, borderColor: 'rgba(120,120,120,0.5)', borderWidth: 1.5, borderDash: [3,5], pointRadius: 0, fill: false, parsing: false, tension: 0.3 });
-    }
-
-    // Hurst arcs
-    ds1.push(hurstArc(hurst.halfCycle,    'rgba(59,130,246,0.7)',  `½ Cycle (${hurst.halfCycle}b)`,    0));
-    ds1.push(hurstArc(hurst.dominantCycle,'rgba(245,158,11,0.7)',  `Full Cycle (${hurst.dominantCycle}b)`, Math.PI));
-    ds1.push(hurstArc(hurst.doubleCycle,  'rgba(168,85,247,0.5)',  `2× Cycle (${hurst.doubleCycle}b)`, 0));
-
-    // Hurst legend
-    document.getElementById('hurstLegend').innerHTML = `
-        <div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(59,130,246,0.8);"></div>½ Cycle (${hurst.halfCycle} bars)</div>
-        <div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(245,158,11,0.8);"></div>Full Cycle (${hurst.dominantCycle} bars)</div>
-        <div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(168,85,247,0.6);"></div>2× Cycle (${hurst.doubleCycle} bars)</div>
-        <div class="hurst-item" style="margin-left:auto;font-size:11px;color:#636e72;">Phase: ${(hurst.phase*100).toFixed(0)}% · AC: ${hurst.autocorrStrength}</div>
-    `;
-
-    // ── Candle drawing plugin (afterDraw) ──
+    // Candle plugin — draws on top of a transparent line chart
     const candlePlugin = {
-        id: 'ohlcCandles',
+        id: 'ohlcDraw',
         afterDatasetsDraw(chart) {
-            const ds = chart.data.datasets[0];
-            if (!ds || ds.label !== '__candles__') return;
-            const xScale = chart.scales.x;
-            const yScale = chart.scales.y;
-            const ctx2   = chart.ctx;
-            const meta   = chart.getDatasetMeta(0);
-            const nBars  = ds.data.length;
-            const chartW = chart.chartArea.right - chart.chartArea.left;
-            const candleW = Math.max(2, Math.min(16, (chartW / nBars) * 0.65));
+            const xSc = chart.scales.x;
+            const ySc = chart.scales.y;
+            if (!xSc || !ySc) return;
+            const ctx2  = chart.ctx;
+            const area  = chart.chartArea;
+            const barW  = Math.max(2, Math.min(14, (area.right - area.left) / N * 0.65));
+            const hw    = barW / 2;
 
             ctx2.save();
-            for (let i = 0; i < ds.data.length; i++) {
-                const raw = ds.data[i]._ohlc;
-                if (!raw) continue;
-                const px  = xScale.getPixelForValue(raw.x);
-                const pyo = yScale.getPixelForValue(raw.o);
-                const pyh = yScale.getPixelForValue(raw.h);
-                const pyl = yScale.getPixelForValue(raw.l);
-                const pyc = yScale.getPixelForValue(raw.c);
-                if (isNaN(px) || isNaN(pyh) || isNaN(pyl)) continue;
-
-                const bull = raw.c >= raw.o;
+            for (let i = 0; i < N; i++) {
+                const px  = xSc.getPixelForValue(i);
+                const pyo = ySc.getPixelForValue(opens[i]);
+                const pyh = ySc.getPixelForValue(highs[i]);
+                const pyl = ySc.getPixelForValue(lows[i]);
+                const pyc = ySc.getPixelForValue(closes[i]);
+                if ([px,pyo,pyh,pyl,pyc].some(isNaN)) continue;
+                const bull = closes[i] >= opens[i];
                 const col  = bull ? '#00b894' : '#d63031';
-                const hw   = candleW / 2;
-
                 // Wick
                 ctx2.strokeStyle = col;
                 ctx2.lineWidth   = 1;
@@ -1454,63 +1379,112 @@ function renderAllPanels(r){
                 ctx2.moveTo(px, pyh);
                 ctx2.lineTo(px, pyl);
                 ctx2.stroke();
-
                 // Body
-                const bodyTop = Math.min(pyo, pyc);
-                const bodyH   = Math.max(Math.abs(pyc - pyo), 1);
+                const top = Math.min(pyo, pyc);
+                const ht  = Math.max(Math.abs(pyc - pyo), 1);
                 ctx2.fillStyle   = col;
-                ctx2.strokeStyle = bull ? '#007a5e' : '#a01f1f';
+                ctx2.strokeStyle = bull ? '#007a5e' : '#9b1c1c';
                 ctx2.lineWidth   = 0.5;
-                ctx2.fillRect(px - hw, bodyTop, candleW, bodyH);
-                ctx2.strokeRect(px - hw, bodyTop, candleW, bodyH);
+                ctx2.fillRect(px - hw, top, barW, ht);
+                ctx2.strokeRect(px - hw, top, barW, ht);
             }
             ctx2.restore();
         }
     };
+
+    // Invisible anchor line so Chart.js sets up x/y scales correctly
+    const anchorDs = {
+        label: '__anchor__',
+        data:  closes.map((v,i) => ({x:i, y:v})),
+        borderColor: 'transparent',
+        backgroundColor: 'transparent',
+        pointRadius: 0,
+        fill: false,
+        parsing: false
+    };
+
+    const ds1 = [anchorDs];
+
+    // Swing / channel overlays
+    function hLn(val, lbl, col, dash) {
+        return { label: lbl,
+            data: [{x:0,y:val},{x:N-1+(fcastN>0?fcastN:0),y:val}],
+            borderColor: col, borderWidth:1.5, borderDash: dash||[6,4],
+            pointRadius:0, fill:false, parsing:false };
+    }
+    if (r.swing.swingLow)     ds1.push(hLn(r.swing.swingLow,     'Swing Low',    '#00b894',[6,4]));
+    if (r.swing.swingHigh)    ds1.push(hLn(r.swing.swingHigh,    'Swing High',   '#d63031',[6,4]));
+    if (r.swing.leftLowHigh)  ds1.push(hLn(r.swing.leftLowHigh,  'Buy Trigger',  '#00cec9',[2,5]));
+    if (r.swing.leftHighLow)  ds1.push(hLn(r.swing.leftHighLow,  'Sell Trigger', '#e17055',[2,5]));
+    if (r.channel.resistance) ds1.push(hLn(r.channel.resistance, 'Chan R',       '#6c5ce7',[8,3]));
+    if (r.channel.support)    ds1.push(hLn(r.channel.support,    'Chan S',       '#a29bfe',[8,3]));
+
+    // Forecast — projected bars after index N-1
+    if (fcast) {
+        const fBridge = [{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+        const fUpper  = [{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:N+i,y:v}))];
+        const fLower  = [{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:N+i,y:v}))];
+        ds1.push({ label:`Forecast (${fcastN}b)`, data:fBridge, borderColor:'rgba(70,70,70,0.85)', borderWidth:2, borderDash:[6,4], pointRadius:[0,...Array(fcastN).fill(3)], pointBackgroundColor:'rgba(70,70,70,0.55)', fill:false, parsing:false, tension:0.3 });
+        ds1.push({ label:'Upper 1.5σ', data:fUpper, borderColor:'rgba(120,120,120,0.5)', borderWidth:1.5, borderDash:[3,5], pointRadius:0, fill:false, parsing:false, tension:0.3 });
+        ds1.push({ label:'Lower 1.5σ', data:fLower, borderColor:'rgba(120,120,120,0.5)', borderWidth:1.5, borderDash:[3,5], pointRadius:0, fill:false, parsing:false, tension:0.3 });
+    }
+
+    // Hurst arcs
+    function hurstArc(len, col, lbl, ph) {
+        const pts = [];
+        const startX = N - 1 - len;
+        for (let i = 0; i <= len; i++) {
+            const frac = i / len;
+            pts.push({ x: startX + i, y: priceMid + (priceHigh - priceLow) * 0.15 * Math.sin(Math.PI * frac + ph) });
+        }
+        return { label:lbl, data:pts, borderColor:col, borderWidth:1.5, borderDash:[4,3], pointRadius:0, fill:false, parsing:false, tension:0 };
+    }
+    ds1.push(hurstArc(hurst.halfCycle,     'rgba(59,130,246,0.75)',  `½ Cycle (${hurst.halfCycle}b)`,     0));
+    ds1.push(hurstArc(hurst.dominantCycle, 'rgba(245,158,11,0.75)',  `Full Cycle (${hurst.dominantCycle}b)`, Math.PI));
+    ds1.push(hurstArc(hurst.doubleCycle,   'rgba(168,85,247,0.55)',  `2× Cycle (${hurst.doubleCycle}b)`,  0));
+
+    document.getElementById('hurstLegend').innerHTML =
+        `<div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(59,130,246,0.8);"></div>½ Cycle (${hurst.halfCycle} bars)</div>
+         <div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(245,158,11,0.8);"></div>Full Cycle (${hurst.dominantCycle} bars)</div>
+         <div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(168,85,247,0.6);"></div>2× Cycle (${hurst.doubleCycle} bars)</div>
+         <div class="hurst-item" style="margin-left:auto;font-size:11px;color:#636e72;">Phase: ${(hurst.phase*100).toFixed(0)}% · AC: ${hurst.autocorrStrength}</div>`;
+
+    // Compute y range including forecast
+    let yMin = priceLow  - pricePad;
+    let yMax = priceHigh + pricePad;
+    if (fcast) {
+        yMax = Math.max(yMax, ...fcast.upper.filter(v=>!isNaN(v)));
+        yMin = Math.min(yMin, ...fcast.lower.filter(v=>!isNaN(v)));
+    }
 
     modalCharts.push(new Chart(document.getElementById('chartMain'), {
         type: 'line',
         data: { datasets: ds1 },
         plugins: [candlePlugin],
         options: {
-            responsive:          true,
-            maintainAspectRatio: false,
-            animation:           false,
-            interaction: { mode: 'index', intersect: false },
+            responsive: true, maintainAspectRatio: false, animation: false,
+            interaction: { mode:'index', intersect:false },
             plugins: {
-                legend: {
-                    display:  true,
-                    position: 'top',
-                    labels: {
-                        font: { size: 9 }, boxWidth: 12,
-                        filter: item => item.datasetIndex > 0
+                legend: { display:true, position:'top',
+                    labels: { font:{size:9}, boxWidth:12,
+                        filter: item => item.datasetIndex > 0 && !item.text.startsWith('__') }},
+                tooltip: { callbacks: { label: ctx => {
+                    if (ctx.datasetIndex === 0) {
+                        const xi = ctx.dataIndex;
+                        return [`O:$${opens[xi]?.toFixed(2)}  H:$${highs[xi]?.toFixed(2)}`,
+                                `L:$${lows[xi]?.toFixed(2)}   C:$${closes[xi]?.toFixed(2)}`];
                     }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => {
-                            const d = ctx.raw?._ohlc;
-                            if (d) return [`O:$${d.o?.toFixed(2)}  H:$${d.h?.toFixed(2)}`, `L:$${d.l?.toFixed(2)}  C:$${d.c?.toFixed(2)}`];
-                            const y = ctx.parsed?.y;
-                            return y != null ? `${ctx.dataset.label}: $${Number(y).toFixed(2)}` : '';
-                        }
-                    }
-                }
+                    const v = ctx.parsed?.y;
+                    return v != null ? `${ctx.dataset.label}: $${v.toFixed(2)}` : '';
+                }}}
             },
             scales: {
-                x: {
-                    type: 'time',
-                    time: { unit: tfUnit, displayFormats: tdFmts, tooltipFormat: 'MMM dd, HH:mm' },
-                    ticks: { font: { size: 9 }, maxTicksLimit: 14, color: '#636e72', maxRotation: 0 },
-                    grid: { color: '#ecf0f1' },
-                    offset: true
-                },
-                y: {
-                    min:  priceLow  - pricePad,
-                    max:  priceHigh + pricePad,
-                    ticks: { callback: v => '$' + Number(v).toFixed(2), color: '#636e72', font: { size: 9 } },
-                    grid: { color: '#ecf0f1' }
-                }
+                x: { type:'linear', min:0, max:N-1+fcastN,
+                     ticks:{ callback:xTick, font:{size:9}, color:'#636e72', maxRotation:0 },
+                     grid:{ color:'#ecf0f1' }, offset:false },
+                y: { min:yMin, max:yMax,
+                     ticks:{ callback:v=>'$'+v.toFixed(2), color:'#636e72', font:{size:9} },
+                     grid:{ color:'#ecf0f1' }}
             }
         }
     }));
@@ -1518,182 +1492,172 @@ function renderAllPanels(r){
     // ──────────────────────────────────────────
     //  PANEL 2: Market Structure
     // ──────────────────────────────────────────
-    const ms=computeMarketStructure(bars.slice(0,Math.min(bars.length,80)));
-    document.getElementById('msTrend').textContent=`Trend: ${ms.trend.toUpperCase()} · ${ms.pivots.length} pivots detected`;
+    const ms = computeMarketStructure(r.bars.slice(0, 80));
+    document.getElementById('msTrend').textContent =
+        `Trend: ${ms.trend.toUpperCase()} · ${ms.pivots.length} pivots detected`;
 
-    const msClose=show.map((b,i)=>({x:candleData[i].x,y:b.close}));
-    const ds2=[{label:'Price',type:'line',data:msClose,borderColor:'#636e72',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:0.1}];
+    const msCloses = show.map((b,i) => ({x:i, y:b.close}));
+    const ds2 = [{ label:'Price', data:msCloses, borderColor:'#636e72', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 }];
 
-    // Plot pivot labels as scatter
     const hhPts=[],hlPts=[],lhPts=[],llPts=[];
-    ms.pivots.forEach(p=>{
-        const barIdx=show.length-1-p.i;
-        if(barIdx<0||barIdx>=show.length) return;
-        const x=candleData[barIdx]?.x;
-        if(!x) return;
-        const pt={x,y:p.price,label:p.label};
-        if(p.label==='HH') hhPts.push(pt);
-        else if(p.label==='HL') hlPts.push(pt);
-        else if(p.label==='LH') lhPts.push(pt);
-        else llPts.push(pt);
+    ms.pivots.forEach(p => {
+        const bi = N - 1 - p.i;
+        if (bi < 0 || bi >= N) return;
+        const pt = {x:bi, y:p.price};
+        if      (p.label==='HH') hhPts.push(pt);
+        else if (p.label==='HL') hlPts.push(pt);
+        else if (p.label==='LH') lhPts.push(pt);
+        else                     llPts.push(pt);
     });
 
-    function pivotDataset(pts,label,color){
-        return{label,type:'scatter',data:pts,backgroundColor:color,borderColor:color,pointRadius:6,pointStyle:'circle',parsing:false,
-            datalabels:{display:true,color,font:{size:9,weight:'bold'},formatter:(v,ctx)=>ctx.raw.label,anchor:'end',align:'top'}};
+    function pivotDs(pts, lbl, col) {
+        return { label:lbl, type:'scatter', data:pts, backgroundColor:col, borderColor:col, pointRadius:6, pointStyle:'circle', parsing:false };
+    }
+    ds2.push(pivotDs(hhPts,'HH','#00b894'));
+    ds2.push(pivotDs(hlPts,'HL','#2ecc71'));
+    ds2.push(pivotDs(lhPts,'LH','#e17055'));
+    ds2.push(pivotDs(llPts,'LL','#d63031'));
+
+    if (ms.pivots.length > 1) {
+        const pivLine = ms.pivots
+            .map(p => { const bi=N-1-p.i; return (bi>=0&&bi<N)?{x:bi,y:p.price}:null; })
+            .filter(Boolean);
+        ds2.push({ label:'Structure', data:pivLine, borderColor:'rgba(100,100,100,0.3)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false, parsing:false, tension:0 });
     }
 
-    ds2.push(pivotDataset(hhPts,'HH (Higher High)','#00b894'));
-    ds2.push(pivotDataset(hlPts,'HL (Higher Low)','#2ecc71'));
-    ds2.push(pivotDataset(lhPts,'LH (Lower High)','#e17055'));
-    ds2.push(pivotDataset(llPts,'LL (Lower Low)','#d63031'));
-
-    // Structure lines connecting pivots
-    if(ms.pivots.length>1){
-        const pivotLine=ms.pivots.map(p=>{const bi=show.length-1-p.i;if(bi<0||bi>=show.length)return null;const x=candleData[bi]?.x;return x?{x,y:p.price}:null;}).filter(Boolean);
-        ds2.push({label:'Structure Line',type:'line',data:pivotLine,borderColor:'rgba(100,100,100,0.35)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,parsing:false,tension:0});
-    }
-
-    modalCharts.push(new Chart(document.getElementById('chartMS'),{
-        type:'scatter',data:{datasets:ds2},
-        options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:true,position:'top',labels:{font:{size:9},boxWidth:10}},
-                tooltip:{callbacks:{label:ctx=>{const r=ctx.raw;return r.label?`${r.label}: $${r.y?.toFixed(2)}`:`$${r.y?.toFixed(2)}`;}}}},
-            scales:{x:makeTimeAxis(),y:makePriceAxis()}}
+    modalCharts.push(new Chart(document.getElementById('chartMS'), {
+        type:'scatter', data:{datasets:ds2},
+        options:{ responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
+            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
     }));
 
     // ──────────────────────────────────────────
     //  PANEL 3: RSI + Divergence
     // ──────────────────────────────────────────
-    const rsiValues=computeRSI(closes_fwd.slice().reverse()).slice().reverse();
-    const divs=findDivergence(closes_fwd,rsiValues);
-    const currentRSI=rsiValues[0]?.toFixed(1)??'—';
-    document.getElementById('rsiStatus').textContent=`RSI(14): ${currentRSI} · ${currentRSI>70?'Overbought ⚠️':currentRSI<30?'Oversold ⚠️':'Neutral'} · ${divs.filter(d=>d.type==='bullish').length} bullish + ${divs.filter(d=>d.type==='bearish').length} bearish divergences`;
+    const rsiValues = computeRSI(closes.slice().reverse()).slice().reverse();
+    const divs      = findDivergence(closes, rsiValues);
+    const curRSI    = rsiValues[rsiValues.length-1];
+    document.getElementById('rsiStatus').textContent =
+        `RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought ⚠️':curRSI<30?'Oversold ⚠️':'Neutral'} · ${divs.length} divergence(s)`;
 
-    const rsiPts=rsiValues.map((v,i)=>({x:candleData[i]?.x??firstTs,y:v})).filter(p=>p.y!==null&&!isNaN(p.y));
-    const ds3=[
-        {label:'RSI(14)',data:rsiPts,borderColor:'#e84393',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:0.2},
-        {label:'OB 70',data:[{x:firstTs,y:70},{x:lastTs,y:70}],borderColor:'rgba(231,76,60,0.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-        {label:'OS 30',data:[{x:firstTs,y:30},{x:lastTs,y:30}],borderColor:'rgba(0,184,148,0.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-        {label:'Mid 50',data:[{x:firstTs,y:50},{x:lastTs,y:50}],borderColor:'rgba(100,100,100,0.25)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
+    const rsiPts = rsiValues.map((v,i) => ({x:i, y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
+    const ds3 = [
+        { label:'RSI(14)', data:rsiPts, borderColor:'#e84393', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.2 },
+        { label:'OB 70',  data:[{x:0,y:70},{x:N-1,y:70}], borderColor:'rgba(220,50,50,0.4)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
+        { label:'OS 30',  data:[{x:0,y:30},{x:N-1,y:30}], borderColor:'rgba(0,180,140,0.4)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
+        { label:'Mid 50', data:[{x:0,y:50},{x:N-1,y:50}], borderColor:'rgba(100,100,100,0.2)', borderWidth:1, borderDash:[2,4], pointRadius:0, fill:false, parsing:false },
     ];
-
-    // Divergence markers
-    divs.forEach(d=>{
-        const x1=candleData[d.bar1]?.x,x2=candleData[d.bar2]?.x;
-        if(!x1||!x2) return;
-        ds3.push({label:d.type==='bullish'?'▲ Bull Div':'▼ Bear Div',type:'line',
-            data:[{x:x1,y:d.rsi1},{x:x2,y:d.rsi2}],
-            borderColor:d.type==='bullish'?'rgba(0,184,148,0.9)':'rgba(214,48,49,0.9)',
-            borderWidth:2.5,borderDash:[],pointRadius:4,fill:false,parsing:false});
+    divs.forEach(d => {
+        ds3.push({ label:d.type==='bullish'?'▲ Bull Div':'▼ Bear Div',
+            data:[{x:d.bar1,y:d.rsi1},{x:d.bar2,y:d.rsi2}],
+            borderColor:d.type==='bullish'?'rgba(0,180,140,0.9)':'rgba(210,40,40,0.9)',
+            borderWidth:2.5, pointRadius:4, fill:false, parsing:false });
     });
 
-    modalCharts.push(new Chart(document.getElementById('chartRSI'),{
-        type:'line',data:{datasets:ds3},
-        options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:true,position:'top',labels:{font:{size:9},boxWidth:10}},
-                tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y?.toFixed(1)}`}}},
-            scales:{x:makeTimeAxis(),y:{min:0,max:100,ticks:{color:'#636e72',font:{size:9},callback:v=>v},grid:{color:'#ecf0f1'}}}}
+    modalCharts.push(new Chart(document.getElementById('chartRSI'), {
+        type:'line', data:{datasets:ds3},
+        options:{ responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
+            scales:{ x:makeXAxis(), y:{ min:0, max:100, ticks:{callback:v=>v, color:'#636e72', font:{size:9}}, grid:{color:'#ecf0f1'} } }}
     }));
 
     // ──────────────────────────────────────────
     //  PANEL 4: ATR Chandelier Stop
     // ──────────────────────────────────────────
-    const barsRev=show.slice().reverse();
-    const atr=computeATR(bars.slice(0,60).reverse());
-    const chande=chandelierExit(barsRev,atr.slice(0,60));
-    const currentATR=atr.slice(-1)[0];
-    const currentStop=chande.long.slice(-1)[0];
-    document.getElementById('atrStatus').textContent=`ATR(14): ${currentATR?.toFixed(2)??'—'} · Long Stop: ${currentStop?.toFixed(2)??'—'} · Current Price: ${f2(r.price)}`;
+    const barsRev  = show.slice().reverse();
+    const atr      = computeATR(r.bars.slice(0,60).reverse());
+    const chande   = chandelierExit(barsRev, atr.slice(0,60));
+    const curATR   = atr[atr.length-1];
+    const curStop  = chande.long[chande.long.length-1];
+    document.getElementById('atrStatus').textContent =
+        `ATR(14): ${curATR?.toFixed(2)??'—'} · Long Stop: ${curStop?.toFixed(2)??'—'} · Price: ${f2(r.price)}`;
 
-    const pricePts=show.map((b,i)=>({x:candleData[i].x,y:b.close}));
-    const longStop=chande.long.slice().reverse().map((v,i)=>v!==null?{x:candleData[i]?.x,y:v}:null).filter(Boolean);
-    const shortStop=chande.short.slice().reverse().map((v,i)=>v!==null?{x:candleData[i]?.x,y:v}:null).filter(Boolean);
+    const priceLine = closes.map((v,i) => ({x:i,y:v}));
+    const longStop  = chande.long.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
+    const shortStop = chande.short.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
+    const atrPts    = atr.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
 
-    const ds4=[
-        {label:'Price',data:pricePts,borderColor:'#636e72',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:0.1},
-        {label:'Long Stop (Chandelier)',data:longStop,borderColor:'#00b894',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-        {label:'Short Stop (Chandelier)',data:shortStop,borderColor:'#d63031',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    const ds4 = [
+        { label:'Price',       data:priceLine, borderColor:'#636e72', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 },
+        { label:'Long Stop',   data:longStop,  borderColor:'#00b894', borderWidth:2,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
+        { label:'Short Stop',  data:shortStop, borderColor:'#d63031', borderWidth:2,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
     ];
 
-    modalCharts.push(new Chart(document.getElementById('chartATR'),{
-        type:'line',data:{datasets:ds4},
-        options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:true,position:'top',labels:{font:{size:9},boxWidth:10}}},
-            scales:{x:makeTimeAxis(),y:makePriceAxis()}}
+    modalCharts.push(new Chart(document.getElementById('chartATR'), {
+        type:'line', data:{datasets:ds4},
+        options:{ responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
+            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
     }));
 
     // ──────────────────────────────────────────
     //  PANEL 5: VWAP + Bands
     // ──────────────────────────────────────────
-    const vwapVals=computeVWAP(barsRev).slice().reverse();
-    const bands=vwapBands(barsRev,vwapVals.slice().reverse());
-    const currentVWAP=vwapVals[0];
-    const vwapStatus=r.price>currentVWAP?'Price ABOVE VWAP (bullish)':'Price BELOW VWAP (bearish)';
-    document.getElementById('vwapStatus').textContent=`VWAP: ${f2(currentVWAP)} · ${vwapStatus}`;
+    const barsForVWAP = show.slice().reverse();
+    const vwapVals    = computeVWAP(barsForVWAP).reverse();
+    const bands       = vwapBands(barsForVWAP, vwapVals.slice().reverse());
+    const curVWAP     = vwapVals[vwapVals.length-1];
+    document.getElementById('vwapStatus').textContent =
+        `VWAP: ${f2(curVWAP)} · Price ${r.price > curVWAP ? 'ABOVE (bullish)':'BELOW (bearish)'}`;
 
-    function mapVals(arr){return arr.map((v,i)=>({x:candleData[i]?.x??firstTs,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
+    function vpts(arr) { return arr.slice().reverse().map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0); }
 
-    const ds5=[
-        {label:'Price',data:pricePts,borderColor:'#636e72',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:0.1},
-        {label:'VWAP',data:mapVals(vwapVals),borderColor:'#0984e3',borderWidth:2,pointRadius:0,fill:false,parsing:false},
-        {label:'+1σ',data:mapVals(bands.s1p.slice().reverse()),borderColor:'rgba(9,132,227,0.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-        {label:'-1σ',data:mapVals(bands.s1n.slice().reverse()),borderColor:'rgba(9,132,227,0.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-        {label:'+2σ',data:mapVals(bands.s2p.slice().reverse()),borderColor:'rgba(9,132,227,0.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
-        {label:'-2σ',data:mapVals(bands.s2n.slice().reverse()),borderColor:'rgba(9,132,227,0.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
+    const ds5 = [
+        { label:'Price',  data:priceLine,       borderColor:'#636e72',            borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 },
+        { label:'VWAP',   data:vpts(vwapVals),  borderColor:'#0984e3',            borderWidth:2,   pointRadius:0, fill:false, parsing:false },
+        { label:'+1σ',    data:vpts(bands.s1p), borderColor:'rgba(9,132,227,0.5)',borderWidth:1,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
+        { label:'-1σ',    data:vpts(bands.s1n), borderColor:'rgba(9,132,227,0.5)',borderWidth:1,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
+        { label:'+2σ',    data:vpts(bands.s2p), borderColor:'rgba(9,132,227,0.3)',borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false, parsing:false },
+        { label:'-2σ',    data:vpts(bands.s2n), borderColor:'rgba(9,132,227,0.3)',borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false, parsing:false },
     ];
 
-    modalCharts.push(new Chart(document.getElementById('chartVWAP'),{
-        type:'line',data:{datasets:ds5},
-        options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:true,position:'top',labels:{font:{size:9},boxWidth:10}}},
-            scales:{x:makeTimeAxis(),y:makePriceAxis()}}
+    modalCharts.push(new Chart(document.getElementById('chartVWAP'), {
+        type:'line', data:{datasets:ds5},
+        options:{ responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
+            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
     }));
 
     // ──────────────────────────────────────────
-    //  PANEL 6: Volume Profile (horizontal bars on mini price chart + profile)
+    //  PANEL 6: Volume Profile
     // ──────────────────────────────────────────
-    const vp=computeVolumeProfile(bars,24);
-    document.getElementById('vpStatus').textContent=`POC: ${f2(vp.poc.price)} · VAH: ${f2(vp.vaH)} · VAL: ${f2(vp.vaL)} · Range: ${f2(vp.priceLow)} – ${f2(vp.priceHigh)}`;
+    const vp = computeVolumeProfile(r.bars, 24);
+    document.getElementById('vpStatus').textContent =
+        `POC: ${f2(vp.poc.price)} · VAH: ${f2(vp.vaH)} · VAL: ${f2(vp.vaL)}`;
 
-    // Left chart: price with POC, VAH, VAL lines
-    const ds6Main=[
-        {label:'Price',data:pricePts,borderColor:'#636e72',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:0.1},
-        {label:`POC ${f2(vp.poc.price)}`,data:[{x:firstTs,y:vp.poc.price},{x:lastTs,y:vp.poc.price}],borderColor:'#fdcb6e',borderWidth:2,borderDash:[],pointRadius:0,fill:false,parsing:false},
-        {label:`VAH ${f2(vp.vaH)}`,data:[{x:firstTs,y:vp.vaH},{x:lastTs,y:vp.vaH}],borderColor:'rgba(0,184,148,0.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
-        {label:`VAL ${f2(vp.vaL)}`,data:[{x:firstTs,y:vp.vaL},{x:lastTs,y:vp.vaL}],borderColor:'rgba(214,48,49,0.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
+    const ds6Main = [
+        { label:'Price',          data:priceLine, borderColor:'#636e72', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 },
+        { label:`POC ${f2(vp.poc.price)}`, data:[{x:0,y:vp.poc.price},{x:N-1,y:vp.poc.price}], borderColor:'#fdcb6e', borderWidth:2, pointRadius:0, fill:false, parsing:false },
+        { label:`VAH ${f2(vp.vaH)}`,       data:[{x:0,y:vp.vaH},{x:N-1,y:vp.vaH}],             borderColor:'rgba(0,184,148,0.6)', borderWidth:1.5, borderDash:[6,3], pointRadius:0, fill:false, parsing:false },
+        { label:`VAL ${f2(vp.vaL)}`,       data:[{x:0,y:vp.vaL},{x:N-1,y:vp.vaL}],             borderColor:'rgba(214,48,49,0.6)', borderWidth:1.5, borderDash:[6,3], pointRadius:0, fill:false, parsing:false },
     ];
 
-    modalCharts.push(new Chart(document.getElementById('chartVP'),{
-        type:'line',data:{datasets:ds6Main},
-        options:{responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:true,position:'top',labels:{font:{size:9},boxWidth:10}}},
-            scales:{x:makeTimeAxis(),y:makePriceAxis()}}
+    modalCharts.push(new Chart(document.getElementById('chartVP'), {
+        type:'line', data:{datasets:ds6Main},
+        options:{ responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
+            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
     }));
 
-    // Right chart: horizontal volume profile bars
-    const vpColors=vp.profile.map(p=>p.price===vp.poc.price?'rgba(253,203,110,0.85)':p.price>=vp.vaL&&p.price<=vp.vaH?'rgba(9,132,227,0.55)':'rgba(160,160,160,0.45)');
+    const vpColors = vp.profile.map(p =>
+        p.price === vp.poc.price       ? 'rgba(253,203,110,0.9)'
+        : p.price >= vp.vaL && p.price <= vp.vaH ? 'rgba(9,132,227,0.55)'
+        : 'rgba(160,160,160,0.45)');
 
-    modalCharts.push(new Chart(document.getElementById('chartVPProfile'),{
+    modalCharts.push(new Chart(document.getElementById('chartVPProfile'), {
         type:'bar',
-        data:{
-            labels:vp.profile.map(p=>'$'+p.price.toFixed(1)),
-            datasets:[{label:'Volume',data:vp.profile.map(p=>p.vol),backgroundColor:vpColors,borderWidth:0}]
-        },
-        options:{
-            indexAxis:'y',responsive:true,maintainAspectRatio:false,
-            plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`Vol: ${ctx.raw.toLocaleString()}`}}},
-            scales:{x:{ticks:{display:false},grid:{display:false}},y:{ticks:{font:{size:8},color:'#636e72'},grid:{display:false}}}
-        }
+        data:{ labels:vp.profile.map(p=>'$'+p.price.toFixed(1)), datasets:[{ label:'Volume', data:vp.profile.map(p=>p.vol), backgroundColor:vpColors, borderWidth:0 }]},
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:false,
+            plugins:{ legend:{display:false} },
+            scales:{ x:{ticks:{display:false},grid:{display:false}}, y:{ticks:{font:{size:8},color:'#636e72'},grid:{display:false}} }}
     }));
 
-    // ── BUILD REASONING after all indicators computed ──
-    buildReasoning(r, rsiValues, vp, hurst, atr, chande, currentVWAP, ms);
+    // ── Build reasoning after all indicators computed ──
+    buildReasoning(r, rsiValues, vp, hurst, atr, chande, curVWAP, ms);
 }
 
-// ═══════════════════════════════════════════════
-//  BUILD REASONING NARRATIVE
-// ═══════════════════════════════════════════════
+
 function buildReasoning(r, rsiVals, vp, hurst, atr, chande, vwapVal, ms){
     const isBuy  = r.direction === 'buy';
     const isSel  = r.direction === 'sell';
