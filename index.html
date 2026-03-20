@@ -9,152 +9,155 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0b0d14;
-            color: #dde1f0;
+            background: #f5f6fa;
             min-height: 100vh;
         }
 
-        /* ── HEADER ── */
         .header {
-            background: #111420;
-            border-bottom: 1px solid #1e2235;
-            padding: 16px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
             flex-wrap: wrap;
+            gap: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.12);
         }
 
-        .header-left h1 { font-size: 19px; color: #fff; font-weight: 800; }
-        .header-left p  { font-size: 11px; color: #5a6080; margin-top: 3px; }
+        .header h1 { font-size: 22px; margin-bottom: 4px; }
+        .header p  { opacity: 0.88; font-size: 12px; }
 
-        .header-right { display: flex; align-items: center; gap: 10px; }
-
-        /* ── SOURCE TOGGLE ── */
         .source-toggle {
             display: flex;
-            background: #0b0d14;
-            border: 1px solid #1e2235;
+            background: rgba(255,255,255,0.15);
             border-radius: 8px;
             overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.25);
         }
 
         .src-btn {
             padding: 8px 16px;
             border: none;
             background: transparent;
-            color: #5a6080;
+            color: rgba(255,255,255,0.75);
             font-size: 12px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.15s;
             display: flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.15s;
             white-space: nowrap;
         }
 
-        .src-btn.active {
-            background: #4f6ef7;
-            color: #fff;
-        }
+        .src-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
 
-        .src-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-        }
+        .src-dot { width: 7px; height: 7px; border-radius: 50%; }
+        .src-av  { background: #fcd34d; }
+        .src-yf  { background: #6ee7b7; }
 
-        .src-av   { background: #f59e0b; }
-        .src-yf   { background: #22d3a0; }
+        .spd-badge { font-size: 9px; padding: 2px 6px; border-radius: 8px; font-weight: 700; }
+        .spd-slow  { background: rgba(252,211,77,0.25); color: #fcd34d; }
+        .spd-fast  { background: rgba(110,231,183,0.25); color: #6ee7b7; }
 
-        .speed-badge {
-            font-size: 10px;
-            padding: 2px 7px;
-            border-radius: 10px;
-            font-weight: 700;
-            margin-left: 2px;
-        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
 
-        .badge-slow { background: rgba(245,158,11,0.18); color: #f59e0b; }
-        .badge-fast { background: rgba(34,211,160,0.18); color: #22d3a0; }
-
-        /* ── SOURCE INFO BAR ── */
         .source-info {
-            padding: 9px 20px;
-            font-size: 11px;
-            border-bottom: 1px solid #1e2235;
+            padding: 10px 18px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .si-av { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+        .si-yf { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+
+        /* proxy status bar */
+        .proxy-status {
+            display: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            align-items: center;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
-        .si-av  { background: rgba(245,158,11,0.07); color: #c89a3a; }
-        .si-yf  { background: rgba(34,211,160,0.07); color: #1d9e75; }
+        .proxy-status.visible { display: flex; }
+        .ps-testing { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+        .ps-ok      { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
+        .ps-fail    { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
 
-        .si-icon { font-size: 14px; }
-        .si-key  { font-weight: 700; margin-right: 4px; }
-
-        /* ── CONTAINER ── */
-        .container { max-width: 1800px; margin: 0 auto; padding: 16px 20px; }
-
-        /* ── CONTROLS ── */
-        .controls {
-            background: #111420;
-            border: 1px solid #1e2235;
-            padding: 16px 20px;
-            border-radius: 10px;
-            margin-bottom: 14px;
+        .proxy-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
         }
 
-        /* Alpha Vantage controls */
-        .av-controls { display: none; }
-        .av-controls.visible { display: block; }
+        .dot-ok   { background: #22c55e; }
+        .dot-fail { background: #ef4444; }
+        .dot-spin { background: #f59e0b; animation: spin-dot 1s linear infinite; }
 
-        /* Yahoo controls */
-        .yf-controls { display: none; }
-        .yf-controls.visible { display: block; }
+        @keyframes spin-dot {
+            0%   { opacity: 1; }
+            50%  { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+
+        .av-panel { display: none; }
+        .av-panel.visible { display: block; }
+        .yf-panel { display: none; }
+        .yf-panel.visible { display: block; }
 
         .control-row {
             display: grid;
-            gap: 12px;
+            gap: 14px;
             align-items: end;
         }
 
         .cr-av { grid-template-columns: 1fr 130px 130px 130px auto; }
-        .cr-yf { grid-template-columns: 1fr 130px 130px auto auto; }
+        .cr-yf { grid-template-columns: 1fr 130px 130px 130px auto; }
 
         label {
             display: block;
-            font-size: 10px;
-            font-weight: 700;
-            color: #5a6080;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            margin-bottom: 5px;
+            font-weight: 600;
+            margin-bottom: 7px;
+            font-size: 12px;
+            color: #2d3436;
         }
 
         input, select {
             width: 100%;
-            padding: 8px 11px;
-            background: #0b0d14;
-            border: 1px solid #1e2235;
-            border-radius: 7px;
+            padding: 10px 12px;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
             font-size: 13px;
-            color: #dde1f0;
+            color: #2d3436;
             outline: none;
             transition: border-color 0.15s;
+            background: #fff;
         }
 
-        input:focus, select:focus { border-color: #4f6ef7; }
-        select option { background: #111420; }
+        input:focus, select:focus { border-color: #667eea; }
 
         .scan-btn {
-            padding: 9px 22px;
+            padding: 11px 26px;
             border: none;
-            border-radius: 7px;
-            color: #fff;
+            border-radius: 8px;
+            color: white;
             font-size: 13px;
             font-weight: 700;
             cursor: pointer;
@@ -162,50 +165,47 @@
             transition: opacity 0.15s;
         }
 
-        .scan-btn-av { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .scan-btn-yf { background: linear-gradient(135deg, #22d3a0, #0f6e56); }
-        .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-av { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .btn-yf { background: linear-gradient(135deg, #00b894, #00cec9); }
 
-        .quick-btns { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px; }
-
-        .quick-btn {
-            padding: 4px 10px;
-            background: #1a1d2e;
-            color: #7a84aa;
-            border: 1px solid #1e2235;
-            border-radius: 5px;
-            font-size: 11px;
+        .test-btn {
+            padding: 7px 14px;
+            border: 1px solid #dfe6e9;
+            border-radius: 7px;
+            background: white;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
+            color: #2d3436;
             transition: all 0.12s;
         }
 
-        .quick-btn:hover { background: #252840; color: #fff; border-color: #4f6ef7; }
+        .test-btn:hover { border-color: #667eea; color: #667eea; }
 
-        /* progress */
-        .progress {
-            background: #1a1d2e;
-            height: 3px;
-            border-radius: 2px;
-            overflow: hidden;
-            margin: 11px 0 4px;
-            display: none;
+        .quick-btns { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+
+        .quick-btn {
+            padding: 5px 11px;
+            background: #0984e3;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
         }
 
-        .progress-bar {
-            height: 100%;
-            transition: width 0.3s;
-            width: 0;
-        }
+        .quick-btn:hover { opacity: 0.85; }
 
+        .progress { background: #ecf0f1; height: 6px; border-radius: 3px; overflow: hidden; margin: 14px 0 5px; display: none; }
+        .progress-bar { height: 100%; transition: width 0.3s; }
         .pb-av { background: linear-gradient(90deg, #f59e0b, #d97706); }
-        .pb-yf { background: linear-gradient(90deg, #22d3a0, #0f6e56); }
+        .pb-yf { background: linear-gradient(90deg, #00b894, #00cec9); }
+        .progress-text { font-size: 12px; color: #636e72; text-align: center; min-height: 16px; }
 
-        .progress-text { font-size: 11px; color: #5a6080; text-align: center; min-height: 15px; }
-
-        /* parallel progress for Yahoo */
         .batch-grid {
             display: none;
-            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
             gap: 5px;
             margin-top: 10px;
             max-height: 80px;
@@ -214,352 +214,286 @@
 
         .batch-grid.visible { display: grid; }
 
-        .batch-sym {
-            font-size: 10px;
-            padding: 3px 6px;
-            border-radius: 4px;
+        .bchip {
+            font-size: 10px; font-weight: 700;
+            padding: 3px 5px; border-radius: 4px;
             text-align: center;
-            font-weight: 700;
-            background: #1a1d2e;
-            color: #5a6080;
-            border: 1px solid #1e2235;
-            transition: all 0.2s;
+            background: #f0f0f0; color: #999;
+            border: 1px solid #e0e0e0;
+            transition: all 0.18s;
         }
 
-        .batch-sym.loading { color: #fbbf24; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.07); }
-        .batch-sym.done-buy  { color: #22d3a0; border-color: rgba(34,211,160,0.3); background: rgba(34,211,160,0.07); }
-        .batch-sym.done-sell { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.07); }
-        .batch-sym.done-none { color: #5a6080; border-color: #1e2235; }
-        .batch-sym.error     { color: #ef4444; border-color: rgba(239,68,68,0.3); }
+        .bchip.loading   { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .bchip.done-buy  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+        .bchip.done-sell { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .bchip.done-none { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+        .bchip.error     { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; font-style: italic; }
 
-        /* legend */
-        .legend-row {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            margin-top: 11px;
-            padding-top: 11px;
-            border-top: 1px solid #1e2235;
+        /* debug log */
+        .debug-box {
+            display: none;
+            background: #1e1e1e;
+            color: #a8ff78;
+            font-family: monospace;
             font-size: 11px;
-            color: #5a6080;
-            flex-wrap: wrap;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 12px;
+            max-height: 120px;
+            overflow-y: auto;
+            line-height: 1.6;
         }
 
-        .ldot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 4px;
-            vertical-align: middle;
-        }
+        .debug-box.visible { display: block; }
+        .debug-err { color: #ff6b6b; }
+        .debug-ok  { color: #6ee7b7; }
+        .debug-inf { color: #fbbf24; }
 
-        /* ── RESULTS ── */
         .results-container {
-            background: #111420;
-            border: 1px solid #1e2235;
+            background: white;
             border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
             overflow: hidden;
             display: none;
         }
 
         .results-header {
-            padding: 12px 20px;
-            border-bottom: 1px solid #1e2235;
+            padding: 14px 20px;
+            border-bottom: 2px solid #ecf0f1;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #0e1020;
-            flex-wrap: wrap;
-            gap: 8px;
         }
 
-        .results-title { font-size: 14px; font-weight: 700; color: #fff; }
-        .results-meta  { font-size: 11px; color: #5a6080; }
+        .results-title { font-size: 17px; font-weight: 700; color: #2d3436; }
+        .results-count { font-size: 12px; color: #636e72; }
 
         .filter-tabs {
             display: flex;
-            gap: 5px;
-            padding: 9px 20px;
-            border-bottom: 1px solid #1e2235;
-            background: #0e1020;
+            gap: 6px;
+            padding: 10px 20px;
+            border-bottom: 1px solid #ecf0f1;
+            background: #f8f9fa;
             flex-wrap: wrap;
         }
 
         .filter-tab {
-            padding: 5px 12px;
-            background: #1a1d2e;
-            border: 1px solid #1e2235;
-            border-radius: 5px;
-            font-size: 11px;
-            font-weight: 700;
+            padding: 7px 15px;
+            background: white;
+            border: 1px solid #dfe6e9;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
-            color: #7a84aa;
+            color: #636e72;
             transition: all 0.12s;
         }
 
-        .filter-tab.active { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
+        .filter-tab.active { background: #667eea; color: white; border-color: #667eea; }
 
         .tbl-wrap { overflow-x: auto; }
 
         table { width: 100%; border-collapse: collapse; }
-        thead { background: #0e1020; position: sticky; top: 0; z-index: 10; }
+        thead { background: #f8f9fa; position: sticky; top: 0; z-index: 10; }
 
         th {
-            padding: 9px 12px;
+            padding: 11px 14px;
             text-align: left;
-            font-size: 10px;
+            font-size: 11px;
             font-weight: 700;
-            color: #5a6080;
+            color: #636e72;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid #1e2235;
-            white-space: nowrap;
+            letter-spacing: 0.4px;
+            border-bottom: 2px solid #dfe6e9;
         }
 
         th.r { text-align: right; }
         th.c { text-align: center; }
 
-        tbody tr { border-bottom: 1px solid #161825; transition: background 0.1s; }
-        tbody tr:hover { background: #161825; }
+        tbody tr { border-bottom: 1px solid #ecf0f1; transition: background 0.12s; }
+        tbody tr:hover { background: #f8f9fa; }
 
-        td {
-            padding: 9px 12px;
-            font-size: 12px;
-            color: #b0b8d8;
-            white-space: nowrap;
-        }
+        td { padding: 12px 14px; font-size: 13px; color: #2d3436; }
 
-        .sym  { font-weight: 800; font-size: 14px; color: #fff; }
-        .prc  { font-weight: 700; color: #fff; text-align: right; }
-        .r    { text-align: right; }
-        .c    { text-align: center; }
-        .pos  { color: #22d3a0; font-weight: 700; }
-        .neg  { color: #f87171; font-weight: 700; }
+        .sym   { font-weight: 700; font-size: 14px; }
+        .r     { text-align: right; }
+        .c     { text-align: center; }
+        .pos   { color: #00b894; font-weight: 600; }
+        .neg   { color: #d63031; font-weight: 600; }
+        .muted { color: #636e72; font-size: 12px; }
 
-        .sig {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 3px 9px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.3px;
-        }
-
-        .sig-buy  { background: rgba(34,211,160,0.12); color: #22d3a0; border: 1px solid rgba(34,211,160,0.28); }
-        .sig-sell { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.28); }
-        .sig-watch{ background: rgba(251,191,36,0.10);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.22); }
-
-        .opt {
+        .signal-badge {
             display: inline-block;
-            padding: 3px 9px;
+            padding: 4px 10px;
             border-radius: 12px;
             font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-        }
-
-        .opt-call { background: rgba(34,211,160,0.18); color: #22d3a0; border: 1px solid rgba(34,211,160,0.38); }
-        .opt-put  { background: rgba(248,113,113,0.18); color: #f87171; border: 1px solid rgba(248,113,113,0.38); }
-        .opt-none { color: #5a6080; font-size: 12px; }
-
-        .conf-high   { color: #22d3a0; font-weight: 700; font-size: 10px; }
-        .conf-medium { color: #fbbf24; font-weight: 600; font-size: 10px; }
-        .conf-low    { color: #5a6080; font-size: 10px; }
-
-        .src-tag {
-            font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 8px;
             font-weight: 700;
         }
 
-        .src-tag-av { background: rgba(245,158,11,0.15); color: #f59e0b; }
-        .src-tag-yf { background: rgba(34,211,160,0.15); color: #22d3a0; }
+        .signal-bullish { background: #d4edda; color: #155724; }
+        .signal-bearish { background: #f8d7da; color: #721c24; }
+        .signal-neutral { background: #fff3cd; color: #856404; }
 
-        .detail-btn {
-            padding: 4px 10px;
-            background: #1a1d2e;
-            color: #7a84aa;
-            border: 1px solid #1e2235;
-            border-radius: 5px;
-            font-size: 11px;
+        .opt-pill { display: inline-block; padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
+        .opt-call { background: #d4edda; color: #155724; }
+        .opt-put  { background: #f8d7da; color: #721c24; }
+
+        .src-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
+        .st-av   { background: #fef3c7; color: #92400e; }
+        .st-yf   { background: #d1fae5; color: #065f46; }
+
+        .conf-high   { color: #00b894; font-weight: 700; }
+        .conf-medium { color: #fdcb6e; font-weight: 600; }
+        .conf-low    { color: #636e72; }
+
+        .view-btn {
+            padding: 6px 13px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.12s;
         }
 
-        .detail-btn:hover { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
+        .view-btn:hover { background: #5568d3; }
 
-        .empty-state { text-align: center; padding: 50px 20px; color: #5a6080; }
-        .empty-icon  { font-size: 36px; margin-bottom: 10px; }
+        .empty-state { text-align: center; padding: 55px 20px; color: #636e72; }
+        .empty-icon  { font-size: 44px; margin-bottom: 12px; }
 
-        /* ── MODAL ── */
+        /* MODAL */
         .modal {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.88);
+            background: rgba(0,0,0,0.75);
             z-index: 9999;
             overflow-y: auto;
             padding: 20px;
         }
 
         .modal-content {
-            background: #111420;
-            border: 1px solid #1e2235;
-            max-width: 1050px;
+            background: white;
+            max-width: 1100px;
             margin: 20px auto;
-            border-radius: 12px;
+            border-radius: 14px;
             overflow: hidden;
         }
 
-        .modal-hdr {
-            background: linear-gradient(135deg, #4f6ef7, #7c3aed);
-            padding: 20px 26px;
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 22px 28px;
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
         }
 
-        .modal-hdr-title { font-size: 18px; font-weight: 700; color: #fff; }
-        .modal-hdr-sub   { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 3px; }
+        .modal-title { font-size: 22px; font-weight: 700; }
+        .modal-sub   { font-size: 12px; opacity: 0.8; margin-top: 3px; }
 
         .close-btn {
-            background: rgba(255,255,255,0.14);
-            color: #fff;
+            background: rgba(255,255,255,0.2);
+            color: white;
             border: none;
-            padding: 7px 14px;
+            padding: 8px 15px;
             border-radius: 6px;
             cursor: pointer;
-            font-weight: 700;
-            font-size: 13px;
+            font-weight: 600;
             flex-shrink: 0;
         }
 
-        .modal-body { padding: 22px; }
+        .modal-body { padding: 28px; }
 
-        .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-bottom: 16px; }
+        .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
 
-        .zone { padding: 15px; border-radius: 9px; border-left: 4px solid; }
-        .zone.bull { background: rgba(34,211,160,0.07); border-color: #22d3a0; }
-        .zone.bear { background: rgba(248,113,113,0.07); border-color: #f87171; }
+        .zone-box { padding: 18px; border-radius: 10px; border-left: 4px solid; }
+        .zone-box.bullish { background: #d4edda; border-color: #00b894; }
+        .zone-box.bearish { background: #f8d7da; border-color: #d63031; }
 
-        .zone-ttl   { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 7px; }
-        .zone-price { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
-        .zone.bull .zone-price { color: #22d3a0; }
-        .zone.bear .zone-price { color: #f87171; }
-        .zone-desc  { font-size: 12px; line-height: 1.75; color: #7a84aa; }
+        .zone-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #2d3436; }
+        .zone-price { font-size: 26px; font-weight: 700; margin-bottom: 9px; }
+        .zone-box.bullish .zone-price { color: #00b894; }
+        .zone-box.bearish .zone-price { color: #d63031; }
+        .zone-desc { font-size: 13px; line-height: 1.7; color: #636e72; }
 
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px,1fr)); gap: 9px; margin-bottom: 16px; }
+        .stats-section { background: #f8f9fa; padding: 18px; border-radius: 10px; margin-bottom: 22px; }
+        .stats-title   { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: #2d3436; }
 
-        .stat {
-            background: #0b0d14;
-            border: 1px solid #1e2235;
-            padding: 12px;
-            border-radius: 8px;
-        }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; }
 
-        .stat-lbl { font-size: 10px; color: #5a6080; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-        .stat-val { font-size: 19px; font-weight: 700; color: #fff; }
-        .stat-sub { font-size: 10px; color: #5a6080; margin-top: 3px; }
+        .stat-card { background: white; padding: 14px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .stat-lbl  { font-size: 11px; color: #636e72; margin-bottom: 5px; }
+        .stat-val  { font-size: 22px; font-weight: 700; color: #2d3436; }
+        .stat-sub  { font-size: 10px; color: #636e72; margin-top: 3px; }
 
-        .swing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 16px; }
+        .chart-section { background: #f8f9fa; padding: 18px; border-radius: 10px; margin-bottom: 22px; }
+        .chart-title   { font-size: 15px; font-weight: 700; margin-bottom: 13px; color: #2d3436; }
 
-        .sw-card { padding: 13px; border-radius: 8px; border: 1px solid; }
-        .sw-card.low  { background: rgba(34,211,160,0.06); border-color: rgba(34,211,160,0.28); }
-        .sw-card.high { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.28); }
+        .recommendation { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 22px; border-radius: 10px; }
+        .rec-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+        .rec-grid  { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; }
+        .rec-item  { background: rgba(255,255,255,0.15); padding: 14px; border-radius: 8px; }
+        .rec-label { font-size: 11px; opacity: 0.85; margin-bottom: 4px; }
+        .rec-value { font-size: 17px; font-weight: 700; }
 
-        .sw-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #5a6080; margin-bottom: 5px; }
-        .sw-val { font-size: 19px; font-weight: 800; }
-        .sw-card.low  .sw-val { color: #22d3a0; }
-        .sw-card.high .sw-val { color: #f87171; }
-        .sw-sub { font-size: 11px; color: #5a6080; margin-top: 4px; line-height: 1.6; }
-
-        .chart-box {
-            background: #0b0d14;
-            border: 1px solid #1e2235;
-            padding: 15px;
-            border-radius: 9px;
-            margin-bottom: 16px;
-        }
-
-        .chart-ttl { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 11px; }
-
-        .rec {
-            background: linear-gradient(135deg, #4f6ef7, #7c3aed);
-            color: #fff;
-            padding: 18px;
-            border-radius: 10px;
-        }
-
-        .rec-ttl  { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
-        .rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px,1fr)); gap: 9px; }
-        .rec-item { background: rgba(255,255,255,0.12); padding: 12px; border-radius: 8px; }
-        .rec-lbl  { font-size: 10px; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .rec-val  { font-size: 16px; font-weight: 700; }
-
-        @media (max-width: 900px) {
+        @media (max-width: 768px) {
             .control-row { grid-template-columns: 1fr 1fr !important; }
-            .zones, .swing-cards { grid-template-columns: 1fr; }
-            th, td { padding: 7px 9px; }
+            .analysis-grid { grid-template-columns: 1fr; }
+            th, td { padding: 8px 10px; }
         }
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <div class="header">
-    <div class="header-left">
-        <h1>⚡ 5-Min Swing Breakout Scanner</h1>
-        <p>Detects swing low/high breakouts on 5-minute bars · ATM CALL on buy · ATM PUT on sell</p>
+    <div>
+        <h1>📊 5-Min Swing Breakout Scanner</h1>
+        <p>Swing low/high breakout on 5-minute bars · ATM CALL on buy · ATM PUT on sell</p>
     </div>
-    <div class="header-right">
-        <div class="source-toggle">
-            <button class="src-btn active" id="btnAV" onclick="switchSource('av')">
-                <span class="src-dot src-av"></span>
-                Alpha Vantage
-                <span class="speed-badge badge-slow">sequential</span>
-            </button>
-            <button class="src-btn" id="btnYF" onclick="switchSource('yf')">
-                <span class="src-dot src-yf"></span>
-                Yahoo Finance
-                <span class="speed-badge badge-fast">parallel ⚡</span>
-            </button>
-        </div>
+    <div class="source-toggle">
+        <button class="src-btn active" id="btnAV" onclick="switchSource('av')">
+            <span class="src-dot src-av"></span>Alpha Vantage
+            <span class="spd-badge spd-slow">sequential</span>
+        </button>
+        <button class="src-btn" id="btnYF" onclick="switchSource('yf')">
+            <span class="src-dot src-yf"></span>Yahoo Finance
+            <span class="spd-badge spd-fast">parallel ⚡</span>
+        </button>
     </div>
-</div>
-
-<!-- SOURCE INFO BAR -->
-<div class="source-info si-av" id="sourceInfoBar">
-    <span class="si-icon">📡</span>
-    <span>
-        <span class="si-key">Alpha Vantage</span>
-        Free tier · 5 calls/min · scans one symbol at a time · requires API key ·
-        <span style="color:#f59e0b;">~16s delay between symbols</span>
-    </span>
 </div>
 
 <div class="container">
 
-    <!-- ALPHA VANTAGE CONTROLS -->
-    <div class="controls av-controls visible" id="avControls">
+    <div class="source-info si-av" id="sourceInfo">
+        📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · ~16s delay per symbol
+    </div>
+
+    <!-- PROXY STATUS -->
+    <div class="proxy-status" id="proxyStatus">
+        <span class="proxy-dot" id="proxyDot"></span>
+        <span id="proxyMsg">Checking proxy…</span>
+        <button class="test-btn" onclick="testProxies()" style="margin-left:auto;">🔄 Re-test Proxies</button>
+    </div>
+
+    <!-- ALPHA VANTAGE -->
+    <div class="controls av-panel visible" id="avPanel">
         <div class="control-row cr-av">
             <div>
-                <label>Symbols to Scan</label>
+                <label>Symbols to Scan (comma-separated)</label>
                 <input type="text" id="avSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
                 <div class="quick-btns">
-                    <button class="quick-btn" onclick="loadPreset('av','etfs')">📈 ETFs</button>
-                    <button class="quick-btn" onclick="loadPreset('av','tech')">💻 Tech</button>
-                    <button class="quick-btn" onclick="loadPreset('av','finance')">🏦 Finance</button>
-                    <button class="quick-btn" onclick="loadPreset('av','energy')">⚡ Energy</button>
-                    <button class="quick-btn" onclick="loadPreset('av','all')">⭐ All 250+</button>
+                    <button class="quick-btn" onclick="preset('av','etfs')">📈 ETFs</button>
+                    <button class="quick-btn" onclick="preset('av','tech')">💻 Tech</button>
+                    <button class="quick-btn" onclick="preset('av','finance')">🏦 Finance</button>
+                    <button class="quick-btn" onclick="preset('av','energy')">⚡ Energy</button>
+                    <button class="quick-btn" onclick="preset('av','all')">⭐ All 250+</button>
                 </div>
             </div>
             <div>
-                <label>Swing Bars</label>
-                <select id="avSwingBars">
+                <label>Swing Bars (L/R)</label>
+                <select id="avSwing">
                     <option value="3">3 bars</option>
                     <option value="5" selected>5 bars</option>
                     <option value="8">8 bars</option>
@@ -568,48 +502,43 @@
             </div>
             <div>
                 <label>Output Size</label>
-                <select id="avOutputSize">
+                <select id="avOut">
                     <option value="compact">Compact (~100)</option>
                     <option value="full" selected>Full (~390)</option>
                 </select>
             </div>
             <div>
-                <label>Delay (sec)</label>
+                <label>Scan Speed</label>
                 <select id="avDelay">
-                    <option value="13">13s fast</option>
-                    <option value="16" selected>16s normal</option>
-                    <option value="22">22s safe</option>
-                    <option value="30">30s slow</option>
+                    <option value="13">⚡ Fast (13s)</option>
+                    <option value="16" selected>✅ Normal (16s)</option>
+                    <option value="22">🐢 Safe (22s)</option>
+                    <option value="30">🐌 Slow (30s)</option>
                 </select>
             </div>
-            <button class="scan-btn scan-btn-av" id="avScanBtn" onclick="startAVScan()">🔍 Scan (AV)</button>
+            <button class="scan-btn btn-av" id="avBtn" onclick="startAV()">🔍 Start Scan</button>
         </div>
-        <div class="progress" id="avProgress"><div class="progress-bar pb-av" id="avProgressBar"></div></div>
-        <div class="progress-text" id="avProgressText"></div>
-        <div class="legend-row">
-            <span><span class="ldot" style="background:#22d3a0"></span>BUY — close above left-candle HIGH of swing low → CALL</span>
-            <span><span class="ldot" style="background:#f87171"></span>SELL — close below left-candle LOW of swing high → PUT</span>
-            <span style="margin-left:auto;color:#f59e0b;">Alpha Vantage · TIME_SERIES_INTRADAY · 5min</span>
-        </div>
+        <div class="progress" id="avProg"><div class="progress-bar pb-av" id="avBar"></div></div>
+        <div class="progress-text" id="avTxt"></div>
     </div>
 
-    <!-- YAHOO FINANCE CONTROLS -->
-    <div class="controls yf-controls" id="yfControls">
+    <!-- YAHOO FINANCE -->
+    <div class="controls yf-panel" id="yfPanel">
         <div class="control-row cr-yf">
             <div>
-                <label>Symbols to Scan</label>
+                <label>Symbols to Scan (comma-separated)</label>
                 <input type="text" id="yfSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
                 <div class="quick-btns">
-                    <button class="quick-btn" onclick="loadPreset('yf','etfs')">📈 ETFs</button>
-                    <button class="quick-btn" onclick="loadPreset('yf','tech')">💻 Tech</button>
-                    <button class="quick-btn" onclick="loadPreset('yf','finance')">🏦 Finance</button>
-                    <button class="quick-btn" onclick="loadPreset('yf','energy')">⚡ Energy</button>
-                    <button class="quick-btn" onclick="loadPreset('yf','all')">⭐ All 250+</button>
+                    <button class="quick-btn" onclick="preset('yf','etfs')">📈 ETFs</button>
+                    <button class="quick-btn" onclick="preset('yf','tech')">💻 Tech</button>
+                    <button class="quick-btn" onclick="preset('yf','finance')">🏦 Finance</button>
+                    <button class="quick-btn" onclick="preset('yf','energy')">⚡ Energy</button>
+                    <button class="quick-btn" onclick="preset('yf','all')">⭐ All 250+</button>
                 </div>
             </div>
             <div>
-                <label>Swing Bars</label>
-                <select id="yfSwingBars">
+                <label>Swing Bars (L/R)</label>
+                <select id="yfSwing">
                     <option value="3">3 bars</option>
                     <option value="5" selected>5 bars</option>
                     <option value="8">8 bars</option>
@@ -618,7 +547,7 @@
             </div>
             <div>
                 <label>Batch Size</label>
-                <select id="yfBatchSize">
+                <select id="yfBatch">
                     <option value="5">5 parallel</option>
                     <option value="10" selected>10 parallel</option>
                     <option value="15">15 parallel</option>
@@ -628,62 +557,52 @@
             <div>
                 <label>Batch Delay</label>
                 <select id="yfDelay">
-                    <option value="800">0.8s</option>
-                    <option value="1200" selected>1.2s</option>
-                    <option value="2000">2s</option>
+                    <option value="800">⚡ 0.8s</option>
+                    <option value="1200" selected>✅ 1.2s</option>
+                    <option value="2000">🐢 2s</option>
                 </select>
             </div>
-            <button class="scan-btn scan-btn-yf" id="yfScanBtn" onclick="startYFScan()">⚡ Scan Fast (YF)</button>
+            <button class="scan-btn btn-yf" id="yfBtn" onclick="startYF()">⚡ Fast Scan</button>
         </div>
-        <div class="progress" id="yfProgress"><div class="progress-bar pb-yf" id="yfProgressBar"></div></div>
-        <div class="progress-text" id="yfProgressText"></div>
+        <div class="progress" id="yfProg"><div class="progress-bar pb-yf" id="yfBar"></div></div>
+        <div class="progress-text" id="yfTxt"></div>
         <div class="batch-grid" id="batchGrid"></div>
-        <div class="legend-row">
-            <span><span class="ldot" style="background:#22d3a0"></span>BUY → CALL</span>
-            <span><span class="ldot" style="background:#f87171"></span>SELL → PUT</span>
-            <span><span class="ldot" style="background:#fbbf24"></span>WATCH</span>
-            <span style="margin-left:auto;color:#22d3a0;">Yahoo Finance · No API key · Parallel fetching · No rate limit</span>
-        </div>
+        <div class="debug-box" id="debugBox"></div>
     </div>
 
     <!-- RESULTS -->
     <div class="results-container" id="resultsContainer">
         <div class="results-header">
-            <div class="results-title">5-Min Scan Results</div>
-            <div class="results-meta" id="resultsMeta">—</div>
+            <div class="results-title">Scan Results</div>
+            <div class="results-count" id="resultsCount">0 opportunities</div>
         </div>
         <div class="filter-tabs">
             <button class="filter-tab active" onclick="filterResults('all',event)">All</button>
-            <button class="filter-tab" onclick="filterResults('buy',event)">🟢 BUY / CALL</button>
-            <button class="filter-tab" onclick="filterResults('sell',event)">🔴 SELL / PUT</button>
-            <button class="filter-tab" onclick="filterResults('neutral',event)">🟡 Watch</button>
+            <button class="filter-tab" onclick="filterResults('buy',event)">🟢 Bullish (CALL)</button>
+            <button class="filter-tab" onclick="filterResults('sell',event)">🔴 Bearish (PUT)</button>
+            <button class="filter-tab" onclick="filterResults('neutral',event)">🟡 Neutral</button>
         </div>
         <div class="tbl-wrap">
             <table>
                 <thead>
                     <tr>
                         <th>Symbol</th>
-                        <th class="c">Source</th>
-                        <th class="r">Last Price</th>
-                        <th class="r">Bar Change</th>
-                        <th class="r">Bar Time</th>
+                        <th class="r">Price</th>
+                        <th class="r">Change</th>
                         <th class="c">Signal</th>
                         <th class="c">Option</th>
                         <th class="r">ATM Strike</th>
                         <th class="r">Stop Loss</th>
-                        <th class="r">Swing Low</th>
-                        <th class="r">Swing High</th>
-                        <th class="r">Buy Trigger</th>
-                        <th class="r">Sell Trigger</th>
                         <th class="c">Confidence</th>
-                        <th class="c">Detail</th>
+                        <th class="c">Source</th>
+                        <th class="c">Action</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody">
                     <tr>
-                        <td colspan="15" class="empty-state">
+                        <td colspan="10" class="empty-state">
                             <div class="empty-icon">📊</div>
-                            <div>Choose a data source above and click Scan</div>
+                            <div>Choose a data source and click Scan to begin</div>
                         </td>
                     </tr>
                 </tbody>
@@ -696,10 +615,10 @@
 <!-- MODAL -->
 <div class="modal" id="modal">
     <div class="modal-content">
-        <div class="modal-hdr">
+        <div class="modal-header">
             <div>
-                <div class="modal-hdr-title" id="modalTitle">Analysis</div>
-                <div class="modal-hdr-sub"  id="modalSub"></div>
+                <div class="modal-title" id="modalTitle">Analysis</div>
+                <div class="modal-sub"   id="modalSub"></div>
             </div>
             <button class="close-btn" onclick="closeModal()">✕ Close</button>
         </div>
@@ -709,13 +628,25 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  CONFIG
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 const AV_KEY = '7UOSK3Z2XFXU992W';
 
-// Yahoo Finance proxy — allorigins wraps CORS
-const YF_PROXY = 'https://api.allorigins.win/raw?url=';
+// Multiple CORS proxy options — we test them and pick the first working one
+const PROXIES = [
+    { name: 'corsproxy.io',    url: sym => `https://corsproxy.io/?${encodeURIComponent(yfUrl(sym))}` },
+    { name: 'allorigins.win',  url: sym => `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(sym))}` },
+    { name: 'cors.sh',         url: sym => `https://cors.sh/${yfUrl(sym)}` },
+    { name: 'thingproxy',      url: sym => `https://thingproxy.freeboard.io/fetch/${yfUrl(sym)}` },
+];
+
+// Yahoo Finance chart endpoint
+function yfUrl(symbol) {
+    return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=5m&range=1d&includePrePost=false`;
+}
+
+let activeProxy = null; // set after proxy test
 
 const PRESETS = {
     etfs:    'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,GLD,SLV,GDX,TLT,HYG,USO,SQQQ,TQQQ,SPXL',
@@ -725,51 +656,129 @@ const PRESETS = {
     all:     'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,PANW,FTNT,DKNG,ROKU,ARKK'
 };
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  STATE
-// ═══════════════════════════════════════════════════════════════
-let allResults     = [];
-let filteredResults= [];
-let currentFilter  = 'all';
-let currentChart   = null;
-let activeSource   = 'av';
+// ═══════════════════════════════════════════
+let allResults      = [];
+let filteredResults = [];
+let currentFilter   = 'all';
+let currentChart    = null;
 
-// ═══════════════════════════════════════════════════════════════
-//  SOURCE SWITCHER
-// ═══════════════════════════════════════════════════════════════
-function switchSource(src) {
-    activeSource = src;
+// ═══════════════════════════════════════════
+//  DEBUG LOG
+// ═══════════════════════════════════════════
+function dbg(msg, type = 'inf') {
+    const box = document.getElementById('debugBox');
+    box.classList.add('visible');
+    const cls = type === 'err' ? 'debug-err' : type === 'ok' ? 'debug-ok' : 'debug-inf';
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+}
 
-    document.getElementById('btnAV').classList.toggle('active', src === 'av');
-    document.getElementById('btnYF').classList.toggle('active', src === 'yf');
+// ═══════════════════════════════════════════
+//  PROXY TESTER
+// ═══════════════════════════════════════════
+async function testProxies() {
+    const statusEl = document.getElementById('proxyStatus');
+    const dotEl    = document.getElementById('proxyDot');
+    const msgEl    = document.getElementById('proxyMsg');
 
-    document.getElementById('avControls').classList.toggle('visible', src === 'av');
-    document.getElementById('yfControls').classList.toggle('visible', src === 'yf');
+    statusEl.className = 'proxy-status visible ps-testing';
+    dotEl.className    = 'proxy-dot dot-spin';
+    msgEl.textContent  = 'Testing proxies…';
+    activeProxy        = null;
 
-    const bar = document.getElementById('sourceInfoBar');
-    if (src === 'av') {
-        bar.className = 'source-info si-av';
-        bar.innerHTML = `<span class="si-icon">📡</span>
-            <span><span class="si-key">Alpha Vantage</span>
-            Free tier · 5 calls/min · sequential scan · API key required ·
-            <span style="color:#f59e0b;">~16s delay between symbols</span></span>`;
+    // clear debug
+    const debugBox = document.getElementById('debugBox');
+    debugBox.innerHTML = '';
+
+    dbg('Testing ' + PROXIES.length + ' proxies with SPY…');
+
+    for (const proxy of PROXIES) {
+        try {
+            dbg(`Trying: ${proxy.name}`);
+            const controller = new AbortController();
+            const timeout    = setTimeout(() => controller.abort(), 6000);
+            const res  = await fetch(proxy.url('SPY'), { signal: controller.signal });
+            clearTimeout(timeout);
+
+            if (!res.ok) {
+                dbg(`${proxy.name} → HTTP ${res.status}`, 'err');
+                continue;
+            }
+
+            const text = await res.text();
+
+            // Try to parse as JSON
+            let json;
+            try { json = JSON.parse(text); } catch(e) {
+                dbg(`${proxy.name} → not valid JSON`, 'err');
+                continue;
+            }
+
+            const result = json?.chart?.result?.[0];
+            const ts     = result?.timestamp;
+
+            if (!ts || ts.length < 5) {
+                dbg(`${proxy.name} → no timestamp data (market may be closed)`, 'inf');
+                // proxy works but market is closed — still use it
+                activeProxy = proxy;
+                dbg(`Using ${proxy.name} (market closed — will return empty bars)`, 'ok');
+                break;
+            }
+
+            dbg(`${proxy.name} → OK · ${ts.length} bars`, 'ok');
+            activeProxy = proxy;
+            break;
+
+        } catch(e) {
+            dbg(`${proxy.name} → ${e.message}`, 'err');
+        }
+    }
+
+    if (activeProxy) {
+        statusEl.className = 'proxy-status visible ps-ok';
+        dotEl.className    = 'proxy-dot dot-ok';
+        msgEl.textContent  = `✅ Using proxy: ${activeProxy.name} — Yahoo Finance ready`;
     } else {
-        bar.className = 'source-info si-yf';
-        bar.innerHTML = `<span class="si-icon">⚡</span>
-            <span><span class="si-key">Yahoo Finance</span>
-            No API key · No rate limit · parallel batches · via allorigins.win proxy ·
-            <span style="color:#22d3a0;">10–20x faster than Alpha Vantage free tier</span></span>`;
+        statusEl.className = 'proxy-status visible ps-fail';
+        dotEl.className    = 'proxy-dot dot-fail';
+        msgEl.textContent  = '❌ All proxies failed — try Alpha Vantage instead, or check your internet connection';
     }
 }
 
-function loadPreset(src, key) {
-    const id = src === 'av' ? 'avSymbols' : 'yfSymbols';
-    document.getElementById(id).value = PRESETS[key];
+// ═══════════════════════════════════════════
+//  SOURCE SWITCHER
+// ═══════════════════════════════════════════
+function switchSource(src) {
+    document.getElementById('btnAV').classList.toggle('active', src === 'av');
+    document.getElementById('btnYF').classList.toggle('active', src === 'yf');
+    document.getElementById('avPanel').classList.toggle('visible', src === 'av');
+    document.getElementById('yfPanel').classList.toggle('visible', src === 'yf');
+    document.getElementById('proxyStatus').classList.toggle('visible', src === 'yf');
+
+    const info = document.getElementById('sourceInfo');
+    if (src === 'av') {
+        info.className   = 'source-info si-av';
+        info.innerHTML   = '📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · ~16s delay per symbol';
+    } else {
+        info.className   = 'source-info si-yf';
+        info.innerHTML   = '⚡ <strong>Yahoo Finance</strong> — No API key · No rate limit · parallel batches · 10–20× faster';
+        // auto test proxies when switching to YF
+        if (!activeProxy) testProxies();
+    }
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  SHARED: SWING DETECTOR + ATM
-// ═══════════════════════════════════════════════════════════════
+function preset(src, key) {
+    document.getElementById(src === 'av' ? 'avSymbols' : 'yfSymbols').value = PRESETS[key];
+}
+
+// ═══════════════════════════════════════════
+//  SHARED: SWING + ATM
+// ═══════════════════════════════════════════
 function calcATM(price) {
     const iv = price < 25 ? 0.5 : price < 200 ? 1 : 5;
     return Math.round(price / iv) * iv;
@@ -777,19 +786,14 @@ function calcATM(price) {
 
 function detectSwing(bars, lb, rb) {
     const len = bars.length;
-    const empty = { signal:'neutral', swingLow:null, swingHigh:null,
-                    leftLowHigh:null, leftHighLow:null, stopLevel:null };
-    if (len < lb + rb + 3) return empty;
-
-    const c = bars.map(b => b.close);
+    if (len < lb + rb + 3) return { signal:'neutral', swingLow:null, swingHigh:null, leftLowHigh:null, leftHighLow:null, stopLevel:null };
     const h = bars.map(b => b.high);
     const l = bars.map(b => b.low);
+    const c = bars.map(b => b.close);
 
-    // latest swing LOW
     let swingLow = null, llh = null;
     for (let i = rb; i < len - lb - 1; i++) {
-        const v = l[i];
-        let ok = true;
+        const v = l[i]; let ok = true;
         for (let j = i - rb; j <= i + lb; j++) {
             if (j < 0 || j >= len || j === i) continue;
             if (l[j] <= v) { ok = false; break; }
@@ -797,11 +801,9 @@ function detectSwing(bars, lb, rb) {
         if (ok) { swingLow = v; llh = h[i + 1]; break; }
     }
 
-    // latest swing HIGH
     let swingHigh = null, lhl = null;
     for (let i = rb; i < len - lb - 1; i++) {
-        const v = h[i];
-        let ok = true;
+        const v = h[i]; let ok = true;
         for (let j = i - rb; j <= i + lb; j++) {
             if (j < 0 || j >= len || j === i) continue;
             if (h[j] >= v) { ok = false; break; }
@@ -811,27 +813,22 @@ function detectSwing(bars, lb, rb) {
 
     const cur = c[0], prev = c[1];
     let signal = 'neutral', stopLevel = null;
-
     if (llh !== null && swingLow !== null && cur > llh && prev <= llh && cur > swingLow) {
         signal = 'buy'; stopLevel = swingLow;
     } else if (lhl !== null && swingHigh !== null && cur < lhl && prev >= lhl && cur < swingHigh) {
         signal = 'sell'; stopLevel = swingHigh;
     }
-
     return { signal, swingLow, swingHigh, leftLowHigh: llh, leftHighLow: lhl, stopLevel };
 }
 
-function buildResult(symbol, bars, swingBars, source) {
-    const cur  = bars[0];
-    const prev = bars[1];
+function buildResult(symbol, bars, sb, source) {
+    const cur = bars[0], prev = bars[1];
     const price    = cur.close;
     const change   = price - prev.close;
     const changePct= change / prev.close * 100;
-
-    const sw = detectSwing(bars, swingBars, swingBars);
-    const strike  = calcATM(price);
-    const optType = sw.signal === 'buy' ? 'CALL' : sw.signal === 'sell' ? 'PUT' : null;
-
+    const sw       = detectSwing(bars, sb, sb);
+    const strike   = calcATM(price);
+    const optType  = sw.signal === 'buy' ? 'CALL' : sw.signal === 'sell' ? 'PUT' : null;
     let confidence = 'low';
     if (sw.signal !== 'neutral') {
         const trig = sw.signal === 'buy' ? sw.leftLowHigh : sw.leftHighLow;
@@ -839,72 +836,56 @@ function buildResult(symbol, bars, swingBars, source) {
         if (brk >= 0.4) confidence = 'high';
         else if (brk >= 0.15) confidence = 'medium';
     }
-
-    return {
-        symbol, source, price, change, changePct,
-        barTime: cur.time,
-        signal: sw.signal, optType, strike, confidence,
-        stopLevel: sw.stopLevel,
-        swingLow:  sw.swingLow,
-        swingHigh: sw.swingHigh,
-        leftLowHigh: sw.leftLowHigh,
-        leftHighLow: sw.leftHighLow,
-        bars
-    };
+    return { symbol, source, price, change, changePct, barTime: cur.time,
+             signal: sw.signal, optType, strike, confidence,
+             stopLevel: sw.stopLevel, swingLow: sw.swingLow, swingHigh: sw.swingHigh,
+             leftLowHigh: sw.leftLowHigh, leftHighLow: sw.leftHighLow, bars };
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  ALPHA VANTAGE — sequential
-// ═══════════════════════════════════════════════════════════════
-async function startAVScan() {
-    const btn       = document.getElementById('avScanBtn');
-    const symbols   = document.getElementById('avSymbols').value.trim()
-                        .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-    const swingBars = parseInt(document.getElementById('avSwingBars').value);
-    const outSize   = document.getElementById('avOutputSize').value;
-    const delay     = parseInt(document.getElementById('avDelay').value) * 1000;
-    const progEl    = document.getElementById('avProgress');
-    const progBar   = document.getElementById('avProgressBar');
-    const progTxt   = document.getElementById('avProgressText');
+// ═══════════════════════════════════════════
+//  ALPHA VANTAGE
+// ═══════════════════════════════════════════
+async function startAV() {
+    const btn   = document.getElementById('avBtn');
+    const syms  = document.getElementById('avSymbols').value.trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+    const sb    = parseInt(document.getElementById('avSwing').value);
+    const out   = document.getElementById('avOut').value;
+    const delay = parseInt(document.getElementById('avDelay').value) * 1000;
+    const prog  = document.getElementById('avProg');
+    const bar   = document.getElementById('avBar');
+    const txt   = document.getElementById('avTxt');
 
-    if (!symbols.length) return;
-
+    if (!syms.length) return;
     btn.disabled = true; btn.textContent = '🔄 Scanning…';
-    progEl.style.display = 'block'; progBar.style.width = '0%';
+    prog.style.display = 'block'; bar.style.width = '0%';
     allResults = []; updateTable();
 
-    for (let i = 0; i < symbols.length; i++) {
+    for (let i = 0; i < syms.length; i++) {
         try {
-            const bars = await fetchAV(symbols[i], outSize);
-            if (bars) { allResults.push(buildResult(symbols[i], bars, swingBars, 'av')); updateTable(); }
-        } catch(e) { console.warn(symbols[i], e.message); }
-
-        const pct = Math.round(((i+1)/symbols.length)*100);
-        progBar.style.width = pct + '%';
+            const bars = await fetchAV(syms[i], out);
+            if (bars) { allResults.push(buildResult(syms[i], bars, sb, 'av')); updateTable(); }
+        } catch(e) { console.warn(syms[i], e.message); }
+        const pct = Math.round(((i+1)/syms.length)*100);
+        bar.style.width = pct + '%';
         const b = allResults.filter(r=>r.signal==='buy').length;
         const s = allResults.filter(r=>r.signal==='sell').length;
-        progTxt.textContent = `${i+1}/${symbols.length} · ${pct}% · BUY: ${b} · SELL: ${s}`;
-        if (i < symbols.length - 1) await sleep(delay);
+        txt.textContent = `${i+1}/${syms.length} (${pct}%) — Found ${allResults.length} · BUY: ${b} · SELL: ${s}`;
+        if (i < syms.length - 1) await sleep(delay);
     }
 
-    btn.disabled = false; btn.textContent = '🔍 Scan (AV)';
-    const b = allResults.filter(r=>r.signal==='buy').length;
-    const s = allResults.filter(r=>r.signal==='sell').length;
-    progTxt.textContent = `✅ Done · ${allResults.length} scanned · BUY: ${b} · SELL: ${s}`;
+    btn.disabled = false; btn.textContent = '🔍 Start Scan';
+    txt.textContent = `✅ Complete — ${allResults.length} scanned · BUY: ${allResults.filter(r=>r.signal==='buy').length} · SELL: ${allResults.filter(r=>r.signal==='sell').length}`;
 }
 
 async function fetchAV(symbol, outputSize) {
-    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY`
-              + `&symbol=${encodeURIComponent(symbol)}&interval=5min`
-              + `&outputsize=${outputSize}&apikey=${AV_KEY}`;
-    const res  = await fetch(url);
-    const json = await res.json();
+    const url  = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${encodeURIComponent(symbol)}&interval=5min&outputsize=${outputSize}&apikey=${AV_KEY}`;
+    const json = await (await fetch(url)).json();
     const series = json['Time Series (5min)'];
     if (!series) return null;
     const times = Object.keys(series).sort().reverse();
     if (times.length < 20) return null;
     return times.map(t => ({
-        time:  t,
+        time: t,
         open:  parseFloat(series[t]['1. open']),
         high:  parseFloat(series[t]['2. high']),
         low:   parseFloat(series[t]['3. low']),
@@ -913,133 +894,127 @@ async function fetchAV(symbol, outputSize) {
     }));
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  YAHOO FINANCE — parallel batches
-// ═══════════════════════════════════════════════════════════════
-async function startYFScan() {
-    const btn       = document.getElementById('yfScanBtn');
-    const symbols   = document.getElementById('yfSymbols').value.trim()
-                        .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
-    const swingBars = parseInt(document.getElementById('yfSwingBars').value);
-    const batchSize = parseInt(document.getElementById('yfBatchSize').value);
-    const batchDelay= parseInt(document.getElementById('yfDelay').value);
-    const progEl    = document.getElementById('yfProgress');
-    const progBar   = document.getElementById('yfProgressBar');
-    const progTxt   = document.getElementById('yfProgressText');
-    const batchGrid = document.getElementById('batchGrid');
+// ═══════════════════════════════════════════
+//  YAHOO FINANCE — parallel with proxy fallback
+// ═══════════════════════════════════════════
+async function startYF() {
+    if (!activeProxy) {
+        alert('No working proxy found. Click "Re-test Proxies" first, or switch to Alpha Vantage.');
+        return;
+    }
 
-    if (!symbols.length) return;
+    const btn   = document.getElementById('yfBtn');
+    const syms  = document.getElementById('yfSymbols').value.trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+    const sb    = parseInt(document.getElementById('yfSwing').value);
+    const bs    = parseInt(document.getElementById('yfBatch').value);
+    const delay = parseInt(document.getElementById('yfDelay').value);
+    const prog  = document.getElementById('yfProg');
+    const bar   = document.getElementById('yfBar');
+    const txt   = document.getElementById('yfTxt');
+    const grid  = document.getElementById('batchGrid');
 
+    if (!syms.length) return;
     btn.disabled = true; btn.textContent = '⚡ Scanning…';
-    progEl.style.display = 'block'; progBar.style.width = '0%';
-    batchGrid.innerHTML = '';
-    batchGrid.classList.add('visible');
+    prog.style.display = 'block'; bar.style.width = '0%';
+    grid.innerHTML = ''; grid.classList.add('visible');
     allResults = []; updateTable();
 
-    // Pre-fill batch grid chips
+    // clear debug
+    const debugBox = document.getElementById('debugBox');
+    debugBox.innerHTML = ''; debugBox.classList.add('visible');
+    dbg(`Starting YF scan · ${syms.length} symbols · proxy: ${activeProxy.name} · batch: ${bs}`);
+
     const chips = {};
-    symbols.forEach(sym => {
+    syms.forEach(sym => {
         const el = document.createElement('div');
-        el.className = 'batch-sym';
-        el.id = 'chip-' + sym;
-        el.textContent = sym;
-        batchGrid.appendChild(el);
-        chips[sym] = el;
+        el.className = 'bchip'; el.id = 'chip-'+sym; el.textContent = sym;
+        grid.appendChild(el); chips[sym] = el;
     });
 
-    // Split into batches
     const batches = [];
-    for (let i = 0; i < symbols.length; i += batchSize) {
-        batches.push(symbols.slice(i, i + batchSize));
-    }
+    for (let i = 0; i < syms.length; i += bs) batches.push(syms.slice(i, i + bs));
 
-    let completed = 0;
-
+    let done = 0;
     for (let bi = 0; bi < batches.length; bi++) {
         const batch = batches[bi];
+        batch.forEach(sym => chips[sym].className = 'bchip loading');
 
-        // Mark batch as loading
-        batch.forEach(sym => chips[sym].className = 'batch-sym loading');
+        await Promise.all(batch.map(async sym => {
+            try {
+                const bars = await fetchYF(sym);
+                if (bars && bars.length >= 10) {
+                    const r = buildResult(sym, bars, sb, 'yf');
+                    allResults.push(r);
+                    chips[sym].className = 'bchip ' + (r.signal==='buy'?'done-buy':r.signal==='sell'?'done-sell':'done-none');
+                    dbg(`${sym} · ${bars.length} bars · signal: ${r.signal.toUpperCase()}`, r.signal==='neutral'?'inf':'ok');
+                    updateTable();
+                } else {
+                    chips[sym].className = 'bchip error';
+                    dbg(`${sym} · no usable bars (market closed or no data)`, 'err');
+                }
+            } catch(e) {
+                chips[sym].className = 'bchip error';
+                dbg(`${sym} · ERROR: ${e.message}`, 'err');
+            } finally { done++; }
+        }));
 
-        // Fire all in batch simultaneously
-        const promises = batch.map(sym =>
-            fetchYF(sym)
-                .then(bars => {
-                    if (bars) {
-                        const r = buildResult(sym, bars, swingBars, 'yf');
-                        allResults.push(r);
-                        chips[sym].className = 'batch-sym ' +
-                            (r.signal === 'buy'  ? 'done-buy'  :
-                             r.signal === 'sell' ? 'done-sell' : 'done-none');
-                        updateTable();
-                    } else {
-                        chips[sym].className = 'batch-sym error';
-                    }
-                })
-                .catch(() => { chips[sym].className = 'batch-sym error'; })
-                .finally(() => { completed++; })
-        );
-
-        await Promise.all(promises);
-
-        const pct = Math.round((completed / symbols.length) * 100);
-        progBar.style.width = pct + '%';
+        const pct = Math.round((done/syms.length)*100);
+        bar.style.width = pct + '%';
         const b = allResults.filter(r=>r.signal==='buy').length;
         const s = allResults.filter(r=>r.signal==='sell').length;
-        progTxt.textContent =
-            `Batch ${bi+1}/${batches.length} · ${completed}/${symbols.length} (${pct}%) · BUY: ${b} · SELL: ${s}`;
-
-        if (bi < batches.length - 1) await sleep(batchDelay);
+        txt.textContent = `Batch ${bi+1}/${batches.length} · ${done}/${syms.length} (${pct}%) — BUY: ${b} · SELL: ${s}`;
+        if (bi < batches.length - 1) await sleep(delay);
     }
 
-    btn.disabled = false; btn.textContent = '⚡ Scan Fast (YF)';
+    btn.disabled = false; btn.textContent = '⚡ Fast Scan';
     const b = allResults.filter(r=>r.signal==='buy').length;
     const s = allResults.filter(r=>r.signal==='sell').length;
-    progTxt.textContent =
-        `✅ Done · ${allResults.length} scanned · BUY: ${b} · SELL: ${s}`;
+    txt.textContent = `✅ Complete — ${allResults.length} scanned · BUY: ${b} · SELL: ${s}`;
+
+    if (allResults.length === 0) {
+        dbg('No results — market may be closed (Yahoo only returns intraday bars during trading hours)', 'err');
+        txt.textContent += ' ⚠️ Note: Yahoo Finance only returns 5-min bars during market hours (9:30am–4pm ET)';
+    }
 }
 
 async function fetchYF(symbol) {
-    // Yahoo Finance chart API — 5min interval, 1 day range (~78 bars)
-    const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`
-                + `?interval=5m&range=1d`;
-    const proxied = YF_PROXY + encodeURIComponent(yfUrl);
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), 8000);
+    try {
+        const proxyUrl = activeProxy.url(symbol);
+        const res      = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json   = await res.json();
+        const result = json?.chart?.result?.[0];
+        if (!result) return null;
+        const ts = result.timestamp;
+        const q  = result.indicators?.quote?.[0];
+        if (!ts || !q) return null;
 
-    const res  = await fetch(proxied);
-    const json = await res.json();
-
-    const result = json?.chart?.result?.[0];
-    if (!result) return null;
-
-    const timestamps = result.timestamp;
-    const q = result.indicators?.quote?.[0];
-    if (!timestamps || !q) return null;
-
-    const bars = [];
-    for (let i = timestamps.length - 1; i >= 0; i--) {
-        if (q.close[i] == null) continue;
-        const d = new Date(timestamps[i] * 1000);
-        const timeStr = d.toLocaleString('en-US', {
-            month: '2-digit', day: '2-digit',
-            hour: '2-digit', minute: '2-digit',
-            hour12: false
-        });
-        bars.push({
-            time:  timeStr,
-            open:  q.open[i]   || q.close[i],
-            high:  q.high[i]   || q.close[i],
-            low:   q.low[i]    || q.close[i],
-            close: q.close[i],
-            vol:   q.volume[i] || 0
-        });
+        const bars = [];
+        for (let i = ts.length - 1; i >= 0; i--) {
+            if (q.close[i] == null || isNaN(q.close[i])) continue;
+            const d = new Date(ts[i] * 1000);
+            bars.push({
+                time:  d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12: false }),
+                open:  q.open[i]   ?? q.close[i],
+                high:  q.high[i]   ?? q.close[i],
+                low:   q.low[i]    ?? q.close[i],
+                close: q.close[i],
+                vol:   q.volume[i] ?? 0
+            });
+        }
+        return bars.length >= 5 ? bars : null;
+    } catch(e) {
+        clearTimeout(timeout);
+        throw e;
     }
-
-    return bars.length >= 10 ? bars : null;
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  TABLE
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function filterResults(f, e) {
     currentFilter = f;
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -1047,12 +1022,12 @@ function filterResults(f, e) {
     updateTable();
 }
 
-function fmt(v, d=2) { return v !== null && v !== undefined ? '$' + Number(v).toFixed(d) : '—'; }
+function f2(v) { return v !== null && v !== undefined ? '$' + Number(v).toFixed(2) : '—'; }
 
 function updateTable() {
     const container = document.getElementById('resultsContainer');
     const tbody     = document.getElementById('resultsBody');
-    const meta      = document.getElementById('resultsMeta');
+    const count     = document.getElementById('resultsCount');
 
     if (allResults.length === 0) { container.style.display = 'none'; return; }
 
@@ -1060,13 +1035,12 @@ function updateTable() {
         : allResults.filter(r => r.signal === currentFilter);
 
     container.style.display = 'block';
-
     const b = allResults.filter(r=>r.signal==='buy').length;
     const s = allResults.filter(r=>r.signal==='sell').length;
-    meta.textContent = `${allResults.length} scanned · BUY: ${b} · SELL: ${s} · showing ${filteredResults.length}`;
+    count.textContent = `${allResults.length} scanned · BUY: ${b} · SELL: ${s} · showing ${filteredResults.length}`;
 
     if (filteredResults.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="15" class="empty-state">
+        tbody.innerHTML = `<tr><td colspan="10" class="empty-state">
             <div class="empty-icon">🔍</div>
             <div>No ${currentFilter} signals found</div></td></tr>`;
         return;
@@ -1077,166 +1051,136 @@ function updateTable() {
 
     tbody.innerHTML = sorted.map((r, idx) => {
         const pos = r.change >= 0;
-        const timeStr = r.barTime
-            ? (r.barTime.includes(' ') ? r.barTime.split(' ').slice(-1)[0]?.slice(0,5) : r.barTime)
-            : '—';
-
-        const sigHtml = r.signal === 'buy'
-            ? `<span class="sig sig-buy">▲ BUY</span>`
+        const sigBadge = r.signal === 'buy'
+            ? `<span class="signal-badge signal-bullish">🟢 BUY</span>`
             : r.signal === 'sell'
-            ? `<span class="sig sig-sell">▼ SELL</span>`
-            : `<span class="sig sig-watch">— WATCH</span>`;
-
-        const optHtml = r.optType === 'CALL'
-            ? `<span class="opt opt-call">CALL</span>`
+            ? `<span class="signal-badge signal-bearish">🔴 SELL</span>`
+            : `<span class="signal-badge signal-neutral">🟡 WATCH</span>`;
+        const optBadge = r.optType === 'CALL'
+            ? `<span class="opt-pill opt-call">CALL</span>`
             : r.optType === 'PUT'
-            ? `<span class="opt opt-put">PUT</span>`
-            : `<span class="opt-none">—</span>`;
-
+            ? `<span class="opt-pill opt-put">PUT</span>`
+            : `—`;
         const srcTag = r.source === 'av'
-            ? `<span class="src-tag src-tag-av">AV</span>`
-            : `<span class="src-tag src-tag-yf">YF</span>`;
+            ? `<span class="src-tag st-av">AV</span>`
+            : `<span class="src-tag st-yf">YF</span>`;
 
         return `<tr>
             <td class="sym">${r.symbol}</td>
-            <td class="c">${srcTag}</td>
-            <td class="prc">${fmt(r.price)}</td>
+            <td class="r" style="font-weight:600;">${f2(r.price)}</td>
             <td class="r ${pos?'pos':'neg'}">
                 ${pos?'+':''}${r.change.toFixed(2)} (${pos?'+':''}${r.changePct.toFixed(2)}%)
             </td>
-            <td class="r" style="color:#5a6080;font-size:11px;">${timeStr}</td>
-            <td class="c">${sigHtml}</td>
-            <td class="c">${optHtml}</td>
-            <td class="r" style="font-weight:700;color:#fff;">${fmt(r.strike)}</td>
-            <td class="r" style="color:#fbbf24;">${fmt(r.stopLevel)}</td>
-            <td class="r" style="color:#22d3a0;">${fmt(r.swingLow)}</td>
-            <td class="r" style="color:#f87171;">${fmt(r.swingHigh)}</td>
-            <td class="r" style="color:#6ee7b7;font-size:11px;">${fmt(r.leftLowHigh)}</td>
-            <td class="r" style="color:#fca5a5;font-size:11px;">${fmt(r.leftHighLow)}</td>
+            <td class="c">${sigBadge}</td>
+            <td class="c">${optBadge}</td>
+            <td class="r" style="font-weight:700;">${f2(r.strike)}</td>
+            <td class="r muted">${f2(r.stopLevel)}</td>
             <td class="c"><span class="conf-${r.confidence}">${r.confidence.toUpperCase()}</span></td>
-            <td class="c"><button class="detail-btn" onclick="showDetail(${idx})">📊 Detail</button></td>
+            <td class="c">${srcTag}</td>
+            <td class="c"><button class="view-btn" onclick="showDetail(${idx})">📊 Analyze</button></td>
         </tr>`;
     }).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 //  MODAL
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════
 function showDetail(idx) {
-    const r     = filteredResults[idx];
-    const isBuy = r.signal === 'buy';
-    const isSel = r.signal === 'sell';
-    const srcLabel = r.source === 'av' ? 'Alpha Vantage' : 'Yahoo Finance';
+    const r    = filteredResults[idx];
+    const isBuy= r.signal === 'buy';
+    const isSel= r.signal === 'sell';
 
-    document.getElementById('modalTitle').textContent = `${r.symbol} — 5-Min Swing Breakout`;
-    document.getElementById('modalSub').textContent =
-        `${srcLabel} · Last bar: ${r.barTime} · Close: ${fmt(r.price)} · `
-      + (isBuy ? 'BUY → ATM CALL' : isSel ? 'SELL → ATM PUT' : 'No signal');
+    document.getElementById('modalTitle').textContent = `${r.symbol} — Detailed Analysis`;
+    document.getElementById('modalSub').textContent   =
+        `${r.source === 'av' ? 'Alpha Vantage' : 'Yahoo Finance'} · 5-min · Last bar: ${r.barTime}`;
 
     document.getElementById('modalBody').innerHTML = `
-        <div class="zones">
-            <div class="zone bull">
-                <div class="zone-ttl">🟢 BUY TRIGGER — ATM CALL</div>
-                <div class="zone-price">${fmt(r.leftLowHigh)}</div>
+        <div class="analysis-grid">
+            <div class="zone-box bullish">
+                <div class="zone-title">🟢 BUY ZONE — ATM CALL</div>
+                <div class="zone-price">${f2(r.leftLowHigh)}</div>
                 <div class="zone-desc">
-                    <strong>Trigger:</strong> Left-candle HIGH of swing low<br>
-                    <strong>Swing low:</strong> ${fmt(r.swingLow)}<br>
-                    <strong>Stop loss:</strong> 5-min close below ${fmt(r.swingLow)}<br>
-                    <strong>ATM CALL strike:</strong> ${fmt(r.strike)}<br>
-                    ${isBuy ? '<strong style="color:#22d3a0">✅ Signal fired on last 5-min bar</strong>' : ''}
+                    <strong>Trigger:</strong> Close above left-candle high of swing low<br>
+                    <strong>Swing low:</strong> ${f2(r.swingLow)}<br>
+                    <strong>Stop loss:</strong> 5-min close below ${f2(r.swingLow)}<br>
+                    <strong>ATM CALL strike:</strong> ${f2(r.strike)}<br>
+                    ${isBuy ? '<strong style="color:#155724">✅ Signal fired on last 5-min bar</strong>' : ''}
                 </div>
             </div>
-            <div class="zone bear">
-                <div class="zone-ttl">🔴 SELL TRIGGER — ATM PUT</div>
-                <div class="zone-price">${fmt(r.leftHighLow)}</div>
+            <div class="zone-box bearish">
+                <div class="zone-title">🔴 SELL ZONE — ATM PUT</div>
+                <div class="zone-price">${f2(r.leftHighLow)}</div>
                 <div class="zone-desc">
-                    <strong>Trigger:</strong> Left-candle LOW of swing high<br>
-                    <strong>Swing high:</strong> ${fmt(r.swingHigh)}<br>
-                    <strong>Stop loss:</strong> 5-min close above ${fmt(r.swingHigh)}<br>
-                    <strong>ATM PUT strike:</strong> ${fmt(r.strike)}<br>
-                    ${isSel ? '<strong style="color:#f87171">✅ Signal fired on last 5-min bar</strong>' : ''}
+                    <strong>Trigger:</strong> Close below left-candle low of swing high<br>
+                    <strong>Swing high:</strong> ${f2(r.swingHigh)}<br>
+                    <strong>Stop loss:</strong> 5-min close above ${f2(r.swingHigh)}<br>
+                    <strong>ATM PUT strike:</strong> ${f2(r.strike)}<br>
+                    ${isSel ? '<strong style="color:#721c24">✅ Signal fired on last 5-min bar</strong>' : ''}
                 </div>
             </div>
         </div>
 
-        <div class="swing-cards">
-            <div class="sw-card low">
-                <div class="sw-lbl">Latest Swing Low (5-min)</div>
-                <div class="sw-val">${fmt(r.swingLow)}</div>
-                <div class="sw-sub">
-                    Buy trigger (left-candle high): ${fmt(r.leftLowHigh)}<br>
-                    Stop if long: close below ${fmt(r.swingLow)}
+        <div class="stats-section">
+            <div class="stats-title">📐 Swing Level Detail (5-Min Bars)</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-lbl">Last 5-Min Close</div>
+                    <div class="stat-val">${f2(r.price)}</div>
+                    <div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:11px;">
+                        ${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
+                    </div>
                 </div>
-            </div>
-            <div class="sw-card high">
-                <div class="sw-lbl">Latest Swing High (5-min)</div>
-                <div class="sw-val">${fmt(r.swingHigh)}</div>
-                <div class="sw-sub">
-                    Sell trigger (left-candle low): ${fmt(r.leftHighLow)}<br>
-                    Stop if short: close above ${fmt(r.swingHigh)}
+                <div class="stat-card">
+                    <div class="stat-lbl">Signal</div>
+                    <div class="stat-val" style="color:${isBuy?'#00b894':isSel?'#d63031':'#fdcb6e'}">
+                        ${isBuy?'BUY':isSel?'SELL':'WATCH'}
+                    </div>
+                    <div class="stat-sub">Confidence: ${r.confidence.toUpperCase()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">Swing Low</div>
+                    <div class="stat-val" style="color:#00b894;">${f2(r.swingLow)}</div>
+                    <div class="stat-sub">Buy trigger: ${f2(r.leftLowHigh)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">Swing High</div>
+                    <div class="stat-val" style="color:#d63031;">${f2(r.swingHigh)}</div>
+                    <div class="stat-sub">Sell trigger: ${f2(r.leftHighLow)}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">Stop Level</div>
+                    <div class="stat-val" style="color:#fdcb6e;">${f2(r.stopLevel)}</div>
+                    <div class="stat-sub">${isBuy?'Close below swing low':isSel?'Close above swing high':'—'}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-lbl">ATM Strike</div>
+                    <div class="stat-val">${f2(r.strike)}</div>
+                    <div class="stat-sub">${r.optType ?? 'No signal'}</div>
                 </div>
             </div>
         </div>
 
-        <div class="stats">
-            <div class="stat">
-                <div class="stat-lbl">5-Min Close</div>
-                <div class="stat-val">${fmt(r.price)}</div>
-                <div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:11px;">
-                    ${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
-                </div>
-            </div>
-            <div class="stat">
-                <div class="stat-lbl">Signal</div>
-                <div class="stat-val" style="color:${isBuy?'#22d3a0':isSel?'#f87171':'#fbbf24'}">
-                    ${isBuy?'BUY':isSel?'SELL':'WATCH'}
-                </div>
-                <div class="stat-sub">Confidence: ${r.confidence.toUpperCase()}</div>
-            </div>
-            <div class="stat">
-                <div class="stat-lbl">Option</div>
-                <div class="stat-val" style="color:${isBuy?'#22d3a0':isSel?'#f87171':'#5a6080'}">
-                    ${r.optType ?? '—'}
-                </div>
-                <div class="stat-sub">ATM strike ${fmt(r.strike)}</div>
-            </div>
-            <div class="stat">
-                <div class="stat-lbl">Stop Level</div>
-                <div class="stat-val" style="color:#fbbf24;">${fmt(r.stopLevel)}</div>
-                <div class="stat-sub">${isBuy?'Below swing low':isSel?'Above swing high':'—'}</div>
-            </div>
-            <div class="stat">
-                <div class="stat-lbl">Data Source</div>
-                <div class="stat-val" style="font-size:14px;">${r.source === 'av' ? '🟡 AV' : '🟢 YF'}</div>
-                <div class="stat-sub">${r.source === 'av' ? 'Alpha Vantage' : 'Yahoo Finance'}</div>
-            </div>
-            <div class="stat">
-                <div class="stat-lbl">Bar Time</div>
-                <div class="stat-val" style="font-size:13px;">${r.barTime?.split(' ').slice(-1)[0]?.slice(0,5) ?? '—'}</div>
-                <div class="stat-sub">${r.barTime?.split(' ').slice(0,2).join(' ') ?? ''}</div>
-            </div>
+        <div class="chart-section">
+            <div class="chart-title">📈 5-Min Price Chart with Swing Levels</div>
+            <canvas id="detailChart" style="max-height:300px;"></canvas>
         </div>
 
-        <div class="chart-box">
-            <div class="chart-ttl">📈 5-Min Price Chart with Swing Levels</div>
-            <canvas id="detailChart" style="max-height:290px;"></canvas>
-        </div>
-
-        <div class="rec">
-            <div class="rec-ttl">
-                ${isBuy  ? '🟢 BUY SIGNAL — Buy ATM CALL Option'
-                : isSel ? '🔴 SELL SIGNAL — Buy ATM PUT Option'
+        <div class="recommendation">
+            <div class="rec-title">
+                ${isBuy  ? '🟢 BUY SIGNAL — Purchase ATM CALL Option'
+                : isSel ? '🔴 SELL SIGNAL — Purchase ATM PUT Option'
                 :          '🟡 NO SIGNAL — Monitor for breakout'}
             </div>
             <div class="rec-grid">
-                <div class="rec-item"><div class="rec-lbl">Symbol</div><div class="rec-val">${r.symbol}</div></div>
-                <div class="rec-item"><div class="rec-lbl">5-Min Price</div><div class="rec-val">${fmt(r.price)}</div></div>
-                <div class="rec-item"><div class="rec-lbl">Option Type</div><div class="rec-val">${r.optType??'—'}</div></div>
-                <div class="rec-item"><div class="rec-lbl">ATM Strike</div><div class="rec-val">${fmt(r.strike)}</div></div>
-                <div class="rec-item"><div class="rec-lbl">Stop Loss</div><div class="rec-val">${fmt(r.stopLevel)}</div></div>
-                <div class="rec-item"><div class="rec-lbl">DTE Pref</div><div class="rec-val">≤ 7 days</div></div>
+                <div class="rec-item"><div class="rec-label">Symbol</div><div class="rec-value">${r.symbol}</div></div>
+                <div class="rec-item"><div class="rec-label">Current Price</div><div class="rec-value">${f2(r.price)}</div></div>
+                <div class="rec-item"><div class="rec-label">Option Type</div><div class="rec-value">${r.optType??'—'}</div></div>
+                <div class="rec-item"><div class="rec-label">ATM Strike</div><div class="rec-value">${f2(r.strike)}</div></div>
+                <div class="rec-item"><div class="rec-label">Stop Loss</div><div class="rec-value">${f2(r.stopLevel)}</div></div>
+                <div class="rec-item"><div class="rec-label">Expiry Preference</div><div class="rec-value">≤ 7 DTE</div></div>
             </div>
-        </div>`;
+        </div>
+    `;
 
     document.getElementById('modal').style.display = 'block';
     setTimeout(() => drawChart(r), 100);
@@ -1246,42 +1190,27 @@ function drawChart(r) {
     const ctx = document.getElementById('detailChart');
     if (!ctx) return;
     if (currentChart) currentChart.destroy();
-
-    const show = r.bars.slice(0, 78).reverse();
-    const labels = show.map(b => {
-        const t = b.time;
-        return t.includes(' ') ? t.split(' ').slice(-1)[0]?.slice(0,5) : t;
-    });
+    const show   = r.bars.slice(0, 78).reverse();
+    const labels = show.map(b => b.time);
     const closes = show.map(b => b.close);
-    const len = show.length;
-
+    const len    = show.length;
     const ds = [{
-        label: 'Close (5-min)',
-        data: closes,
-        borderColor: '#c8cde4',
-        borderWidth: 1.5,
-        pointRadius: 0,
-        fill: false,
-        tension: 0.1
+        label: 'Price (5-min)', data: closes,
+        borderColor: '#2d3436', borderWidth: 2, pointRadius: 0, fill: false, tension: 0.1
     }];
-
-    if (r.swingLow) ds.push({ label: `Swing Low ${fmt(r.swingLow)}`, data: Array(len).fill(r.swingLow), borderColor: '#22d3a0', borderWidth: 1.5, borderDash: [6,4], pointRadius: 0, fill: false });
-    if (r.swingHigh) ds.push({ label: `Swing High ${fmt(r.swingHigh)}`, data: Array(len).fill(r.swingHigh), borderColor: '#f87171', borderWidth: 1.5, borderDash: [6,4], pointRadius: 0, fill: false });
-    if (r.leftLowHigh) ds.push({ label: `Buy Trigger ${fmt(r.leftLowHigh)}`, data: Array(len).fill(r.leftLowHigh), borderColor: '#4ade80', borderWidth: 1, borderDash: [2,5], pointRadius: 0, fill: false });
-    if (r.leftHighLow) ds.push({ label: `Sell Trigger ${fmt(r.leftHighLow)}`, data: Array(len).fill(r.leftHighLow), borderColor: '#fb923c', borderWidth: 1, borderDash: [2,5], pointRadius: 0, fill: false });
-
+    if (r.swingLow)    ds.push({ label:`Swing Low ${f2(r.swingLow)}`,       data:Array(len).fill(r.swingLow),    borderColor:'#00b894', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false });
+    if (r.swingHigh)   ds.push({ label:`Swing High ${f2(r.swingHigh)}`,     data:Array(len).fill(r.swingHigh),   borderColor:'#d63031', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false });
+    if (r.leftLowHigh) ds.push({ label:`Buy Trigger ${f2(r.leftLowHigh)}`,  data:Array(len).fill(r.leftLowHigh), borderColor:'#00cec9', borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false });
+    if (r.leftHighLow) ds.push({ label:`Sell Trigger ${f2(r.leftHighLow)}`, data:Array(len).fill(r.leftHighLow), borderColor:'#e17055', borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false });
     currentChart = new Chart(ctx, {
         type: 'line',
         data: { labels, datasets: ds },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: true, position: 'top', labels: { color:'#7a84aa', font:{size:10}, boxWidth:16 } }
-            },
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display:true, position:'top', labels:{ font:{size:11}, boxWidth:18 } } },
             scales: {
-                x: { ticks: { color:'#5a6080', font:{size:9}, maxTicksLimit:12 }, grid: { color:'#161825' } },
-                y: { ticks: { color:'#5a6080', callback: v=>'$'+v.toFixed(2) }, grid: { color:'#161825' } }
+                x: { ticks:{ font:{size:10}, maxTicksLimit:12 }, grid:{ color:'#ecf0f1' } },
+                y: { ticks:{ callback: v => '$'+v.toFixed(2) }, grid:{ color:'#ecf0f1' } }
             }
         }
     });
