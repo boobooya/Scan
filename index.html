@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Timeframe Breakout Scanner</title>
+    <title>Multi-Timeframe Breakout + Forecast Scanner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; min-height: 100vh; }
@@ -38,8 +38,8 @@
         .ps-testing { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
         .ps-ok      { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
         .ps-fail    { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-        .proxy-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .dot-ok   { background: #22c55e; } .dot-fail { background: #ef4444; }
+        .proxy-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .dot-ok { background: #22c55e; } .dot-fail { background: #ef4444; }
         .dot-spin { background: #f59e0b; animation: pulse 1s linear infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
@@ -51,30 +51,16 @@
         .mode-tag { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
         .mt-swing   { background: #e0e7ff; color: #3730a3; }
         .mt-channel { background: #fef3c7; color: #92400e; }
+        .mt-forecast{ background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
 
-        /* TIMEFRAME SELECTOR */
-        .tf-row {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 16px; flex-wrap: wrap;
-        }
+        .tf-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
         .tf-label { font-size: 12px; font-weight: 700; color: #636e72; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
         .tf-btns  { display: flex; gap: 6px; flex-wrap: wrap; }
-        .tf-btn {
-            padding: 7px 14px; border: 2px solid #dfe6e9;
-            border-radius: 7px; background: white;
-            font-size: 12px; font-weight: 700; cursor: pointer;
-            color: #636e72; transition: all 0.15s; white-space: nowrap;
-        }
+        .tf-btn { padding: 7px 14px; border: 2px solid #dfe6e9; border-radius: 7px; background: white; font-size: 12px; font-weight: 700; cursor: pointer; color: #636e72; transition: all 0.15s; white-space: nowrap; }
         .tf-btn:hover { border-color: #667eea; color: #667eea; }
         .tf-btn.active { background: #667eea; color: white; border-color: #667eea; }
 
-        .tf-info-bar {
-            padding: 8px 14px; border-radius: 7px;
-            background: #f0f4ff; border: 1px solid #c7d2fe;
-            font-size: 11px; color: #4338ca;
-            margin-bottom: 14px;
-            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-        }
+        .tf-info-bar { padding: 8px 14px; border-radius: 7px; background: #f0f4ff; border: 1px solid #c7d2fe; font-size: 11px; color: #4338ca; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
         .control-row { display: grid; gap: 14px; align-items: end; }
         .cr-main { grid-template-columns: 1fr 120px 130px auto; }
@@ -83,10 +69,11 @@
         .section-divider span { font-size: 12px; font-weight: 700; color: #636e72; white-space: nowrap; }
         .section-divider::before,.section-divider::after { content:''; flex:1; height:1px; background:#dfe6e9; }
 
-        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 4px; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 4px; }
         .settings-card { background: #f8f9fa; border: 1px solid #dfe6e9; border-radius: 8px; padding: 14px; }
         .settings-card-title { font-size: 12px; font-weight: 700; color: #2d3436; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
         .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .settings-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
         label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 0.3px; }
         input, select { width: 100%; padding: 9px 11px; border: 2px solid #dfe6e9; border-radius: 8px; font-size: 13px; color: #2d3436; outline: none; transition: border-color 0.15s; background: #fff; }
@@ -124,7 +111,8 @@
         .debug-box.visible { display: block; }
         .d-err { color: #ff6b6b; } .d-ok { color: #6ee7b7; } .d-inf { color: #fbbf24; }
 
-        .results-container { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; display: none; }
+        /* RESULTS */
+        .results-container { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; display: none; margin-bottom: 20px; }
         .results-header { padding: 14px 20px; border-bottom: 2px solid #ecf0f1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .results-title { font-size: 17px; font-weight: 700; color: #2d3436; }
         .results-count { font-size: 12px; color: #636e72; }
@@ -161,7 +149,7 @@
         .signal-bearish { background: #f8d7da; color: #721c24; }
         .signal-neutral { background: #fff3cd; color: #856404; }
 
-        .scan-type { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin: 1px; }
+        .scan-type { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
         .st-swing   { background: #e0e7ff; color: #3730a3; }
         .st-channel { background: #fef3c7; color: #92400e; }
         .st-both    { background: #ede9fe; color: #4c1d95; border: 1px solid #c4b5fd; }
@@ -173,22 +161,73 @@
         .src-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
         .st-av { background: #fef3c7; color: #92400e; }
         .st-yf { background: #d1fae5; color: #065f46; }
-
         .tf-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; background: #e0e7ff; color: #3730a3; }
 
         .conf-high   { color: #00b894; font-weight: 700; }
         .conf-medium { color: #fdcb6e; font-weight: 600; }
         .conf-low    { color: #636e72; }
 
-        .view-btn { padding: 6px 13px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .view-btn { padding: 5px 10px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; margin: 1px; }
         .view-btn:hover { background: #5568d3; }
+        .fcast-btn { padding: 5px 10px; background: #059669; color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; margin: 1px; }
+        .fcast-btn:hover { background: #047857; }
 
         .empty-state { text-align: center; padding: 55px 20px; color: #636e72; }
         .empty-icon  { font-size: 44px; margin-bottom: 12px; }
 
+        /* FORECAST PANEL */
+        .forecast-panel {
+            background: white; border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            overflow: hidden; display: none; margin-bottom: 20px;
+            border-top: 4px solid #059669;
+        }
+        .forecast-panel.visible { display: block; }
+        .fp-header {
+            padding: 14px 20px; background: #f0fdf4;
+            border-bottom: 1px solid #bbf7d0;
+            display: flex; justify-content: space-between;
+            align-items: center; flex-wrap: wrap; gap: 10px;
+        }
+        .fp-title { font-size: 16px; font-weight: 700; color: #065f46; }
+        .fp-meta  { font-size: 12px; color: #047857; }
+        .fp-close { padding: 6px 12px; background: #059669; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700; font-size: 12px; }
+
+        .fp-body { padding: 20px; }
+
+        .fp-controls {
+            display: flex; align-items: center; gap: 14px;
+            margin-bottom: 16px; flex-wrap: wrap;
+        }
+
+        .fp-stat-row {
+            display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr));
+            gap: 10px; margin-bottom: 16px;
+        }
+        .fp-stat { background: #f8f9fa; border: 1px solid #dfe6e9; padding: 12px; border-radius: 8px; }
+        .fp-stat-lbl { font-size: 10px; color: #636e72; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+        .fp-stat-val { font-size: 18px; font-weight: 700; color: #2d3436; }
+        .fp-stat-sub { font-size: 10px; color: #636e72; margin-top: 2px; }
+
+        .fp-methods {
+            display: grid; grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px; margin-bottom: 16px;
+        }
+        .fp-method { padding: 12px; border-radius: 8px; border-left: 3px solid; }
+        .fp-method.pattern  { background: #eff6ff; border-color: #3b82f6; }
+        .fp-method.cycle    { background: #fef3c7; border-color: #f59e0b; }
+        .fp-method.momentum { background: #f0fdf4; border-color: #22c55e; }
+        .fp-method-title { font-size: 11px; font-weight: 700; color: #2d3436; margin-bottom: 5px; }
+        .fp-method-val   { font-size: 16px; font-weight: 700; }
+        .fp-method-sub   { font-size: 10px; color: #636e72; margin-top: 2px; }
+
+        .fp-chart-wrap { background: #f8f9fa; border: 1px solid #dfe6e9; border-radius: 8px; padding: 14px; }
+        .fp-chart-title { font-size: 13px; font-weight: 700; color: #2d3436; margin-bottom: 4px; }
+        .fp-chart-sub   { font-size: 11px; color: #636e72; margin-bottom: 12px; }
+
         /* MODAL */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; overflow-y: auto; padding: 20px; }
-        .modal-content { background: white; max-width: 1150px; margin: 20px auto; border-radius: 14px; overflow: hidden; }
+        .modal-content { background: white; max-width: 1200px; margin: 20px auto; border-radius: 14px; overflow: hidden; }
         .modal-header { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; padding: 22px 28px; display: flex; justify-content: space-between; align-items: flex-start; }
         .modal-title { font-size: 22px; font-weight: 700; }
         .modal-sub   { font-size: 12px; opacity: 0.8; margin-top: 3px; }
@@ -232,8 +271,8 @@
         .rec-value { font-size: 17px; font-weight: 700; }
 
         @media (max-width: 900px) {
-            .cr-main,.settings-row { grid-template-columns: 1fr 1fr !important; }
-            .settings-grid,.analysis-grid { grid-template-columns: 1fr; }
+            .cr-main,.settings-row,.settings-row-3 { grid-template-columns: 1fr 1fr !important; }
+            .settings-grid,.analysis-grid,.fp-methods { grid-template-columns: 1fr; }
             th,td { padding: 8px 9px; }
         }
     </style>
@@ -242,8 +281,8 @@
 
 <div class="header">
     <div>
-        <h1>📊 Multi-Timeframe Breakout Scanner</h1>
-        <p>Swing + Channel breakout · 5min to Monthly · ATM CALL on buy · ATM PUT on sell</p>
+        <h1>📊 Multi-Timeframe Breakout + Forecast Scanner</h1>
+        <p>Swing + Channel breakout · Pattern / Cycle / Momentum forecast · Grey dotted confidence bands</p>
     </div>
     <div class="source-toggle">
         <button class="src-btn active" id="btnAV" onclick="switchSource('av')">
@@ -272,10 +311,11 @@
     <!-- AV PANEL -->
     <div class="controls av-panel visible" id="avPanel">
         <div class="mode-banner">
-            Running simultaneously: <span class="mode-tag mt-swing">📈 Swing</span> + <span class="mode-tag mt-channel">📦 Channel</span> breakout on every symbol
+            <span class="mode-tag mt-swing">📈 Swing</span> +
+            <span class="mode-tag mt-channel">📦 Channel</span> +
+            <span class="mode-tag mt-forecast">🔮 Forecast Engine</span>
+            running simultaneously on every symbol
         </div>
-
-        <!-- Timeframe selector -->
         <div class="tf-row">
             <span class="tf-label">⏱ Timeframe:</span>
             <div class="tf-btns" id="avTfBtns">
@@ -287,10 +327,7 @@
                 <button class="tf-btn" onclick="setTF('av','monthly',this)">Monthly</button>
             </div>
         </div>
-        <div class="tf-info-bar" id="avTfInfo">
-            ℹ️ <strong>5-Min:</strong> Uses TIME_SERIES_INTRADAY · Full output ~390 bars · Best for day trading
-        </div>
-
+        <div class="tf-info-bar" id="avTfInfo">ℹ️ <strong>5-Min:</strong> TIME_SERIES_INTRADAY · Full ~390 bars · Day trading</div>
         <div class="control-row cr-main">
             <div>
                 <label>Symbols to Scan</label>
@@ -300,7 +337,7 @@
                     <button class="quick-btn" onclick="preset('av','tech')">💻 Tech</button>
                     <button class="quick-btn" onclick="preset('av','finance')">🏦 Finance</button>
                     <button class="quick-btn" onclick="preset('av','energy')">⚡ Energy</button>
-                    <button class="quick-btn" onclick="preset('av','all')">⭐ All 250+</button>
+                    <button class="quick-btn" onclick="preset('av','all')">⭐ All</button>
                 </div>
             </div>
             <div><label>Output Size</label>
@@ -308,37 +345,39 @@
             </div>
             <div><label>Speed</label>
                 <select id="avDelay">
-                    <option value="13">⚡ 13s</option>
-                    <option value="16" selected>✅ 16s</option>
-                    <option value="22">🐢 22s</option>
-                    <option value="30">🐌 30s</option>
+                    <option value="13">⚡ 13s</option><option value="16" selected>✅ 16s</option>
+                    <option value="22">🐢 22s</option><option value="30">🐌 30s</option>
                 </select>
             </div>
             <button class="scan-btn btn-av" id="avBtn" onclick="startScan('av')">🔍 Start Scan</button>
         </div>
-
-        <div class="section-divider"><span>Scanner Settings</span></div>
+        <div class="section-divider"><span>Scanner + Forecast Settings</span></div>
         <div class="settings-grid">
             <div class="settings-card">
                 <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span></div>
                 <div class="settings-row">
                     <div><label>Left Bars</label>
-                        <select id="avSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
-                    </div>
+                        <select id="avSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
                     <div><label>Right Bars</label>
-                        <select id="avSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
-                    </div>
+                        <select id="avSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
                 </div>
             </div>
             <div class="settings-card">
                 <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span></div>
                 <div class="settings-row">
                     <div><label>Channel Bars</label>
-                        <select id="avChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select>
-                    </div>
+                        <select id="avChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select></div>
                     <div><label>Max Width %</label>
-                        <select id="avChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select>
-                    </div>
+                        <select id="avChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select></div>
+                </div>
+            </div>
+            <div class="settings-card">
+                <div class="settings-card-title"><span class="mode-tag mt-forecast">🔮 Forecast</span></div>
+                <div class="settings-row">
+                    <div><label>Bars Forward</label>
+                        <select id="avFcastBars"><option value="5">5 bars</option><option value="10" selected>10 bars</option><option value="12">12 bars</option><option value="15">15 bars</option><option value="20">20 bars</option></select></div>
+                    <div><label>Lookback</label>
+                        <select id="avFcastLB"><option value="50">50 bars</option><option value="100" selected>100 bars</option><option value="150">150 bars</option><option value="200">200 bars</option></select></div>
                 </div>
             </div>
         </div>
@@ -349,9 +388,11 @@
     <!-- YF PANEL -->
     <div class="controls yf-panel" id="yfPanel">
         <div class="mode-banner">
-            Running simultaneously: <span class="mode-tag mt-swing">📈 Swing</span> + <span class="mode-tag mt-channel">📦 Channel</span> breakout on every symbol
+            <span class="mode-tag mt-swing">📈 Swing</span> +
+            <span class="mode-tag mt-channel">📦 Channel</span> +
+            <span class="mode-tag mt-forecast">🔮 Forecast Engine</span>
+            running simultaneously on every symbol
         </div>
-
         <div class="tf-row">
             <span class="tf-label">⏱ Timeframe:</span>
             <div class="tf-btns" id="yfTfBtns">
@@ -365,10 +406,7 @@
                 <button class="tf-btn" onclick="setTF('yf','1mo',this)">Monthly</button>
             </div>
         </div>
-        <div class="tf-info-bar" id="yfTfInfo">
-            ℹ️ <strong>5 Min:</strong> range=1d · ~78 bars · Best for day trading
-        </div>
-
+        <div class="tf-info-bar" id="yfTfInfo">ℹ️ <strong>5 Min:</strong> range=1d · ~78 bars</div>
         <div class="control-row cr-main">
             <div>
                 <label>Symbols to Scan</label>
@@ -378,40 +416,42 @@
                     <button class="quick-btn" onclick="preset('yf','tech')">💻 Tech</button>
                     <button class="quick-btn" onclick="preset('yf','finance')">🏦 Finance</button>
                     <button class="quick-btn" onclick="preset('yf','energy')">⚡ Energy</button>
-                    <button class="quick-btn" onclick="preset('yf','all')">⭐ All 250+</button>
+                    <button class="quick-btn" onclick="preset('yf','all')">⭐ All</button>
                 </div>
             </div>
             <div><label>Batch Size</label>
-                <select id="yfBatch"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select>
-            </div>
+                <select id="yfBatch"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
             <div><label>Batch Delay</label>
-                <select id="yfDelay"><option value="800">0.8s</option><option value="1200" selected>1.2s</option><option value="2000">2s</option></select>
-            </div>
+                <select id="yfDelay"><option value="800">0.8s</option><option value="1200" selected>1.2s</option><option value="2000">2s</option></select></div>
             <button class="scan-btn btn-yf" id="yfBtn" onclick="startScan('yf')">⚡ Fast Scan</button>
         </div>
-
-        <div class="section-divider"><span>Scanner Settings</span></div>
+        <div class="section-divider"><span>Scanner + Forecast Settings</span></div>
         <div class="settings-grid">
             <div class="settings-card">
                 <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span></div>
                 <div class="settings-row">
                     <div><label>Left Bars</label>
-                        <select id="yfSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
-                    </div>
+                        <select id="yfSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
                     <div><label>Right Bars</label>
-                        <select id="yfSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
-                    </div>
+                        <select id="yfSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
                 </div>
             </div>
             <div class="settings-card">
                 <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span></div>
                 <div class="settings-row">
                     <div><label>Channel Bars</label>
-                        <select id="yfChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select>
-                    </div>
+                        <select id="yfChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select></div>
                     <div><label>Max Width %</label>
-                        <select id="yfChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select>
-                    </div>
+                        <select id="yfChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select></div>
+                </div>
+            </div>
+            <div class="settings-card">
+                <div class="settings-card-title"><span class="mode-tag mt-forecast">🔮 Forecast</span></div>
+                <div class="settings-row">
+                    <div><label>Bars Forward</label>
+                        <select id="yfFcastBars"><option value="5">5 bars</option><option value="10" selected>10 bars</option><option value="12">12 bars</option><option value="15">15 bars</option><option value="20">20 bars</option></select></div>
+                    <div><label>Lookback</label>
+                        <select id="yfFcastLB"><option value="50">50 bars</option><option value="100" selected>100 bars</option><option value="150">150 bars</option><option value="200">200 bars</option></select></div>
                 </div>
             </div>
         </div>
@@ -421,7 +461,7 @@
         <div class="debug-box"  id="debugBox"></div>
     </div>
 
-    <!-- RESULTS -->
+    <!-- RESULTS TABLE -->
     <div class="results-container" id="resultsContainer">
         <div class="results-header">
             <div class="results-title">Scan Results</div>
@@ -450,26 +490,51 @@
                         <th class="c">Option</th>
                         <th class="r">ATM Strike</th>
                         <th class="r">Stop Loss</th>
-                        <th class="r">Levels</th>
+                        <th class="c">Forecast</th>
                         <th class="c">Conf</th>
                         <th class="c">Src</th>
-                        <th class="c">Action</th>
+                        <th class="c">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody">
-                    <tr>
-                        <td colspan="13" class="empty-state">
-                            <div class="empty-icon">📊</div>
-                            <div>Select a timeframe and click Scan</div>
-                        </td>
-                    </tr>
+                    <tr><td colspan="13" class="empty-state"><div class="empty-icon">📊</div><div>Select timeframe and click Scan</div></td></tr>
                 </tbody>
             </table>
         </div>
     </div>
-</div>
 
-<!-- MODAL -->
+    <!-- DEDICATED FORECAST PANEL -->
+    <div class="forecast-panel" id="forecastPanel">
+        <div class="fp-header">
+            <div>
+                <div class="fp-title">🔮 <span id="fpSymbolTitle">—</span> — Forecast Panel</div>
+                <div class="fp-meta" id="fpMeta">—</div>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="margin:0;text-transform:none;font-size:12px;color:#065f46;">Bars forward:</label>
+                    <select id="fpBarsSelect" onchange="refreshForecastPanel()" style="width:auto;padding:6px 10px;font-size:12px;border-color:#6ee7b7;">
+                        <option value="5">5</option><option value="10" selected>10</option>
+                        <option value="12">12</option><option value="15">15</option><option value="20">20</option>
+                    </select>
+                </div>
+                <button class="fp-close" onclick="closeForecastPanel()">✕ Close</button>
+            </div>
+        </div>
+        <div class="fp-body">
+            <div class="fp-stat-row" id="fpStatRow"></div>
+            <div class="fp-methods" id="fpMethods"></div>
+            <div class="fp-chart-wrap">
+                <div class="fp-chart-title">🕯️ Candlestick + Forecast — <span id="fpChartTitle">—</span></div>
+                <div class="fp-chart-sub">Historical candles → grey dotted center forecast · grey dotted upper/lower confidence bands</div>
+                <canvas id="fpChart" style="max-height:380px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end container -->
+
+<!-- ANALYSIS MODAL -->
 <div class="modal" id="modal">
     <div class="modal-content">
         <div class="modal-header">
@@ -489,49 +554,42 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
 
 <script>
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  TIMEFRAME CONFIG
-// ═══════════════════════════════════
-
-// Alpha Vantage timeframe map
-// key → { fn, interval?, outputsize, label, chartUnit }
+// ═══════════════════════════════════════════════════════
 const AV_TF = {
-    '5min':    { fn:'TIME_SERIES_INTRADAY',  interval:'5min',  outputsize:'full',   label:'5 Min',    chartUnit:'minute',  infoMsg:'TIME_SERIES_INTRADAY · 5min · Full ~390 bars · Day trading' },
-    '15min':   { fn:'TIME_SERIES_INTRADAY',  interval:'15min', outputsize:'full',   label:'15 Min',   chartUnit:'minute',  infoMsg:'TIME_SERIES_INTRADAY · 15min · Full ~390 bars · Swing trading' },
-    '60min':   { fn:'TIME_SERIES_INTRADAY',  interval:'60min', outputsize:'full',   label:'1 Hour',   chartUnit:'hour',    infoMsg:'TIME_SERIES_INTRADAY · 60min · Full ~390 bars · Swing/position' },
-    'daily':   { fn:'TIME_SERIES_DAILY',     interval:null,    outputsize:'full',   label:'Daily',    chartUnit:'day',     infoMsg:'TIME_SERIES_DAILY · ~500 bars · Position trading' },
-    'weekly':  { fn:'TIME_SERIES_WEEKLY',    interval:null,    outputsize:null,     label:'Weekly',   chartUnit:'week',    infoMsg:'TIME_SERIES_WEEKLY · Multi-year history · Long-term' },
-    'monthly': { fn:'TIME_SERIES_MONTHLY',   interval:null,    outputsize:null,     label:'Monthly',  chartUnit:'month',   infoMsg:'TIME_SERIES_MONTHLY · Multi-year history · Long-term' },
+    '5min':  { fn:'TIME_SERIES_INTRADAY', interval:'5min',  outputsize:'full', label:'5 Min',   chartUnit:'minute', infoMsg:'5min intraday · Full ~390 bars · Day trading' },
+    '15min': { fn:'TIME_SERIES_INTRADAY', interval:'15min', outputsize:'full', label:'15 Min',  chartUnit:'minute', infoMsg:'15min intraday · Full ~390 bars · Swing' },
+    '60min': { fn:'TIME_SERIES_INTRADAY', interval:'60min', outputsize:'full', label:'1 Hour',  chartUnit:'hour',   infoMsg:'60min intraday · Full ~390 bars · Swing/position' },
+    'daily': { fn:'TIME_SERIES_DAILY',   interval:null,    outputsize:'full', label:'Daily',   chartUnit:'day',    infoMsg:'Daily · Full ~500 bars · Position trading' },
+    'weekly':{ fn:'TIME_SERIES_WEEKLY',  interval:null,    outputsize:null,   label:'Weekly',  chartUnit:'week',   infoMsg:'Weekly · Multi-year · Long-term' },
+    'monthly':{ fn:'TIME_SERIES_MONTHLY',interval:null,    outputsize:null,   label:'Monthly', chartUnit:'month',  infoMsg:'Monthly · Multi-year · Long-term' },
 };
 
-// Yahoo Finance timeframe map
-// key → { interval, range, label, chartUnit }
 const YF_TF = {
-    '5m':  { interval:'5m',  range:'1d',  label:'5 Min',   chartUnit:'minute', infoMsg:'range=1d · ~78 bars · Day trading' },
-    '15m': { interval:'15m', range:'5d',  label:'15 Min',  chartUnit:'minute', infoMsg:'range=5d · ~130 bars · Swing trading' },
-    '1h':  { interval:'1h',  range:'1mo', label:'1 Hour',  chartUnit:'hour',   infoMsg:'range=1mo · ~160 bars · Swing/position' },
-    '2h':  { interval:'2h',  range:'3mo', label:'2 Hours', chartUnit:'hour',   infoMsg:'range=3mo · ~90 bars · Position' },
-    '4h':  { interval:'4h',  range:'6mo', label:'4 Hours', chartUnit:'hour',   infoMsg:'range=6mo · ~90 bars · Position/long-term' },
-    '1d':  { interval:'1d',  range:'2y',  label:'Daily',   chartUnit:'day',    infoMsg:'range=2y · ~500 bars · Position trading' },
-    '1wk': { interval:'1wk', range:'5y',  label:'Weekly',  chartUnit:'week',   infoMsg:'range=5y · ~260 bars · Long-term' },
-    '1mo': { interval:'1mo', range:'10y', label:'Monthly', chartUnit:'month',  infoMsg:'range=10y · ~120 bars · Long-term' },
+    '5m':  { interval:'5m',  range:'1d',  label:'5 Min',   chartUnit:'minute', infoMsg:'range=1d · ~78 bars' },
+    '15m': { interval:'15m', range:'5d',  label:'15 Min',  chartUnit:'minute', infoMsg:'range=5d · ~130 bars' },
+    '1h':  { interval:'1h',  range:'1mo', label:'1 Hour',  chartUnit:'hour',   infoMsg:'range=1mo · ~160 bars' },
+    '2h':  { interval:'2h',  range:'3mo', label:'2 Hours', chartUnit:'hour',   infoMsg:'range=3mo · ~90 bars' },
+    '4h':  { interval:'4h',  range:'6mo', label:'4 Hours', chartUnit:'hour',   infoMsg:'range=6mo · ~90 bars' },
+    '1d':  { interval:'1d',  range:'2y',  label:'Daily',   chartUnit:'day',    infoMsg:'range=2y · ~500 bars' },
+    '1wk': { interval:'1wk', range:'5y',  label:'Weekly',  chartUnit:'week',   infoMsg:'range=5y · ~260 bars' },
+    '1mo': { interval:'1mo', range:'10y', label:'Monthly', chartUnit:'month',  infoMsg:'range=10y · ~120 bars' },
 };
 
-let activeTF = { av: '5min', yf: '5m' };
+let activeTF = { av:'5min', yf:'5m' };
 
 function setTF(src, tf, btn) {
     activeTF[src] = tf;
-    const container = document.getElementById(src==='av'?'avTfBtns':'yfTfBtns');
-    container.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(src==='av'?'avTfBtns':'yfTfBtns').querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    const infoEl = document.getElementById(src==='av'?'avTfInfo':'yfTfInfo');
-    const cfg    = src==='av' ? AV_TF[tf] : YF_TF[tf];
-    infoEl.innerHTML = `ℹ️ <strong>${cfg.label}:</strong> ${cfg.infoMsg}`;
+    const cfg = src==='av' ? AV_TF[tf] : YF_TF[tf];
+    document.getElementById(src==='av'?'avTfInfo':'yfTfInfo').innerHTML = `ℹ️ <strong>${cfg.label}:</strong> ${cfg.infoMsg}`;
 }
 
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  CONFIG
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 const AV_KEY = '7UOSK3Z2XFXU992W';
 
 function yfUrl(sym, tfKey) {
@@ -556,17 +614,156 @@ const PRESETS = {
     all:     'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,PANW,FTNT,DKNG,ROKU,ARKK'
 };
 
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  STATE
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 let resultMap       = new Map();
 let filteredSymbols = [];
 let currentFilter   = 'all';
-let currentChart    = null;
+let modalChart      = null;
+let fpChart         = null;
+let fpSymbol        = null;   // currently displayed in forecast panel
 
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  FORECAST ENGINE
+// ═══════════════════════════════════════════════════════
+// Returns { center[], upper[], lower[], bias, cycleLen, patternScore, momentumScore }
+// bars = newest-first array of { open,high,low,close,timestamp }
+function computeForecast(bars, nForward, lookback) {
+    // Work on close prices, newest-first → reverse for calculations
+    const closes = bars.map(b => b.close).slice(0, Math.max(lookback + 50, 100));
+    if (closes.length < 30) return null;
+
+    const fwd = nForward;
+
+    // ── 1. PATTERN MATCHING ──────────────────────────
+    // Normalize last 20 bars, find best-matching window in history
+    const windowSize = Math.min(20, Math.floor(closes.length / 4));
+    const queryRaw   = closes.slice(0, windowSize);
+    const queryNorm  = normalize(queryRaw);
+
+    let bestCorr = -Infinity, bestOffset = windowSize * 2;
+    // Search for best matching pattern in history (skip most recent)
+    for (let start = windowSize + 5; start < closes.length - windowSize - fwd; start++) {
+        const candidate = closes.slice(start, start + windowSize);
+        const corr      = pearsonCorr(queryNorm, normalize(candidate));
+        if (corr > bestCorr) { bestCorr = corr; bestOffset = start; }
+    }
+
+    // Project forward using the matched pattern's subsequent bars (reversed → oldest-first order)
+    const matchedFollow = closes.slice(bestOffset - fwd, bestOffset).reverse();
+    const anchorClose   = closes[0];
+    const matchStart    = closes[bestOffset];
+    const patternFwd    = matchedFollow.map(v => anchorClose + (v - matchStart));
+
+    // ── 2. CYCLE DETECTION (autocorrelation) ─────────
+    const returns = [];
+    for (let i = 0; i < Math.min(closes.length - 1, lookback); i++) {
+        returns.push((closes[i] - closes[i + 1]) / closes[i + 1]);
+    }
+
+    let cycleLen = 10; // default
+    let bestAC   = -Infinity;
+    for (let lag = 4; lag <= Math.min(40, Math.floor(returns.length / 3)); lag++) {
+        const ac = autocorr(returns, lag);
+        if (ac > bestAC) { bestAC = ac; cycleLen = lag; }
+    }
+
+    // Project cycle: use sine-wave continuation based on dominant cycle
+    const phase = (closes.length % cycleLen) / cycleLen * 2 * Math.PI;
+    const amp   = stdDev(closes.slice(0, cycleLen * 2)) * 0.4;
+    const cycleFwd = [];
+    for (let i = 1; i <= fwd; i++) {
+        cycleFwd.push(anchorClose + amp * Math.sin(phase + (i / cycleLen) * 2 * Math.PI));
+    }
+
+    // ── 3. MOMENTUM / PRICE ACTION ────────────────────
+    // Linear regression slope over last 10 bars, then momentum decay
+    const lrBars = Math.min(10, closes.length - 1);
+    const lrClose= closes.slice(0, lrBars).reverse();
+    const slope  = linearSlope(lrClose);
+    const vol    = stdDev(returns.slice(0, 20)) * closes[0]; // 1σ in price terms
+
+    const momentumFwd = [];
+    for (let i = 1; i <= fwd; i++) {
+        // Slope decays exponentially — momentum fades
+        const decay = Math.exp(-0.12 * i);
+        momentumFwd.push(anchorClose + slope * i * decay);
+    }
+
+    // ── 4. ENSEMBLE BLEND ─────────────────────────────
+    // Weights: pattern (40%), cycle (30%), momentum (30%)
+    const wPat = 0.40, wCyc = 0.30, wMom = 0.30;
+    const center = [], upper = [], lower = [];
+
+    // Volatility expands with horizon → confidence bands widen
+    const volBase = stdDev(returns.slice(0, 20)) * anchorClose;
+
+    for (let i = 0; i < fwd; i++) {
+        const pv = patternFwd[i]  !== undefined ? patternFwd[i]  : anchorClose + slope * (i + 1) * 0.5;
+        const cv = cycleFwd[i]    !== undefined ? cycleFwd[i]    : anchorClose;
+        const mv = momentumFwd[i] !== undefined ? momentumFwd[i] : anchorClose;
+        const c  = wPat * pv + wCyc * cv + wMom * mv;
+        // Bands: 1.5σ × sqrt(horizon) — grows with time
+        const band = volBase * 1.5 * Math.sqrt(i + 1);
+        center.push(c);
+        upper.push(c + band);
+        lower.push(c - band);
+    }
+
+    // Bias direction
+    const bias = center[fwd - 1] > anchorClose ? 'bullish' : 'bearish';
+    const biasPct = ((center[fwd - 1] - anchorClose) / anchorClose * 100).toFixed(2);
+
+    return {
+        center, upper, lower, bias, biasPct,
+        cycleLen, bestCorr: bestCorr.toFixed(3),
+        patternTarget: center[fwd - 1]?.toFixed(2),
+        volatility: volBase.toFixed(2),
+        slope: (slope * 10).toFixed(4)
+    };
+}
+
+// ── Math helpers ──
+function normalize(arr) {
+    const mn = Math.min(...arr), mx = Math.max(...arr);
+    const rng = mx - mn || 1;
+    return arr.map(v => (v - mn) / rng);
+}
+
+function pearsonCorr(a, b) {
+    const n = Math.min(a.length, b.length);
+    const ma = a.slice(0,n).reduce((s,v)=>s+v,0)/n;
+    const mb = b.slice(0,n).reduce((s,v)=>s+v,0)/n;
+    let num=0,da=0,db=0;
+    for(let i=0;i<n;i++){const ai=a[i]-ma,bi=b[i]-mb;num+=ai*bi;da+=ai*ai;db+=bi*bi;}
+    return (da*db)===0?0:num/Math.sqrt(da*db);
+}
+
+function autocorr(arr, lag) {
+    const n=arr.length, mean=arr.reduce((s,v)=>s+v,0)/n;
+    let num=0,den=0;
+    for(let i=0;i<n-lag;i++) num+=(arr[i]-mean)*(arr[i+lag]-mean);
+    for(let i=0;i<n;i++) den+=(arr[i]-mean)*(arr[i]-mean);
+    return den===0?0:num/den;
+}
+
+function stdDev(arr) {
+    const n=arr.length,m=arr.reduce((s,v)=>s+v,0)/n;
+    return Math.sqrt(arr.reduce((s,v)=>s+(v-m)*(v-m),0)/n)||0.001;
+}
+
+function linearSlope(arr) {
+    const n=arr.length;
+    if(n<2) return 0;
+    let sx=0,sy=0,sxy=0,sxx=0;
+    for(let i=0;i<n;i++){sx+=i;sy+=arr[i];sxy+=i*arr[i];sxx+=i*i;}
+    return (n*sxy-sx*sy)/(n*sxx-sx*sx)||0;
+}
+
+// ═══════════════════════════════════════════════════════
 //  PROXY TEST
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 async function testProxies() {
     const statusEl=document.getElementById('proxyStatus');
     const dotEl=document.getElementById('proxyDot');
@@ -575,19 +772,15 @@ async function testProxies() {
     dotEl.className='proxy-dot dot-spin';
     msgEl.textContent='Testing proxies…';
     activeProxy=null;
-    dbg('Testing '+PROXIES.length+' proxies…');
     for (const proxy of PROXIES) {
         try {
-            dbg('Trying: '+proxy.name);
-            const ctrl=new AbortController(), tid=setTimeout(()=>ctrl.abort(),6000);
+            const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),6000);
             const res=await fetch(proxy.url('SPY','5m'),{signal:ctrl.signal});
             clearTimeout(tid);
-            if(!res.ok){dbg(proxy.name+' → HTTP '+res.status,'err');continue;}
-            let json; try{json=JSON.parse(await res.text());}catch(e){dbg(proxy.name+' → bad JSON','err');continue;}
-            const ts=json?.chart?.result?.[0]?.timestamp;
-            dbg(proxy.name+' → OK'+(ts?' · '+ts.length+' bars':' (market closed)'),'ok');
+            if(!res.ok) continue;
+            let json; try{json=JSON.parse(await res.text());}catch(e){continue;}
             activeProxy=proxy; break;
-        } catch(e){dbg(proxy.name+' → '+e.message,'err');}
+        } catch(e){}
     }
     if(activeProxy){
         statusEl.className='proxy-status visible ps-ok';
@@ -602,7 +795,7 @@ async function testProxies() {
 
 function dbg(msg,type='inf'){
     const box=document.getElementById('debugBox');
-    if(!box)return;
+    if(!box) return;
     box.classList.add('visible');
     const el=document.createElement('div');
     el.className=type==='err'?'d-err':type==='ok'?'d-ok':'d-inf';
@@ -611,9 +804,9 @@ function dbg(msg,type='inf'){
     box.scrollTop=box.scrollHeight;
 }
 
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  SOURCE / TF SWITCHER
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function switchSource(src){
     document.getElementById('btnAV').classList.toggle('active',src==='av');
     document.getElementById('btnYF').classList.toggle('active',src==='yf');
@@ -623,10 +816,10 @@ function switchSource(src){
     const info=document.getElementById('sourceInfo');
     if(src==='av'){
         info.className='source-info si-av';
-        info.innerHTML='📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · 2h &amp; 4h not available (use Yahoo Finance)';
+        info.innerHTML='📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · Note: 2h/4h not available';
     } else {
         info.className='source-info si-yf';
-        info.innerHTML='⚡ <strong>Yahoo Finance</strong> — No API key · No rate limit · parallel · all timeframes including 2h &amp; 4h';
+        info.innerHTML='⚡ <strong>Yahoo Finance</strong> — No API key · Parallel · All timeframes incl. 2h/4h';
         if(!activeProxy) testProxies();
     }
 }
@@ -635,25 +828,17 @@ function preset(src,key){
     document.getElementById(src==='av'?'avSymbols':'yfSymbols').value=PRESETS[key];
 }
 
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  SWING + CHANNEL DETECTORS
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function detectSwing(bars,lb,rb){
     const len=bars.length;
     if(len<lb+rb+3) return {signal:'neutral',swingLow:null,swingHigh:null,leftLowHigh:null,leftHighLow:null,stopLevel:null};
     const h=bars.map(b=>b.high),l=bars.map(b=>b.low),c=bars.map(b=>b.close);
     let swingLow=null,llh=null;
-    for(let i=rb;i<len-lb-1;i++){
-        const v=l[i];let ok=true;
-        for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(l[j]<=v){ok=false;break;}}
-        if(ok){swingLow=v;llh=h[i+1];break;}
-    }
+    for(let i=rb;i<len-lb-1;i++){const v=l[i];let ok=true;for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(l[j]<=v){ok=false;break;}}if(ok){swingLow=v;llh=h[i+1];break;}}
     let swingHigh=null,lhl=null;
-    for(let i=rb;i<len-lb-1;i++){
-        const v=h[i];let ok=true;
-        for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(h[j]>=v){ok=false;break;}}
-        if(ok){swingHigh=v;lhl=l[i+1];break;}
-    }
+    for(let i=rb;i<len-lb-1;i++){const v=h[i];let ok=true;for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(h[j]>=v){ok=false;break;}}if(ok){swingHigh=v;lhl=l[i+1];break;}}
     const cur=c[0],prev=c[1];
     let signal='neutral',stopLevel=null;
     if(llh!==null&&swingLow!==null&&cur>llh&&prev<=llh&&cur>swingLow){signal='buy';stopLevel=swingLow;}
@@ -680,21 +865,19 @@ function detectChannel(bars,chanBars,maxWidthPct){
 
 function calcATM(price){const iv=price<25?0.5:price<200?1:5;return Math.round(price/iv)*iv;}
 
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  BUILD RESULT
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 function buildResult(symbol,bars,cfg,source,tfLabel){
     const cur=bars[0],prev=bars[1];
     const price=cur.close,change=price-prev.close,changePct=change/prev.close*100;
     const sw=detectSwing(bars,cfg.swingL,cfg.swingR);
     const ch=detectChannel(bars,cfg.chanBars,cfg.chanWidth);
+    const forecast=computeForecast(bars,cfg.fcastBars,cfg.fcastLB);
 
     let direction='neutral',scanTypes=[],stopLevel=null;
     if(sw.signal!=='neutral'){scanTypes.push('swing');direction=sw.signal;stopLevel=sw.stopLevel;}
-    if(ch.signal!=='neutral'){
-        scanTypes.push('channel');
-        if(direction==='neutral'){direction=ch.signal;stopLevel=ch.stopLevel;}
-    }
+    if(ch.signal!=='neutral'){scanTypes.push('channel');if(direction==='neutral'){direction=ch.signal;stopLevel=ch.stopLevel;}}
     const scanType=scanTypes.length===2?'both':scanTypes.length===1?scanTypes[0]:'none';
     const strike=calcATM(price);
     const optType=direction==='buy'?'CALL':direction==='sell'?'PUT':null;
@@ -706,108 +889,80 @@ function buildResult(symbol,bars,cfg,source,tfLabel){
         if(trig){const brk=Math.abs(price-trig)/trig*100;if(brk>=0.4)confidence='high';else if(brk>=0.15)confidence='medium';}
     }
 
-    const levelStr=ch.inChannel
-        ?`R:${ch.resistance?.toFixed(2)} / S:${ch.support?.toFixed(2)}`
-        :`SH:${sw.swingHigh?.toFixed(2)??'—'} / SL:${sw.swingLow?.toFixed(2)??'—'}`;
+    const levelStr=ch.inChannel?`R:${ch.resistance?.toFixed(2)} / S:${ch.support?.toFixed(2)}`:`SH:${sw.swingHigh?.toFixed(2)??'—'} / SL:${sw.swingLow?.toFixed(2)??'—'}`;
 
     return {symbol,source,price,change,changePct,barTime:cur.time,
-            tfLabel, direction,scanType,optType,strike,confidence,
-            stopLevel,levelStr,swing:sw,channel:ch,bars};
+            tfLabel,direction,scanType,optType,strike,confidence,
+            stopLevel,levelStr,swing:sw,channel:ch,forecast,bars,
+            fcastBars:cfg.fcastBars,fcastLB:cfg.fcastLB};
 }
 
-// ═══════════════════════════════════
-//  AV FETCH — handles all timeframes
-// ═══════════════════════════════════
-async function fetchAV(symbol, tfKey, outputSize) {
-    const tf  = AV_TF[tfKey];
+// ═══════════════════════════════════════════════════════
+//  AV FETCH
+// ═══════════════════════════════════════════════════════
+async function fetchAV(symbol,tfKey,outputSize){
+    const tf=AV_TF[tfKey];
     let url;
-
-    if (tf.fn === 'TIME_SERIES_INTRADAY') {
-        url = `https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&interval=${tf.interval}&outputsize=${outputSize}&apikey=${AV_KEY}`;
-    } else if (tf.fn === 'TIME_SERIES_DAILY') {
-        url = `https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&outputsize=${outputSize}&apikey=${AV_KEY}`;
-    } else {
-        // weekly / monthly — no outputsize param
-        url = `https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&apikey=${AV_KEY}`;
-    }
-
-    const json = await (await fetch(url)).json();
-
-    // Find the time series key — differs per function
-    const seriesKey = Object.keys(json).find(k => k.startsWith('Time Series') || k.startsWith('Weekly') || k.startsWith('Monthly'));
-    if (!seriesKey) return null;
-
-    const series = json[seriesKey];
-    const times  = Object.keys(series).sort().reverse();
-    if (times.length < 20) return null;
-
-    return times.map(t => {
-        const row = series[t];
-        return {
-            time:  t,
-            timestamp: new Date(t).getTime(),
-            open:  parseFloat(row['1. open']),
-            high:  parseFloat(row['2. high']),
-            low:   parseFloat(row['3. low']),
-            close: parseFloat(row['4. close']),
-            vol:   parseInt(row['5. volume'] || row['6. volume'] || 0)
-        };
-    });
+    if(tf.fn==='TIME_SERIES_INTRADAY') url=`https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&interval=${tf.interval}&outputsize=${outputSize}&apikey=${AV_KEY}`;
+    else if(tf.fn==='TIME_SERIES_DAILY') url=`https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&outputsize=${outputSize}&apikey=${AV_KEY}`;
+    else url=`https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&apikey=${AV_KEY}`;
+    const json=await (await fetch(url)).json();
+    const seriesKey=Object.keys(json).find(k=>k.startsWith('Time Series')||k.startsWith('Weekly')||k.startsWith('Monthly'));
+    if(!seriesKey) return null;
+    const series=json[seriesKey];
+    const times=Object.keys(series).sort().reverse();
+    if(times.length<20) return null;
+    return times.map(t=>({
+        time:t, timestamp:new Date(t).getTime(),
+        open:parseFloat(series[t]['1. open']),
+        high:parseFloat(series[t]['2. high']),
+        low:parseFloat(series[t]['3. low']),
+        close:parseFloat(series[t]['4. close']),
+        vol:parseInt(series[t]['5. volume']||series[t]['6. volume']||0)
+    }));
 }
 
-// ═══════════════════════════════════
-//  YF FETCH — all timeframes
-// ═══════════════════════════════════
-async function fetchYF(symbol, tfKey) {
+// ═══════════════════════════════════════════════════════
+//  YF FETCH
+// ═══════════════════════════════════════════════════════
+async function fetchYF(symbol,tfKey){
     const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),8000);
-    try {
+    try{
         const res=await fetch(activeProxy.url(symbol,tfKey),{signal:ctrl.signal});
         clearTimeout(tid);
         if(!res.ok) throw new Error('HTTP '+res.status);
         const json=await res.json();
         const result=json?.chart?.result?.[0];
         if(!result) return null;
-        const ts=result.timestamp, q=result.indicators?.quote?.[0];
+        const ts=result.timestamp,q=result.indicators?.quote?.[0];
         if(!ts||!q) return null;
         const bars=[];
         for(let i=ts.length-1;i>=0;i--){
             if(q.close[i]==null||isNaN(q.close[i])) continue;
             const d=new Date(ts[i]*1000);
-            const tfCfg=YF_TF[tfKey];
-            // Format time label based on timeframe
-            let timeLabel;
-            if(['5m','15m','1h','2h','4h'].includes(tfKey)){
-                timeLabel=d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
-            } else if(tfKey==='1d'){
-                timeLabel=d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
-            } else {
-                timeLabel=d.toLocaleDateString('en-US',{year:'numeric',month:'short'});
-            }
-            bars.push({
-                time:      timeLabel,
-                timestamp: ts[i]*1000,
-                open:      q.open[i]??q.close[i],
-                high:      q.high[i]??q.close[i],
-                low:       q.low[i]??q.close[i],
-                close:     q.close[i],
-                vol:       q.volume[i]??0
-            });
+            const intraday=['5m','15m','1h','2h','4h'].includes(tfKey);
+            const timeLabel=intraday
+                ?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
+                :tfKey==='1d'?d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})
+                :d.toLocaleDateString('en-US',{year:'numeric',month:'short'});
+            bars.push({time:timeLabel,timestamp:ts[i]*1000,
+                open:q.open[i]??q.close[i],high:q.high[i]??q.close[i],
+                low:q.low[i]??q.close[i],close:q.close[i],vol:q.volume[i]??0});
         }
         return bars.length>=5?bars:null;
-    } catch(e){clearTimeout(tid);throw e;}
+    }catch(e){clearTimeout(tid);throw e;}
 }
 
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  SCAN DISPATCHER
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 async function startScan(src){
     if(src==='yf'&&!activeProxy){alert('No working proxy. Re-test or use Alpha Vantage.');return;}
     const isAV=src==='av';
     const tfKey=activeTF[src];
     const tfLabel=isAV?AV_TF[tfKey].label:YF_TF[tfKey].label;
     const btn=document.getElementById(isAV?'avBtn':'yfBtn');
-    const syms=document.getElementById(isAV?'avSymbols':'yfSymbols').value
-                .trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+    const syms=document.getElementById(isAV?'avSymbols':'yfSymbols').value.trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
     const prog=document.getElementById(isAV?'avProg':'yfProg');
     const bar=document.getElementById(isAV?'avBar':'yfBar');
     const txt=document.getElementById(isAV?'avTxt':'yfTxt');
@@ -817,6 +972,8 @@ async function startScan(src){
         swingR:+document.getElementById('avSwingR').value,
         chanBars:+document.getElementById('avChanBars').value,
         chanWidth:+document.getElementById('avChanWidth').value,
+        fcastBars:+document.getElementById('avFcastBars').value,
+        fcastLB:+document.getElementById('avFcastLB').value,
         outSize:document.getElementById('avOut').value,
         delay:+document.getElementById('avDelay').value*1000,
         tfKey,tfLabel
@@ -825,6 +982,8 @@ async function startScan(src){
         swingR:+document.getElementById('yfSwingR').value,
         chanBars:+document.getElementById('yfChanBars').value,
         chanWidth:+document.getElementById('yfChanWidth').value,
+        fcastBars:+document.getElementById('yfFcastBars').value,
+        fcastLB:+document.getElementById('yfFcastLB').value,
         batchSize:+document.getElementById('yfBatch').value,
         batchDelay:+document.getElementById('yfDelay').value,
         tfKey,tfLabel
@@ -835,99 +994,53 @@ async function startScan(src){
     btn.textContent=isAV?'🔄 Scanning…':'⚡ Scanning…';
     prog.style.display='block'; bar.style.width='0%';
     resultMap.clear(); updateTable();
+    closeForecastPanel();
 
     if(isAV){
-        await runAV(syms,cfg,bar,txt,btn);
+        for(let i=0;i<syms.length;i++){
+            try{const bars=await fetchAV(syms[i],cfg.tfKey,cfg.outSize);if(bars){resultMap.set(syms[i],buildResult(syms[i],bars,cfg,'av',cfg.tfLabel));updateTable();}}catch(e){console.warn(syms[i],e.message);}
+            const pct=Math.round(((i+1)/syms.length)*100);
+            bar.style.width=pct+'%';
+            txt.textContent=progressMsg(i+1,syms.length,pct,cfg.tfLabel);
+            if(i<syms.length-1) await sleep(cfg.delay);
+        }
+        btn.disabled=false;btn.textContent='🔍 Start Scan';txt.textContent=doneMsg(cfg.tfLabel);
     } else {
         const grid=document.getElementById('batchGrid');
         const dbgEl=document.getElementById('debugBox');
-        dbgEl.innerHTML=''; grid.innerHTML=''; grid.classList.add('visible');
+        dbgEl.innerHTML='';grid.innerHTML='';grid.classList.add('visible');
         dbg('YF scan · '+syms.length+' symbols · '+tfLabel+' · proxy: '+activeProxy.name);
-        await runYF(syms,cfg,bar,txt,btn,grid);
+        const chips={};
+        syms.forEach(sym=>{const el=document.createElement('div');el.className='bchip';el.id='chip-'+sym;el.textContent=sym;grid.appendChild(el);chips[sym]=el;});
+        const batches=[];for(let i=0;i<syms.length;i+=cfg.batchSize) batches.push(syms.slice(i,i+cfg.batchSize));
+        let done=0;
+        for(let bi=0;bi<batches.length;bi++){
+            const batch=batches[bi];
+            batch.forEach(sym=>chips[sym].className='bchip loading');
+            await Promise.all(batch.map(async sym=>{
+                try{
+                    const bars=await fetchYF(sym,cfg.tfKey);
+                    if(bars&&bars.length>=10){const r=buildResult(sym,bars,cfg,'yf',cfg.tfLabel);resultMap.set(sym,r);chips[sym].className='bchip '+chipClass(r);dbg(sym+' · '+bars.length+' bars · '+r.direction,'ok');updateTable();}
+                    else{chips[sym].className='bchip error';}
+                }catch(e){chips[sym].className='bchip error';dbg(sym+' · '+e.message,'err');}
+                finally{done++;}
+            }));
+            const pct=Math.round((done/syms.length)*100);bar.style.width=pct+'%';txt.textContent=progressMsg(done,syms.length,pct,cfg.tfLabel);
+            if(bi<batches.length-1) await sleep(cfg.batchDelay);
+        }
+        btn.disabled=false;btn.textContent='⚡ Fast Scan';txt.textContent=doneMsg(cfg.tfLabel);
     }
 }
 
-async function runAV(syms,cfg,bar,txt,btn){
-    for(let i=0;i<syms.length;i++){
-        try{
-            const bars=await fetchAV(syms[i],cfg.tfKey,cfg.outSize);
-            if(bars){resultMap.set(syms[i],buildResult(syms[i],bars,cfg,'av',cfg.tfLabel));updateTable();}
-        }catch(e){console.warn(syms[i],e.message);}
-        const pct=Math.round(((i+1)/syms.length)*100);
-        bar.style.width=pct+'%';
-        txt.textContent=progressMsg(i+1,syms.length,pct,cfg.tfLabel);
-        if(i<syms.length-1) await sleep(cfg.delay);
-    }
-    btn.disabled=false; btn.textContent='🔍 Start Scan';
-    txt.textContent=doneMsg(cfg.tfLabel);
-}
+function chipClass(r){if(r.scanType==='both')return 'done-both';if(r.direction==='buy')return 'done-buy';if(r.direction==='sell')return 'done-sell';return 'done-none';}
+function allArr(){return[...resultMap.values()];}
+function progressMsg(done,total,pct,tf){const all=allArr();return `[${tf}] ${done}/${total} (${pct}%) · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length} · Both: ${all.filter(r=>r.scanType==='both').length}`;}
+function doneMsg(tf){const all=allArr();return `✅ [${tf}] ${all.length} scanned · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length} · Both: ${all.filter(r=>r.scanType==='both').length}`;}
 
-async function runYF(syms,cfg,bar,txt,btn,grid){
-    const chips={};
-    syms.forEach(sym=>{
-        const el=document.createElement('div');
-        el.className='bchip';el.id='chip-'+sym;el.textContent=sym;
-        grid.appendChild(el);chips[sym]=el;
-    });
-    const batches=[];
-    for(let i=0;i<syms.length;i+=cfg.batchSize) batches.push(syms.slice(i,i+cfg.batchSize));
-    let done=0;
-    for(let bi=0;bi<batches.length;bi++){
-        const batch=batches[bi];
-        batch.forEach(sym=>chips[sym].className='bchip loading');
-        await Promise.all(batch.map(async sym=>{
-            try{
-                const bars=await fetchYF(sym,cfg.tfKey);
-                if(bars&&bars.length>=10){
-                    const r=buildResult(sym,bars,cfg,'yf',cfg.tfLabel);
-                    resultMap.set(sym,r);
-                    chips[sym].className='bchip '+chipClass(r);
-                    dbg(sym+' · '+bars.length+' bars · '+r.direction+' · '+r.scanType,r.direction==='neutral'?'inf':'ok');
-                    updateTable();
-                }else{chips[sym].className='bchip error';dbg(sym+' · no data','err');}
-            }catch(e){chips[sym].className='bchip error';dbg(sym+' · '+e.message,'err');}
-            finally{done++;}
-        }));
-        const pct=Math.round((done/syms.length)*100);
-        bar.style.width=pct+'%';
-        txt.textContent=progressMsg(done,syms.length,pct,cfg.tfLabel);
-        if(bi<batches.length-1) await sleep(cfg.batchDelay);
-    }
-    btn.disabled=false; btn.textContent='⚡ Fast Scan';
-    txt.textContent=doneMsg(cfg.tfLabel);
-    if(resultMap.size===0&&['5m','15m'].includes(cfg.tfKey))
-        txt.textContent+=' ⚠️ Intraday data only available during market hours';
-}
-
-function chipClass(r){
-    if(r.scanType==='both') return 'done-both';
-    if(r.direction==='buy') return 'done-buy';
-    if(r.direction==='sell')return 'done-sell';
-    return 'done-none';
-}
-
-function allArr(){return [...resultMap.values()];}
-
-function progressMsg(done,total,pct,tf){
-    const all=allArr();
-    return `[${tf}] ${done}/${total} (${pct}%) · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length} · Both: ${all.filter(r=>r.scanType==='both').length}`;
-}
-
-function doneMsg(tf){
-    const all=allArr();
-    return `✅ [${tf}] ${all.length} scanned · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length} · Both: ${all.filter(r=>r.scanType==='both').length}`;
-}
-
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  TABLE
-// ═══════════════════════════════════
-function filterResults(f,e){
-    currentFilter=f;
-    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
-    if(e) e.target.classList.add('active');
-    updateTable();
-}
-
+// ═══════════════════════════════════════════════════════
+function filterResults(f,e){currentFilter=f;document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));if(e)e.target.classList.add('active');updateTable();}
 function f2(v){return v!==null&&v!==undefined?'$'+Number(v).toFixed(2):'—';}
 
 function updateTable(){
@@ -936,120 +1049,282 @@ function updateTable(){
     const countEl=document.getElementById('resultsCount');
     const pillsEl=document.getElementById('summaryPills');
     const all=allArr();
-
     if(all.length===0){container.style.display='none';return;}
 
-    const filtered=currentFilter==='all'?all
-        :currentFilter==='buy'    ?all.filter(r=>r.direction==='buy')
-        :currentFilter==='sell'   ?all.filter(r=>r.direction==='sell')
-        :currentFilter==='swing'  ?all.filter(r=>r.scanType==='swing')
-        :currentFilter==='channel'?all.filter(r=>r.scanType==='channel')
-        :currentFilter==='both'   ?all.filter(r=>r.scanType==='both')
-        :currentFilter==='neutral'?all.filter(r=>r.direction==='neutral')
-        :all;
-
-    const sortKey=r=>(r.scanType==='both'?'0':r.direction==='buy'?'1':r.direction==='sell'?'2':'3')+'_'+r.symbol;
-    const sorted=[...filtered].sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));
+    const filtered=currentFilter==='all'?all:currentFilter==='buy'?all.filter(r=>r.direction==='buy'):currentFilter==='sell'?all.filter(r=>r.direction==='sell'):currentFilter==='swing'?all.filter(r=>r.scanType==='swing'):currentFilter==='channel'?all.filter(r=>r.scanType==='channel'):currentFilter==='both'?all.filter(r=>r.scanType==='both'):currentFilter==='neutral'?all.filter(r=>r.direction==='neutral'):all;
+    const sorted=[...filtered].sort((a,b)=>{const o={both:0,buy:1,sell:2,neutral:3};return (o[a.scanType==='both'?'both':a.direction]||3)-(o[b.scanType==='both'?'both':b.direction]||3)||a.symbol.localeCompare(b.symbol);});
     filteredSymbols=sorted.map(r=>r.symbol);
 
     container.style.display='block';
-    const nBuy=all.filter(r=>r.direction==='buy').length;
-    const nSell=all.filter(r=>r.direction==='sell').length;
-    const nSwing=all.filter(r=>r.scanType==='swing').length;
-    const nChan=all.filter(r=>r.scanType==='channel').length;
-    const nBoth=all.filter(r=>r.scanType==='both').length;
-    const nNone=all.filter(r=>r.direction==='neutral').length;
-
+    const nBuy=all.filter(r=>r.direction==='buy').length,nSell=all.filter(r=>r.direction==='sell').length;
+    const nSwing=all.filter(r=>r.scanType==='swing').length,nChan=all.filter(r=>r.scanType==='channel').length;
+    const nBoth=all.filter(r=>r.scanType==='both').length,nNone=all.filter(r=>r.direction==='neutral').length;
     countEl.textContent=`${all.length} scanned · showing ${sorted.length}`;
-    pillsEl.innerHTML=`
-        <span class="s-pill sp-buy">🟢 Buy: ${nBuy}</span>
-        <span class="s-pill sp-sell">🔴 Sell: ${nSell}</span>
-        <span style="color:#dfe6e9;margin:0 2px">|</span>
-        <span class="s-pill sp-swing">📈 Swing: ${nSwing}</span>
-        <span class="s-pill sp-channel">📦 Channel: ${nChan}</span>
-        <span class="s-pill sp-both">⭐ Both: ${nBoth}</span>
-        <span class="s-pill sp-neutral">🟡 No signal: ${nNone}</span>
-    `;
+    pillsEl.innerHTML=`<span class="s-pill sp-buy">🟢 Buy: ${nBuy}</span><span class="s-pill sp-sell">🔴 Sell: ${nSell}</span><span style="color:#dfe6e9;margin:0 4px">|</span><span class="s-pill sp-swing">📈 Swing: ${nSwing}</span><span class="s-pill sp-channel">📦 Channel: ${nChan}</span><span class="s-pill sp-both">⭐ Both: ${nBoth}</span><span class="s-pill sp-neutral">🟡 No signal: ${nNone}</span>`;
 
-    if(sorted.length===0){
-        tbody.innerHTML=`<tr><td colspan="13" class="empty-state"><div class="empty-icon">🔍</div><div>No results for filter: ${currentFilter}</div></td></tr>`;
-        return;
-    }
+    if(sorted.length===0){tbody.innerHTML=`<tr><td colspan="13" class="empty-state"><div class="empty-icon">🔍</div><div>No results for: ${currentFilter}</div></td></tr>`;return;}
 
     tbody.innerHTML=sorted.map(r=>{
         const pos=r.change>=0;
-        const dirBadge=r.direction==='buy'
-            ?`<span class="signal-badge signal-bullish">🟢 BUY</span>`
-            :r.direction==='sell'
-            ?`<span class="signal-badge signal-bearish">🔴 SELL</span>`
-            :`<span class="signal-badge signal-neutral">🟡 WATCH</span>`;
-        const typeBadge=r.scanType==='both'
-            ?`<span class="scan-type st-both">⭐ BOTH</span>`
-            :r.scanType==='swing'
-            ?`<span class="scan-type st-swing">📈 SWING</span>`
-            :r.scanType==='channel'
-            ?`<span class="scan-type st-channel">📦 CHANNEL</span>`
+        const fcast=r.forecast;
+        const fcastBadge=fcast
+            ?(fcast.bias==='bullish'
+                ?`<span style="background:#d4edda;color:#155724;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;">▲ +${fcast.biasPct}%</span>`
+                :`<span style="background:#f8d7da;color:#721c24;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;">▼ ${fcast.biasPct}%</span>`)
             :`<span style="color:#aaa;font-size:11px;">—</span>`;
-        const optBadge=r.optType==='CALL'
-            ?`<span class="opt-pill opt-call">CALL</span>`
-            :r.optType==='PUT'
-            ?`<span class="opt-pill opt-put">PUT</span>`
-            :`—`;
-        const srcTag=r.source==='av'
-            ?`<span class="src-tag st-av">AV</span>`
-            :`<span class="src-tag st-yf">YF</span>`;
 
         return `<tr>
             <td class="sym">${r.symbol}</td>
             <td class="c"><span class="tf-tag">${r.tfLabel}</span></td>
             <td class="r" style="font-weight:600;">${f2(r.price)}</td>
-            <td class="r ${pos?'pos':'neg'}">
-                ${pos?'+':''}${r.change.toFixed(2)} (${pos?'+':''}${r.changePct.toFixed(2)}%)
-            </td>
-            <td class="c">${dirBadge}</td>
-            <td class="c">${typeBadge}</td>
-            <td class="c">${optBadge}</td>
+            <td class="r ${pos?'pos':'neg'}">${pos?'+':''}${r.change.toFixed(2)} (${pos?'+':''}${r.changePct.toFixed(2)}%)</td>
+            <td class="c">${r.direction==='buy'?'<span class="signal-badge signal-bullish">🟢 BUY</span>':r.direction==='sell'?'<span class="signal-badge signal-bearish">🔴 SELL</span>':'<span class="signal-badge signal-neutral">🟡 WATCH</span>'}</td>
+            <td class="c">${r.scanType==='both'?'<span class="scan-type st-both">⭐ BOTH</span>':r.scanType==='swing'?'<span class="scan-type st-swing">📈 SWING</span>':r.scanType==='channel'?'<span class="scan-type st-channel">📦 CHANNEL</span>':'<span style="color:#aaa;font-size:11px;">—</span>'}</td>
+            <td class="c">${r.optType==='CALL'?'<span class="opt-pill opt-call">CALL</span>':r.optType==='PUT'?'<span class="opt-pill opt-put">PUT</span>':'—'}</td>
             <td class="r" style="font-weight:700;">${f2(r.strike)}</td>
             <td class="r muted">${f2(r.stopLevel)}</td>
-            <td class="r muted" style="font-size:11px;">${r.levelStr}</td>
+            <td class="c">${fcastBadge}</td>
             <td class="c"><span class="conf-${r.confidence}">${r.confidence.toUpperCase()}</span></td>
-            <td class="c">${srcTag}</td>
-            <td class="c"><button class="view-btn" onclick="showDetail('${r.symbol}')">📊 Analyze</button></td>
+            <td class="c">${r.source==='av'?'<span class="src-tag st-av">AV</span>':'<span class="src-tag st-yf">YF</span>'}</td>
+            <td class="c" style="display:flex;gap:4px;justify-content:center;">
+                <button class="view-btn"  onclick="showDetail('${r.symbol}')">📊 Analyze</button>
+                <button class="fcast-btn" onclick="showForecastPanel('${r.symbol}')">🔮 Forecast</button>
+            </td>
         </tr>`;
     }).join('');
 }
 
-// ═══════════════════════════════════
-//  MODAL — keyed by symbol
-// ═══════════════════════════════════
+// ═══════════════════════════════════════════════════════
+//  FORECAST PANEL
+// ═══════════════════════════════════════════════════════
+function showForecastPanel(symbol) {
+    fpSymbol = symbol;
+    const panel = document.getElementById('forecastPanel');
+    panel.classList.add('visible');
+    panel.scrollIntoView({ behavior:'smooth', block:'start' });
+    renderForecastPanel(symbol, +document.getElementById('fpBarsSelect').value);
+}
+
+function refreshForecastPanel() {
+    if (fpSymbol) renderForecastPanel(fpSymbol, +document.getElementById('fpBarsSelect').value);
+}
+
+function renderForecastPanel(symbol, nForward) {
+    const r = resultMap.get(symbol);
+    if (!r) return;
+
+    // Re-compute forecast with new nForward
+    const fcast = computeForecast(r.bars, nForward, r.fcastLB || 100);
+
+    document.getElementById('fpSymbolTitle').textContent = symbol;
+    document.getElementById('fpMeta').textContent =
+        `${r.tfLabel} · ${r.source==='av'?'Alpha Vantage':'Yahoo Finance'} · Last bar: ${r.barTime} · ${nForward}-bar forecast`;
+    document.getElementById('fpChartTitle').textContent = `${symbol} — ${r.tfLabel}`;
+
+    // Stat row
+    document.getElementById('fpStatRow').innerHTML = `
+        <div class="fp-stat"><div class="fp-stat-lbl">Current Price</div><div class="fp-stat-val">${f2(r.price)}</div><div class="fp-stat-sub">${r.barTime}</div></div>
+        <div class="fp-stat"><div class="fp-stat-lbl">Forecast Bias</div><div class="fp-stat-val" style="color:${fcast?.bias==='bullish'?'#00b894':'#d63031'}">${fcast?fcast.bias.toUpperCase():'—'}</div><div class="fp-stat-sub">${fcast?fcast.biasPct+'% over '+nForward+' bars':'—'}</div></div>
+        <div class="fp-stat"><div class="fp-stat-lbl">Target Price</div><div class="fp-stat-val">${fcast?'$'+fcast.patternTarget:'—'}</div><div class="fp-stat-sub">Ensemble center</div></div>
+        <div class="fp-stat"><div class="fp-stat-lbl">Dominant Cycle</div><div class="fp-stat-val">${fcast?fcast.cycleLen+' bars':'—'}</div><div class="fp-stat-sub">Autocorrelation peak</div></div>
+        <div class="fp-stat"><div class="fp-stat-lbl">Pattern Match</div><div class="fp-stat-val">${fcast?fcast.bestCorr:'—'}</div><div class="fp-stat-sub">Pearson r (1=perfect)</div></div>
+        <div class="fp-stat"><div class="fp-stat-lbl">Volatility (1σ)</div><div class="fp-stat-val">${fcast?'$'+fcast.volatility:'—'}</div><div class="fp-stat-sub">Per bar</div></div>
+    `;
+
+    // Methods breakdown
+    document.getElementById('fpMethods').innerHTML = `
+        <div class="fp-method pattern">
+            <div class="fp-method-title">📐 Pattern Matching</div>
+            <div class="fp-method-val" style="color:#3b82f6;">r = ${fcast?.bestCorr??'—'}</div>
+            <div class="fp-method-sub">Finds most similar 20-bar historical pattern, projects its subsequent move scaled to current price anchor</div>
+        </div>
+        <div class="fp-method cycle">
+            <div class="fp-method-title">🔄 Timing Cycle</div>
+            <div class="fp-method-val" style="color:#f59e0b;">${fcast?.cycleLen??'—'}-bar cycle</div>
+            <div class="fp-method-sub">Dominant autocorrelation cycle in returns, projects next phase using sine-wave continuation</div>
+        </div>
+        <div class="fp-method momentum">
+            <div class="fp-method-title">📈 Momentum / Price Action</div>
+            <div class="fp-method-val" style="color:#22c55e;">slope ${fcast?.slope??'—'}</div>
+            <div class="fp-method-sub">Linear regression slope over last 10 bars with exponential decay — momentum fades over time</div>
+        </div>
+    `;
+
+    // Draw forecast chart
+    if (fpChart) { fpChart.destroy(); fpChart = null; }
+    setTimeout(() => { fpChart = drawForecastChart('fpChart', r, fcast, nForward); }, 80);
+}
+
+function closeForecastPanel() {
+    document.getElementById('forecastPanel').classList.remove('visible');
+    if (fpChart) { fpChart.destroy(); fpChart = null; }
+    fpSymbol = null;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CANDLESTICK + FORECAST CHART BUILDER
+//  Used by both forecast panel and modal
+// ═══════════════════════════════════════════════════════
+function drawForecastChart(canvasId, r, fcast, nForward) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return null;
+
+    const barsToShow = Math.min(r.bars.length, 60);
+    const show = r.bars.slice(0, barsToShow).reverse(); // oldest first
+    const len  = show.length;
+
+    // Timeframe step in ms
+    const tfMs = {minute:5*60000,hour:60*60000,day:86400000,week:7*86400000,month:30*86400000};
+    const avKey = Object.keys(AV_TF).find(k=>AV_TF[k].label===r.tfLabel);
+    const yfKey = Object.keys(YF_TF).find(k=>YF_TF[k].label===r.tfLabel);
+    const tfUnit = avKey?AV_TF[avKey].chartUnit : yfKey?YF_TF[yfKey].chartUnit:'day';
+    const step   = tfMs[tfUnit]||86400000;
+
+    const now = Date.now();
+    const candleData = show.map((b,i)=>({
+        x: b.timestamp||(now-(len-1-i)*step),
+        o:b.open,h:b.high,l:b.low,c:b.close
+    }));
+
+    const lastTs  = candleData[candleData.length-1].x;
+    const firstTs = candleData[0].x;
+
+    // Forecast timestamps (project forward from last bar)
+    const fcastTs = [];
+    for (let i=1;i<=nForward;i++) fcastTs.push(lastTs+i*step);
+
+    // Build datasets
+    const datasets = [{
+        label:r.symbol+' OHLC',
+        type:'candlestick',
+        data:candleData,
+        parsing:false,
+        color:{up:'#00b894',down:'#d63031',unchanged:'#636e72'},
+        borderColor:{up:'#00b894',down:'#d63031',unchanged:'#636e72'}
+    }];
+
+    // Swing/channel overlay lines
+    function hline(val,lbl,color,dash){
+        return {label:lbl,type:'line',data:[{x:firstTs,y:val},{x:lastTs,y:val}],
+            borderColor:color,borderWidth:1.5,borderDash:dash||[6,4],pointRadius:0,fill:false,parsing:false};
+    }
+
+    if(r.swing.swingLow)    datasets.push(hline(r.swing.swingLow,   `Swing Low ${f2(r.swing.swingLow)}`,      '#00b894',[6,4]));
+    if(r.swing.swingHigh)   datasets.push(hline(r.swing.swingHigh,  `Swing High ${f2(r.swing.swingHigh)}`,    '#d63031',[6,4]));
+    if(r.swing.leftLowHigh) datasets.push(hline(r.swing.leftLowHigh,`Buy Trig ${f2(r.swing.leftLowHigh)}`,   '#00cec9',[2,5]));
+    if(r.swing.leftHighLow) datasets.push(hline(r.swing.leftHighLow,`Sell Trig ${f2(r.swing.leftHighLow)}`,  '#e17055',[2,5]));
+    if(r.channel.resistance)datasets.push(hline(r.channel.resistance,`Chan R ${f2(r.channel.resistance)}`,   '#6c5ce7',[8,3]));
+    if(r.channel.support)   datasets.push(hline(r.channel.support,  `Chan S ${f2(r.channel.support)}`,       '#a29bfe',[8,3]));
+
+    if (fcast) {
+        // Bridge: connect last candle close to forecast start
+        const bridge = [{x:lastTs,y:r.price},...fcastTs.map((ts,i)=>({x:ts,y:fcast.center[i]}))];
+        const upperPts= [{x:lastTs,y:r.price},...fcastTs.map((ts,i)=>({x:ts,y:fcast.upper[i]}))];
+        const lowerPts= [{x:lastTs,y:r.price},...fcastTs.map((ts,i)=>({x:ts,y:fcast.lower[i]}))];
+
+        // Center forecast — grey dotted
+        datasets.push({
+            label:`Forecast center (${nForward} bars)`,
+            type:'line',
+            data:bridge,
+            borderColor:'rgba(100,100,100,0.85)',
+            borderWidth:2,
+            borderDash:[6,4],
+            pointRadius:[0,...Array(nForward).fill(3)],
+            pointBackgroundColor:'rgba(100,100,100,0.6)',
+            pointBorderColor:'rgba(100,100,100,0.85)',
+            fill:false,
+            parsing:false,
+            tension:0.3
+        });
+
+        // Upper confidence band — grey dotted
+        datasets.push({
+            label:'Upper band (1.5σ)',
+            type:'line',
+            data:upperPts,
+            borderColor:'rgba(140,140,140,0.55)',
+            borderWidth:1.5,
+            borderDash:[3,5],
+            pointRadius:0,
+            fill:false,
+            parsing:false,
+            tension:0.3
+        });
+
+        // Lower confidence band — grey dotted
+        datasets.push({
+            label:'Lower band (1.5σ)',
+            type:'line',
+            data:lowerPts,
+            borderColor:'rgba(140,140,140,0.55)',
+            borderWidth:1.5,
+            borderDash:[3,5],
+            pointRadius:0,
+            fill:false,
+            parsing:false,
+            tension:0.3
+        });
+
+        // Vertical separation line at "now"
+        datasets.push({
+            label:'Now',
+            type:'line',
+            data:[{x:lastTs,y:Math.min(...show.map(b=>b.low))*0.998},{x:lastTs,y:Math.max(...show.map(b=>b.high))*1.002}],
+            borderColor:'rgba(100,100,100,0.3)',
+            borderWidth:1,
+            borderDash:[2,3],
+            pointRadius:0,
+            fill:false,
+            parsing:false
+        });
+    }
+
+    const tdFmts={minute:'HH:mm',hour:'MM/dd HH:mm',day:'MMM dd',week:'MMM dd yy',month:"MMM ''yy"};
+
+    return new Chart(ctx,{
+        type:'candlestick',
+        data:{datasets},
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                legend:{display:true,position:'top',
+                    labels:{font:{size:10},boxWidth:14,
+                        filter:item=>item.datasetIndex>0&&item.datasetIndex<=7}},
+                tooltip:{callbacks:{
+                    label:ctx=>{
+                        if(ctx.dataset.type==='candlestick'){const d=ctx.raw;return[`O: $${d.o?.toFixed(2)}  H: $${d.h?.toFixed(2)}`,`L: $${d.l?.toFixed(2)}  C: $${d.c?.toFixed(2)}`];}
+                        return`${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2)}`;
+                    }
+                }}
+            },
+            scales:{
+                x:{type:'timeseries',time:{unit:tfUnit,displayFormats:tdFmts},ticks:{font:{size:9},maxTicksLimit:14,color:'#636e72'},grid:{color:'#ecf0f1'}},
+                y:{ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72'},grid:{color:'#ecf0f1'}}
+            }
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════════════
+//  ANALYSIS MODAL
+// ═══════════════════════════════════════════════════════
 function showDetail(symbol){
     const r=resultMap.get(symbol);
     if(!r){alert('No data for '+symbol);return;}
     const isBuy=r.direction==='buy',isSel=r.direction==='sell';
-    const sw=r.swing,ch=r.channel;
+    const sw=r.swing,ch=r.channel,fcast=r.forecast;
 
-    document.getElementById('modalTitle').textContent=`${r.symbol} — ${r.tfLabel} Breakout Analysis`;
-    document.getElementById('modalSub').textContent=
-        `${r.source==='av'?'Alpha Vantage':'Yahoo Finance'} · ${r.tfLabel} · ${r.barTime} · `
-        +(r.scanType==='both'?'⭐ Both signals':r.scanType==='swing'?'📈 Swing':r.scanType==='channel'?'📦 Channel':'No signal');
+    document.getElementById('modalTitle').textContent=`${r.symbol} — ${r.tfLabel} Analysis`;
+    document.getElementById('modalSub').textContent=`${r.source==='av'?'Alpha Vantage':'Yahoo Finance'} · ${r.tfLabel} · ${r.barTime}`;
 
     let chanViz='';
     if(ch.resistance!==null&&ch.support!==null){
         const range=(ch.resistance-ch.support)||0.01;
         const pricePos=Math.min(Math.max((r.price-ch.support)/range*100,0),100);
-        chanViz=`
-        <div class="channel-viz">
-            <div class="channel-viz-title">📦 Channel — width: ${ch.channelWidth?.toFixed(2)}% · ${ch.inChannel?'✅ Qualifies':'❌ Too wide'}</div>
-            <div class="channel-bar-wrap">
-                <div class="channel-bar-fill" style="left:0%;right:0%;"></div>
-                <div class="channel-price-marker" style="left:${pricePos.toFixed(1)}%;"></div>
-            </div>
-            <div class="channel-labels">
-                <span style="color:#d63031;font-weight:700;">Support: ${f2(ch.support)}</span>
-                <span>Width: ${ch.channelWidth?.toFixed(2)}%</span>
-                <span style="color:#00b894;font-weight:700;">Resistance: ${f2(ch.resistance)}</span>
-            </div>
-        </div>`;
+        chanViz=`<div class="channel-viz"><div class="channel-viz-title">📦 Channel — width: ${ch.channelWidth?.toFixed(2)}% · ${ch.inChannel?'✅ Qualifies':'❌ Too wide'}</div><div class="channel-bar-wrap"><div class="channel-bar-fill" style="left:0%;right:0%;"></div><div class="channel-price-marker" style="left:${pricePos.toFixed(1)}%;"></div></div><div class="channel-labels"><span style="color:#d63031;font-weight:700;">Support: ${f2(ch.support)}</span><span>Width: ${ch.channelWidth?.toFixed(2)}%</span><span style="color:#00b894;font-weight:700;">Resistance: ${f2(ch.resistance)}</span></div></div>`;
     }
 
     document.getElementById('modalBody').innerHTML=`
@@ -1061,7 +1336,7 @@ function showDetail(symbol){
                     ${sw.signal==='buy'?`<strong>📈 Swing trigger:</strong> Close above ${f2(sw.leftLowHigh)}<br>Swing low: ${f2(sw.swingLow)}<br>`:''}
                     ${ch.signal==='buy'?`<strong>📦 Channel trigger:</strong> Close above resistance ${f2(ch.resistance)}<br>Channel support: ${f2(ch.support)}<br>`:''}
                     <strong>ATM CALL strike:</strong> ${f2(r.strike)}<br>
-                    ${isBuy?'<strong style="color:#155724">✅ Signal active</strong>':'No buy signal on current bar'}
+                    ${isBuy?'<strong style="color:#155724">✅ Signal active</strong>':'No buy signal'}
                 </div>
             </div>
             <div class="zone-box bearish">
@@ -1069,71 +1344,31 @@ function showDetail(symbol){
                 <div class="zone-price">${isSel?f2(r.price):'—'}</div>
                 <div class="zone-desc">
                     ${sw.signal==='sell'?`<strong>📈 Swing trigger:</strong> Close below ${f2(sw.leftHighLow)}<br>Swing high: ${f2(sw.swingHigh)}<br>`:''}
-                    ${ch.signal==='sell'?`<strong>📦 Channel trigger:</strong> Close below support ${f2(ch.support)}<br>Channel resistance: ${f2(ch.resistance)}<br>`:''}
+                    ${ch.signal==='sell'?`<strong>📦 Channel trigger:</strong> Close below support ${f2(ch.support)}<br>Chan resistance: ${f2(ch.resistance)}<br>`:''}
                     <strong>ATM PUT strike:</strong> ${f2(r.strike)}<br>
-                    ${isSel?'<strong style="color:#721c24">✅ Signal active</strong>':'No sell signal on current bar'}
+                    ${isSel?'<strong style="color:#721c24">✅ Signal active</strong>':'No sell signal'}
                 </div>
             </div>
         </div>
-
         ${chanViz}
-
         <div class="stats-section">
-            <div class="stats-title">📐 Signal Detail — ${r.tfLabel}</div>
+            <div class="stats-title">📐 Signal + Forecast Summary</div>
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-lbl">Close</div>
-                    <div class="stat-val">${f2(r.price)}</div>
-                    <div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:11px;">
-                        ${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-lbl">Direction</div>
-                    <div class="stat-val" style="color:${isBuy?'#00b894':isSel?'#d63031':'#fdcb6e'}">
-                        ${isBuy?'BUY':isSel?'SELL':'WATCH'}
-                    </div>
-                    <div class="stat-sub">Confidence: ${r.confidence.toUpperCase()}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-lbl">Scan Type</div>
-                    <div class="stat-val" style="font-size:14px;">
-                        ${r.scanType==='both'?'⭐ BOTH':r.scanType==='swing'?'📈 SWING':r.scanType==='channel'?'📦 CHANNEL':'—'}
-                    </div>
-                    <div class="stat-sub">${r.scanType==='both'?'Both scanners agree':''}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-lbl">Option</div>
-                    <div class="stat-val" style="color:${isBuy?'#00b894':isSel?'#d63031':'#636e72'}">${r.optType??'—'}</div>
-                    <div class="stat-sub">ATM strike ${f2(r.strike)}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-lbl">Stop Loss</div>
-                    <div class="stat-val" style="color:#fdcb6e;">${f2(r.stopLevel)}</div>
-                    <div class="stat-sub">${isBuy?'Close below':isSel?'Close above':'—'} this level</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-lbl">Timeframe</div>
-                    <div class="stat-val" style="font-size:16px;">${r.tfLabel}</div>
-                    <div class="stat-sub">${r.source==='av'?'Alpha Vantage':'Yahoo Finance'}</div>
-                </div>
+                <div class="stat-card"><div class="stat-lbl">Price</div><div class="stat-val">${f2(r.price)}</div><div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:11px;">${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)</div></div>
+                <div class="stat-card"><div class="stat-lbl">Signal</div><div class="stat-val" style="color:${isBuy?'#00b894':isSel?'#d63031':'#fdcb6e'}">${isBuy?'BUY':isSel?'SELL':'WATCH'}</div><div class="stat-sub">Confidence: ${r.confidence.toUpperCase()}</div></div>
+                <div class="stat-card"><div class="stat-lbl">Forecast Bias</div><div class="stat-val" style="color:${fcast?.bias==='bullish'?'#00b894':'#d63031'};font-size:16px;">${fcast?fcast.bias.toUpperCase():'—'}</div><div class="stat-sub">${fcast?fcast.biasPct+'% · '+r.fcastBars+' bars':'—'}</div></div>
+                <div class="stat-card"><div class="stat-lbl">Option</div><div class="stat-val" style="color:${isBuy?'#00b894':isSel?'#d63031':'#636e72'}">${r.optType??'—'}</div><div class="stat-sub">ATM ${f2(r.strike)}</div></div>
+                <div class="stat-card"><div class="stat-lbl">Stop Loss</div><div class="stat-val" style="color:#fdcb6e;">${f2(r.stopLevel)}</div><div class="stat-sub">${isBuy?'Close below':isSel?'Close above':'—'}</div></div>
+                <div class="stat-card"><div class="stat-lbl">Cycle Length</div><div class="stat-val" style="font-size:16px;">${fcast?.cycleLen??'—'} bars</div><div class="stat-sub">Pattern corr: ${fcast?.bestCorr??'—'}</div></div>
             </div>
         </div>
-
         <div class="chart-section">
-            <div class="chart-title">🕯️ ${r.symbol} — ${r.tfLabel} Candlestick Chart</div>
-            <div class="chart-sub">Green = up candle · Red = down candle · Dashed lines = swing &amp; channel levels</div>
-            <canvas id="detailChart" style="max-height:340px;"></canvas>
+            <div class="chart-title">🕯️ ${r.symbol} — ${r.tfLabel} · Candlestick + ${r.fcastBars}-Bar Forecast</div>
+            <div class="chart-sub">Candles = historical · Grey dotted = forecast center · Outer grey dotted = upper/lower 1.5σ confidence bands</div>
+            <canvas id="modalChart" style="max-height:360px;"></canvas>
         </div>
-
         <div class="recommendation">
-            <div class="rec-title">
-                ${r.scanType==='both'&&isBuy ?'⭐ STRONG BUY — Both signals confirm · Buy ATM CALL'
-                :r.scanType==='both'&&isSel  ?'⭐ STRONG SELL — Both signals confirm · Buy ATM PUT'
-                :isBuy                        ?'🟢 BUY SIGNAL — Buy ATM CALL Option'
-                :isSel                        ?'🔴 SELL SIGNAL — Buy ATM PUT Option'
-                :                              '🟡 NO SIGNAL — Monitor for breakout'}
-            </div>
+            <div class="rec-title">${r.scanType==='both'&&isBuy?'⭐ STRONG BUY — Both + Forecast confirm':r.scanType==='both'&&isSel?'⭐ STRONG SELL — Both + Forecast confirm':isBuy?'🟢 BUY SIGNAL — ATM CALL':isSel?'🔴 SELL SIGNAL — ATM PUT':'🟡 NO SIGNAL'}</div>
             <div class="rec-grid">
                 <div class="rec-item"><div class="rec-label">Symbol</div><div class="rec-value">${r.symbol}</div></div>
                 <div class="rec-item"><div class="rec-label">Timeframe</div><div class="rec-value">${r.tfLabel}</div></div>
@@ -1146,99 +1381,16 @@ function showDetail(symbol){
     `;
 
     document.getElementById('modal').style.display='block';
-    setTimeout(()=>drawCandleChart(r),120);
-}
-
-// ═══════════════════════════════════
-//  CANDLESTICK CHART
-// ═══════════════════════════════════
-function drawCandleChart(r){
-    const ctx=document.getElementById('detailChart');
-    if(!ctx) return;
-    if(currentChart){currentChart.destroy();currentChart=null;}
-
-    const barsToShow = Math.min(r.bars.length, 80);
-    const show=r.bars.slice(0,barsToShow).reverse();
-    const len=show.length;
-
-    // Determine chart time unit from tfLabel
-    const tfUnit = r.source==='av'
-        ? AV_TF[Object.keys(AV_TF).find(k=>AV_TF[k].label===r.tfLabel)]?.chartUnit || 'day'
-        : YF_TF[Object.keys(YF_TF).find(k=>YF_TF[k].label===r.tfLabel)]?.chartUnit || 'day';
-
-    // Build OHLC with timestamps
-    const now=Date.now();
-    const tfMs={minute:5*60000,hour:60*60000,day:24*60*60000,week:7*24*60*60000,month:30*24*60*60000};
-    const step=tfMs[tfUnit]||86400000;
-
-    const candleData=show.map((b,i)=>{
-        const ts=b.timestamp||now-(len-1-i)*step;
-        return {x:ts,o:b.open,h:b.high,l:b.low,c:b.close};
-    });
-
-    const firstTs=candleData[0].x, lastTs=candleData[candleData.length-1].x;
-
-    function hline(val,label,color,dash){
-        return {label,type:'line',
-            data:[{x:firstTs,y:val},{x:lastTs,y:val}],
-            borderColor:color,borderWidth:1.5,borderDash:dash||[6,4],
-            pointRadius:0,fill:false,parsing:false};
-    }
-
-    const datasets=[{
-        label:r.symbol,type:'candlestick',data:candleData,parsing:false,
-        color:{up:'#00b894',down:'#d63031',unchanged:'#636e72'},
-        borderColor:{up:'#00b894',down:'#d63031',unchanged:'#636e72'}
-    }];
-
-    if(r.swing.swingLow)    datasets.push(hline(r.swing.swingLow,   `Swing Low ${f2(r.swing.swingLow)}`,      '#00b894',[6,4]));
-    if(r.swing.swingHigh)   datasets.push(hline(r.swing.swingHigh,  `Swing High ${f2(r.swing.swingHigh)}`,    '#d63031',[6,4]));
-    if(r.swing.leftLowHigh) datasets.push(hline(r.swing.leftLowHigh,`Buy Trig ${f2(r.swing.leftLowHigh)}`,   '#00cec9',[2,5]));
-    if(r.swing.leftHighLow) datasets.push(hline(r.swing.leftHighLow,`Sell Trig ${f2(r.swing.leftHighLow)}`,  '#e17055',[2,5]));
-    if(r.channel.resistance)datasets.push(hline(r.channel.resistance,`Chan R ${f2(r.channel.resistance)}`,   '#6c5ce7',[8,3]));
-    if(r.channel.support)   datasets.push(hline(r.channel.support,  `Chan S ${f2(r.channel.support)}`,       '#a29bfe',[8,3]));
-
-    // Choose time display format based on timeframe
-    const timeDisplayFormats={
-        minute:'HH:mm',hour:'MM/dd HH:mm',day:'MMM dd',week:'MMM dd yy',month:"MMM ''yy"
-    };
-
-    currentChart=new Chart(ctx,{
-        type:'candlestick',
-        data:{datasets},
-        options:{
-            responsive:true,maintainAspectRatio:false,
-            interaction:{mode:'index',intersect:false},
-            plugins:{
-                legend:{display:true,position:'top',
-                    labels:{font:{size:10},boxWidth:14,
-                        filter:item=>item.datasetIndex>0}},
-                tooltip:{callbacks:{
-                    label:ctx=>{
-                        if(ctx.dataset.type==='candlestick'){
-                            const d=ctx.raw;
-                            return[`O: $${d.o?.toFixed(2)}  H: $${d.h?.toFixed(2)}`,
-                                   `L: $${d.l?.toFixed(2)}  C: $${d.c?.toFixed(2)}`];
-                        }
-                        return `${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2)}`;
-                    }
-                }}
-            },
-            scales:{
-                x:{type:'timeseries',
-                    time:{unit:tfUnit,displayFormats:timeDisplayFormats},
-                    ticks:{font:{size:9},maxTicksLimit:12,color:'#636e72'},
-                    grid:{color:'#ecf0f1'}},
-                y:{ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72'},
-                    grid:{color:'#ecf0f1'}}
-            }
-        }
-    });
+    setTimeout(()=>{
+        if(modalChart){modalChart.destroy();modalChart=null;}
+        const re=computeForecast(r.bars,r.fcastBars,r.fcastLB||100);
+        modalChart=drawForecastChart('modalChart',r,re,r.fcastBars);
+    },120);
 }
 
 function closeModal(){
     document.getElementById('modal').style.display='none';
-    if(currentChart){currentChart.destroy();currentChart=null;}
+    if(modalChart){modalChart.destroy();modalChart=null;}
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
