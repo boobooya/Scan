@@ -6,448 +6,154 @@
     <title>5-Min Breakout Scanner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; min-height: 100vh; }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f6fa;
-            min-height: 100vh;
-        }
-
-        /* ── HEADER ── */
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 12px;
+            color: white; padding: 20px 24px;
+            display: flex; align-items: center; justify-content: space-between;
+            flex-wrap: wrap; gap: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.12);
         }
-
         .header h1 { font-size: 22px; margin-bottom: 4px; }
         .header p  { opacity: 0.88; font-size: 12px; }
 
         .source-toggle {
-            display: flex;
-            background: rgba(255,255,255,0.15);
-            border-radius: 8px;
-            overflow: hidden;
+            display: flex; background: rgba(255,255,255,0.15);
+            border-radius: 8px; overflow: hidden;
             border: 1px solid rgba(255,255,255,0.25);
         }
-
         .src-btn {
-            padding: 8px 16px;
-            border: none;
-            background: transparent;
-            color: rgba(255,255,255,0.75);
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            transition: all 0.15s;
-            white-space: nowrap;
+            padding: 8px 16px; border: none; background: transparent;
+            color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            transition: all 0.15s; white-space: nowrap;
         }
-
         .src-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
-
         .src-dot { width: 7px; height: 7px; border-radius: 50%; }
         .src-av  { background: #fcd34d; }
         .src-yf  { background: #6ee7b7; }
-
         .spd-badge { font-size: 9px; padding: 2px 6px; border-radius: 8px; font-weight: 700; }
         .spd-slow  { background: rgba(252,211,77,0.25); color: #fcd34d; }
         .spd-fast  { background: rgba(110,231,183,0.25); color: #6ee7b7; }
 
-        /* ── LAYOUT ── */
         .container { max-width: 1500px; margin: 0 auto; padding: 20px; }
 
-        .source-info {
-            padding: 10px 18px;
-            border-radius: 8px;
-            margin-bottom: 14px;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
+        .source-info { padding: 10px 18px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; display: flex; align-items: center; gap: 10px; }
         .si-av { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
         .si-yf { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
 
-        /* proxy status */
-        .proxy-status {
-            display: none;
-            padding: 8px 14px;
-            border-radius: 8px;
-            margin-bottom: 14px;
-            font-size: 12px;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
+        .proxy-status { display: none; padding: 8px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; align-items: center; gap: 8px; flex-wrap: wrap; }
         .proxy-status.visible { display: flex; }
         .ps-testing { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
         .ps-ok      { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
         .ps-fail    { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-
-        .proxy-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .proxy-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .dot-ok   { background: #22c55e; }
         .dot-fail { background: #ef4444; }
         .dot-spin { background: #f59e0b; animation: pulse 1s linear infinite; }
-
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-        /* ── CONTROLS ── */
-        .controls {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-        }
+        .controls { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+        .av-panel { display: none; } .av-panel.visible { display: block; }
+        .yf-panel { display: none; } .yf-panel.visible { display: block; }
 
-        /* scan mode banner */
         .mode-banner {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 14px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-            background: linear-gradient(90deg, #667eea15, #764ba215);
-            border: 1px solid #667eea30;
-            font-size: 12px;
-            color: #4a5568;
-            flex-wrap: wrap;
+            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+            border-radius: 8px; margin-bottom: 16px;
+            background: linear-gradient(90deg,#667eea15,#764ba215);
+            border: 1px solid #667eea30; font-size: 12px; color: #4a5568; flex-wrap: wrap;
         }
-
-        .mode-tag {
-            padding: 3px 9px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
+        .mode-tag { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
         .mt-swing   { background: #e0e7ff; color: #3730a3; }
         .mt-channel { background: #fef3c7; color: #92400e; }
-        .mt-both    { background: #d1fae5; color: #065f46; }
 
-        .av-panel { display: none; }
-        .av-panel.visible { display: block; }
-        .yf-panel { display: none; }
-        .yf-panel.visible { display: block; }
+        .control-row { display: grid; gap: 14px; align-items: end; }
+        .cr-main { grid-template-columns: 1fr 120px 120px 120px auto; }
 
-        .control-row {
-            display: grid;
-            gap: 14px;
-            align-items: end;
-        }
+        .section-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 14px; }
+        .section-divider span { font-size: 12px; font-weight: 700; color: #636e72; white-space: nowrap; }
+        .section-divider::before,.section-divider::after { content:''; flex:1; height:1px; background:#dfe6e9; }
 
-        .cr-main   { grid-template-columns: 1fr 120px 120px 120px auto; }
-        .cr-swing  { grid-template-columns: 1fr 130px 130px auto; }
-        .cr-channel{ grid-template-columns: 1fr 130px 130px 130px auto; }
+        .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 4px; }
+        .settings-card { background: #f8f9fa; border: 1px solid #dfe6e9; border-radius: 8px; padding: 14px; }
+        .settings-card-title { font-size: 12px; font-weight: 700; color: #2d3436; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+        .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
-        .section-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 16px 0 14px;
-        }
-
-        .section-divider span {
-            font-size: 12px;
-            font-weight: 700;
-            color: #636e72;
-            white-space: nowrap;
-        }
-
-        .section-divider::before,
-        .section-divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #dfe6e9;
-        }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 4px;
-        }
-
-        .settings-card {
-            background: #f8f9fa;
-            border: 1px solid #dfe6e9;
-            border-radius: 8px;
-            padding: 14px;
-        }
-
-        .settings-card-title {
-            font-size: 12px;
-            font-weight: 700;
-            color: #2d3436;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-
-        .settings-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 6px;
-            font-size: 11px;
-            color: #636e72;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 9px 11px;
-            border: 2px solid #dfe6e9;
-            border-radius: 8px;
-            font-size: 13px;
-            color: #2d3436;
-            outline: none;
-            transition: border-color 0.15s;
-            background: #fff;
-        }
-
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 0.3px; }
+        input, select { width: 100%; padding: 9px 11px; border: 2px solid #dfe6e9; border-radius: 8px; font-size: 13px; color: #2d3436; outline: none; transition: border-color 0.15s; background: #fff; }
         input:focus, select:focus { border-color: #667eea; }
 
-        .scan-btn {
-            padding: 11px 26px;
-            border: none;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: opacity 0.15s;
-        }
-
+        .scan-btn { padding: 11px 26px; border: none; border-radius: 8px; color: white; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
         .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .btn-av { background: linear-gradient(135deg, #f59e0b, #d97706); }
         .btn-yf { background: linear-gradient(135deg, #00b894, #00cec9); }
 
-        .test-btn {
-            padding: 7px 14px;
-            border: 1px solid #dfe6e9;
-            border-radius: 7px;
-            background: white;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            color: #2d3436;
-        }
-
+        .test-btn { padding: 7px 14px; border: 1px solid #dfe6e9; border-radius: 7px; background: white; font-size: 12px; font-weight: 600; cursor: pointer; color: #2d3436; }
         .test-btn:hover { border-color: #667eea; color: #667eea; }
 
         .quick-btns { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
-
-        .quick-btn {
-            padding: 5px 11px;
-            background: #0984e3;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 11px;
-            cursor: pointer;
-        }
-
+        .quick-btn { padding: 5px 11px; background: #0984e3; color: white; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; }
         .quick-btn:hover { opacity: 0.85; }
 
-        /* progress */
         .progress { background: #ecf0f1; height: 6px; border-radius: 3px; overflow: hidden; margin: 14px 0 5px; display: none; }
         .progress-bar { height: 100%; transition: width 0.3s; }
-        .pb-av { background: linear-gradient(90deg, #f59e0b, #d97706); }
-        .pb-yf { background: linear-gradient(90deg, #00b894, #00cec9); }
+        .pb-av { background: linear-gradient(90deg,#f59e0b,#d97706); }
+        .pb-yf { background: linear-gradient(90deg,#00b894,#00cec9); }
         .progress-text { font-size: 12px; color: #636e72; text-align: center; min-height: 16px; }
 
-        /* batch chips */
-        .batch-grid {
-            display: none;
-            grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-            gap: 5px;
-            margin-top: 10px;
-            max-height: 80px;
-            overflow: hidden;
-        }
-
+        .batch-grid { display: none; grid-template-columns: repeat(auto-fill,minmax(72px,1fr)); gap: 5px; margin-top: 10px; max-height: 80px; overflow: hidden; }
         .batch-grid.visible { display: grid; }
+        .bchip { font-size: 10px; font-weight: 700; padding: 3px 5px; border-radius: 4px; text-align: center; background: #f0f0f0; color: #999; border: 1px solid #e0e0e0; transition: all 0.18s; }
+        .bchip.loading   { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .bchip.done-buy  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+        .bchip.done-sell { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+        .bchip.done-both { background: #ede9fe; color: #4c1d95; border-color: #c4b5fd; }
+        .bchip.done-none { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
+        .bchip.error     { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; font-style:italic; }
 
-        .bchip {
-            font-size: 10px; font-weight: 700;
-            padding: 3px 5px; border-radius: 4px;
-            text-align: center;
-            background: #f0f0f0; color: #999;
-            border: 1px solid #e0e0e0;
-            transition: all 0.18s;
-        }
-
-        .bchip.loading    { background: #fffbeb; color: #b45309; border-color: #fde68a; }
-        .bchip.done-buy   { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
-        .bchip.done-sell  { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-        .bchip.done-both  { background: #ede9fe; color: #4c1d95; border-color: #c4b5fd; }
-        .bchip.done-none  { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
-        .bchip.error      { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; font-style:italic; }
-
-        /* debug */
-        .debug-box {
-            display: none;
-            background: #1e1e1e; color: #a8ff78;
-            font-family: monospace; font-size: 11px;
-            padding: 12px; border-radius: 8px;
-            margin-top: 12px; max-height: 100px;
-            overflow-y: auto; line-height: 1.6;
-        }
-
+        .debug-box { display: none; background: #1e1e1e; color: #a8ff78; font-family: monospace; font-size: 11px; padding: 12px; border-radius: 8px; margin-top: 12px; max-height: 100px; overflow-y: auto; line-height: 1.6; }
         .debug-box.visible { display: block; }
-        .d-err { color: #ff6b6b; }
-        .d-ok  { color: #6ee7b7; }
-        .d-inf { color: #fbbf24; }
+        .d-err { color: #ff6b6b; } .d-ok { color: #6ee7b7; } .d-inf { color: #fbbf24; }
 
-        /* ── RESULTS ── */
-        .results-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-            overflow: hidden;
-            display: none;
-        }
-
-        .results-header {
-            padding: 14px 20px;
-            border-bottom: 2px solid #ecf0f1;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-
+        .results-container { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; display: none; }
+        .results-header { padding: 14px 20px; border-bottom: 2px solid #ecf0f1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .results-title { font-size: 17px; font-weight: 700; color: #2d3436; }
         .results-count { font-size: 12px; color: #636e72; }
 
-        /* summary pills */
-        .summary-pills {
-            display: flex;
-            gap: 8px;
-            padding: 10px 20px;
-            border-bottom: 1px solid #ecf0f1;
-            background: #f8f9fa;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-
-        .s-pill {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        .sp-buy     { background: #d4edda; color: #155724; }
-        .sp-sell    { background: #f8d7da; color: #721c24; }
-        .sp-swing   { background: #e0e7ff; color: #3730a3; }
+        .summary-pills { display: flex; gap: 8px; padding: 10px 20px; border-bottom: 1px solid #ecf0f1; background: #f8f9fa; flex-wrap: wrap; align-items: center; }
+        .s-pill { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+        .sp-buy { background: #d4edda; color: #155724; }
+        .sp-sell { background: #f8d7da; color: #721c24; }
+        .sp-swing { background: #e0e7ff; color: #3730a3; }
         .sp-channel { background: #fef3c7; color: #92400e; }
-        .sp-both    { background: #ede9fe; color: #4c1d95; }
+        .sp-both { background: #ede9fe; color: #4c1d95; }
         .sp-neutral { background: #f3f4f6; color: #6b7280; }
 
-        .filter-tabs {
-            display: flex;
-            gap: 6px;
-            padding: 10px 20px;
-            border-bottom: 1px solid #ecf0f1;
-            background: #f8f9fa;
-            flex-wrap: wrap;
-        }
-
-        .filter-tab {
-            padding: 7px 15px;
-            background: white;
-            border: 1px solid #dfe6e9;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            color: #636e72;
-            transition: all 0.12s;
-        }
-
+        .filter-tabs { display: flex; gap: 6px; padding: 10px 20px; border-bottom: 1px solid #ecf0f1; background: #f8f9fa; flex-wrap: wrap; }
+        .filter-tab { padding: 7px 15px; background: white; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: #636e72; transition: all 0.12s; }
         .filter-tab.active { background: #667eea; color: white; border-color: #667eea; }
 
         .tbl-wrap { overflow-x: auto; }
-
         table { width: 100%; border-collapse: collapse; }
         thead { background: #f8f9fa; position: sticky; top: 0; z-index: 10; }
-
-        th {
-            padding: 11px 13px;
-            text-align: left;
-            font-size: 11px;
-            font-weight: 700;
-            color: #636e72;
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-            border-bottom: 2px solid #dfe6e9;
-            white-space: nowrap;
-        }
-
-        th.r { text-align: right; }
-        th.c { text-align: center; }
-
+        th { padding: 11px 13px; text-align: left; font-size: 11px; font-weight: 700; color: #636e72; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid #dfe6e9; white-space: nowrap; }
+        th.r { text-align: right; } th.c { text-align: center; }
         tbody tr { border-bottom: 1px solid #ecf0f1; transition: background 0.12s; }
         tbody tr:hover { background: #f8f9fa; }
-
         td { padding: 11px 13px; font-size: 13px; color: #2d3436; white-space: nowrap; }
-
-        .sym   { font-weight: 700; font-size: 14px; }
-        .r     { text-align: right; }
-        .c     { text-align: center; }
-        .pos   { color: #00b894; font-weight: 600; }
-        .neg   { color: #d63031; font-weight: 600; }
+        .sym { font-weight: 700; font-size: 14px; }
+        .r { text-align: right; } .c { text-align: center; }
+        .pos { color: #00b894; font-weight: 600; }
+        .neg { color: #d63031; font-weight: 600; }
         .muted { color: #636e72; font-size: 12px; }
 
-        /* signal badge */
-        .signal-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 700;
-        }
-
+        .signal-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
         .signal-bullish { background: #d4edda; color: #155724; }
         .signal-bearish { background: #f8d7da; color: #721c24; }
         .signal-neutral { background: #fff3cd; color: #856404; }
 
-        /* scan type badge */
-        .scan-type {
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            padding: 3px 8px;
-            border-radius: 10px;
-            font-size: 10px;
-            font-weight: 700;
-            margin: 1px;
-        }
-
+        .scan-type { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin: 1px; }
         .st-swing   { background: #e0e7ff; color: #3730a3; }
         .st-channel { background: #fef3c7; color: #92400e; }
         .st-both    { background: #ede9fe; color: #4c1d95; border: 1px solid #c4b5fd; }
@@ -457,134 +163,73 @@
         .opt-put  { background: #f8d7da; color: #721c24; }
 
         .src-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
-        .st-av   { background: #fef3c7; color: #92400e; }
-        .st-yf   { background: #d1fae5; color: #065f46; }
+        .st-av { background: #fef3c7; color: #92400e; }
+        .st-yf { background: #d1fae5; color: #065f46; }
 
         .conf-high   { color: #00b894; font-weight: 700; }
         .conf-medium { color: #fdcb6e; font-weight: 600; }
         .conf-low    { color: #636e72; }
 
-        .view-btn {
-            padding: 6px 13px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
+        .view-btn { padding: 6px 13px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
         .view-btn:hover { background: #5568d3; }
 
         .empty-state { text-align: center; padding: 55px 20px; color: #636e72; }
         .empty-icon  { font-size: 44px; margin-bottom: 12px; }
 
-        /* ── MODAL ── */
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.75);
-            z-index: 9999;
-            overflow-y: auto;
-            padding: 20px;
-        }
-
-        .modal-content {
-            background: white;
-            max-width: 1150px;
-            margin: 20px auto;
-            border-radius: 14px;
-            overflow: hidden;
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 22px 28px;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-
+        /* MODAL */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; overflow-y: auto; padding: 20px; }
+        .modal-content { background: white; max-width: 1150px; margin: 20px auto; border-radius: 14px; overflow: hidden; }
+        .modal-header { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; padding: 22px 28px; display: flex; justify-content: space-between; align-items: flex-start; }
         .modal-title { font-size: 22px; font-weight: 700; }
         .modal-sub   { font-size: 12px; opacity: 0.8; margin-top: 3px; }
-
-        .close-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            flex-shrink: 0;
-        }
-
+        .close-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; flex-shrink: 0; }
         .modal-body { padding: 28px; }
 
         .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 22px; }
-
         .zone-box { padding: 18px; border-radius: 10px; border-left: 4px solid; }
         .zone-box.bullish { background: #d4edda; border-color: #00b894; }
         .zone-box.bearish { background: #f8d7da; border-color: #d63031; }
-
         .zone-title { font-size: 15px; font-weight: 700; margin-bottom: 10px; color: #2d3436; }
         .zone-price { font-size: 26px; font-weight: 700; margin-bottom: 9px; }
         .zone-box.bullish .zone-price { color: #00b894; }
         .zone-box.bearish .zone-price { color: #d63031; }
         .zone-desc { font-size: 13px; line-height: 1.7; color: #636e72; }
 
-        /* channel viz */
-        .channel-viz {
-            background: #f8f9fa;
-            border: 1px solid #dfe6e9;
-            border-radius: 10px;
-            padding: 18px;
-            margin-bottom: 22px;
-        }
-
+        .channel-viz { background: #f8f9fa; border: 1px solid #dfe6e9; border-radius: 10px; padding: 18px; margin-bottom: 22px; }
         .channel-viz-title { font-size: 14px; font-weight: 700; color: #2d3436; margin-bottom: 14px; }
-
         .channel-bar-wrap { position: relative; height: 56px; background: white; border-radius: 8px; border: 1px solid #dfe6e9; overflow: hidden; margin-bottom: 10px; }
-
         .channel-bar-fill { position: absolute; top: 0; bottom: 0; background: #667eea1a; border-left: 2px solid #d63031; border-right: 2px solid #00b894; }
-
         .channel-price-marker { position: absolute; top: 0; bottom: 0; width: 3px; background: #2d3436; border-radius: 2px; }
-
         .channel-labels { display: flex; justify-content: space-between; font-size: 11px; color: #636e72; }
 
         .stats-section { background: #f8f9fa; padding: 18px; border-radius: 10px; margin-bottom: 22px; }
         .stats-title   { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: #2d3436; }
-        .stats-grid    { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px,1fr)); gap: 12px; }
-
+        .stats-grid    { display: grid; grid-template-columns: repeat(auto-fit,minmax(145px,1fr)); gap: 12px; }
         .stat-card { background: white; padding: 14px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
         .stat-lbl  { font-size: 11px; color: #636e72; margin-bottom: 5px; }
         .stat-val  { font-size: 21px; font-weight: 700; color: #2d3436; }
         .stat-sub  { font-size: 10px; color: #636e72; margin-top: 3px; }
 
         .chart-section { background: #f8f9fa; padding: 18px; border-radius: 10px; margin-bottom: 22px; }
-        .chart-title   { font-size: 15px; font-weight: 700; margin-bottom: 13px; color: #2d3436; }
+        .chart-title   { font-size: 15px; font-weight: 700; margin-bottom: 4px; color: #2d3436; }
+        .chart-sub     { font-size: 11px; color: #636e72; margin-bottom: 13px; }
 
-        .recommendation { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 22px; border-radius: 10px; }
+        .recommendation { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; padding: 22px; border-radius: 10px; }
         .rec-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
-        .rec-grid  { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px,1fr)); gap: 12px; }
+        .rec-grid  { display: grid; grid-template-columns: repeat(auto-fit,minmax(155px,1fr)); gap: 12px; }
         .rec-item  { background: rgba(255,255,255,0.15); padding: 14px; border-radius: 8px; }
         .rec-label { font-size: 11px; opacity: 0.85; margin-bottom: 4px; }
         .rec-value { font-size: 17px; font-weight: 700; }
 
         @media (max-width: 900px) {
-            .cr-main, .settings-row { grid-template-columns: 1fr 1fr !important; }
-            .settings-grid { grid-template-columns: 1fr; }
-            .analysis-grid { grid-template-columns: 1fr; }
-            th, td { padding: 8px 9px; }
+            .cr-main,.settings-row { grid-template-columns: 1fr 1fr !important; }
+            .settings-grid,.analysis-grid { grid-template-columns: 1fr; }
+            th,td { padding: 8px 9px; }
         }
     </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <div class="header">
     <div>
         <h1>📊 5-Min Breakout Scanner</h1>
@@ -603,33 +248,27 @@
 </div>
 
 <div class="container">
-
-    <!-- SOURCE INFO -->
     <div class="source-info si-av" id="sourceInfo">
         📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · ~16s delay per symbol
     </div>
 
-    <!-- PROXY STATUS -->
     <div class="proxy-status" id="proxyStatus">
         <span class="proxy-dot" id="proxyDot"></span>
         <span id="proxyMsg">Checking proxy…</span>
         <button class="test-btn" onclick="testProxies()" style="margin-left:auto;">🔄 Re-test Proxies</button>
     </div>
 
-    <!-- ALPHA VANTAGE PANEL -->
+    <!-- AV PANEL -->
     <div class="controls av-panel visible" id="avPanel">
         <div class="mode-banner">
-            <span>Running both scanners simultaneously on every symbol:</span>
-            <span class="mode-tag mt-swing">📈 Swing Breakout</span>
-            <span>+</span>
+            <span>Running both scanners simultaneously:</span>
+            <span class="mode-tag mt-swing">📈 Swing Breakout</span>+
             <span class="mode-tag mt-channel">📦 Channel Breakout</span>
-            <span>→ results are merged and labeled</span>
+            <span>→ merged &amp; labeled per symbol</span>
         </div>
-
-        <!-- Symbols + speed -->
         <div class="control-row cr-main">
             <div>
-                <label>Symbols to Scan (comma-separated)</label>
+                <label>Symbols to Scan</label>
                 <input type="text" id="avSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
                 <div class="quick-btns">
                     <button class="quick-btn" onclick="preset('av','etfs')">📈 ETFs</button>
@@ -639,103 +278,60 @@
                     <button class="quick-btn" onclick="preset('av','all')">⭐ All 250+</button>
                 </div>
             </div>
-            <div>
-                <label>Output Size</label>
-                <select id="avOut">
-                    <option value="compact">Compact (~100)</option>
-                    <option value="full" selected>Full (~390)</option>
-                </select>
+            <div><label>Output Size</label>
+                <select id="avOut"><option value="compact">Compact</option><option value="full" selected>Full</option></select>
             </div>
-            <div>
-                <label>Scan Speed</label>
+            <div><label>Speed</label>
                 <select id="avDelay">
-                    <option value="13">⚡ Fast (13s)</option>
-                    <option value="16" selected>✅ Normal (16s)</option>
-                    <option value="22">🐢 Safe (22s)</option>
-                    <option value="30">🐌 Slow (30s)</option>
+                    <option value="13">⚡ 13s</option>
+                    <option value="16" selected>✅ 16s</option>
+                    <option value="22">🐢 22s</option>
+                    <option value="30">🐌 30s</option>
                 </select>
             </div>
             <div></div>
             <button class="scan-btn btn-av" id="avBtn" onclick="startScan('av')">🔍 Start Scan</button>
         </div>
-
         <div class="section-divider"><span>Scanner Settings</span></div>
-
         <div class="settings-grid">
-            <!-- Swing settings -->
             <div class="settings-card">
-                <div class="settings-card-title">
-                    <span class="mode-tag mt-swing">📈 Swing Breakout</span>
-                    Settings
-                </div>
+                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span> Settings</div>
                 <div class="settings-row">
-                    <div>
-                        <label>Left Bars</label>
-                        <select id="avSwingL">
-                            <option value="3">3 bars</option>
-                            <option value="5" selected>5 bars</option>
-                            <option value="8">8 bars</option>
-                            <option value="10">10 bars</option>
-                        </select>
+                    <div><label>Left Bars</label>
+                        <select id="avSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
                     </div>
-                    <div>
-                        <label>Right Bars</label>
-                        <select id="avSwingR">
-                            <option value="3">3 bars</option>
-                            <option value="5" selected>5 bars</option>
-                            <option value="8">8 bars</option>
-                            <option value="10">10 bars</option>
-                        </select>
+                    <div><label>Right Bars</label>
+                        <select id="avSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
                     </div>
                 </div>
             </div>
-            <!-- Channel settings -->
             <div class="settings-card">
-                <div class="settings-card-title">
-                    <span class="mode-tag mt-channel">📦 Channel Breakout</span>
-                    Settings
-                </div>
+                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span> Settings</div>
                 <div class="settings-row">
-                    <div>
-                        <label>Channel Bars</label>
-                        <select id="avChanBars">
-                            <option value="10">10 bars</option>
-                            <option value="20" selected>20 bars</option>
-                            <option value="30">30 bars</option>
-                            <option value="40">40 bars</option>
-                        </select>
+                    <div><label>Channel Bars</label>
+                        <select id="avChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select>
                     </div>
-                    <div>
-                        <label>Max Width %</label>
-                        <select id="avChanWidth">
-                            <option value="1.5">1.5% narrow</option>
-                            <option value="2.5">2.5%</option>
-                            <option value="3.5" selected>3.5% medium</option>
-                            <option value="5.0">5.0% wide</option>
-                            <option value="7.0">7.0% very wide</option>
-                        </select>
+                    <div><label>Max Width %</label>
+                        <select id="avChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select>
                     </div>
                 </div>
             </div>
         </div>
-
         <div class="progress" id="avProg"><div class="progress-bar pb-av" id="avBar"></div></div>
         <div class="progress-text" id="avTxt"></div>
     </div>
 
-    <!-- YAHOO FINANCE PANEL -->
+    <!-- YF PANEL -->
     <div class="controls yf-panel" id="yfPanel">
         <div class="mode-banner">
-            <span>Running both scanners simultaneously on every symbol:</span>
-            <span class="mode-tag mt-swing">📈 Swing Breakout</span>
-            <span>+</span>
+            <span>Running both scanners simultaneously:</span>
+            <span class="mode-tag mt-swing">📈 Swing Breakout</span>+
             <span class="mode-tag mt-channel">📦 Channel Breakout</span>
-            <span>→ results are merged and labeled</span>
+            <span>→ merged &amp; labeled per symbol</span>
         </div>
-
         <div class="control-row cr-main">
             <div>
-                <label>Symbols to Scan (comma-separated)</label>
+                <label>Symbols to Scan</label>
                 <input type="text" id="yfSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
                 <div class="quick-btns">
                     <button class="quick-btn" onclick="preset('yf','etfs')">📈 ETFs</button>
@@ -745,85 +341,40 @@
                     <button class="quick-btn" onclick="preset('yf','all')">⭐ All 250+</button>
                 </div>
             </div>
-            <div>
-                <label>Batch Size</label>
-                <select id="yfBatch">
-                    <option value="5">5 parallel</option>
-                    <option value="10" selected>10 parallel</option>
-                    <option value="15">15 parallel</option>
-                    <option value="20">20 parallel</option>
-                </select>
+            <div><label>Batch Size</label>
+                <select id="yfBatch"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select>
             </div>
-            <div>
-                <label>Batch Delay</label>
-                <select id="yfDelay">
-                    <option value="800">⚡ 0.8s</option>
-                    <option value="1200" selected>✅ 1.2s</option>
-                    <option value="2000">🐢 2s</option>
-                </select>
+            <div><label>Batch Delay</label>
+                <select id="yfDelay"><option value="800">0.8s</option><option value="1200" selected>1.2s</option><option value="2000">2s</option></select>
             </div>
             <div></div>
             <button class="scan-btn btn-yf" id="yfBtn" onclick="startScan('yf')">⚡ Fast Scan</button>
         </div>
-
         <div class="section-divider"><span>Scanner Settings</span></div>
-
         <div class="settings-grid">
             <div class="settings-card">
-                <div class="settings-card-title">
-                    <span class="mode-tag mt-swing">📈 Swing Breakout</span>
-                    Settings
-                </div>
+                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span> Settings</div>
                 <div class="settings-row">
-                    <div>
-                        <label>Left Bars</label>
-                        <select id="yfSwingL">
-                            <option value="3">3 bars</option>
-                            <option value="5" selected>5 bars</option>
-                            <option value="8">8 bars</option>
-                            <option value="10">10 bars</option>
-                        </select>
+                    <div><label>Left Bars</label>
+                        <select id="yfSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
                     </div>
-                    <div>
-                        <label>Right Bars</label>
-                        <select id="yfSwingR">
-                            <option value="3">3 bars</option>
-                            <option value="5" selected>5 bars</option>
-                            <option value="8">8 bars</option>
-                            <option value="10">10 bars</option>
-                        </select>
+                    <div><label>Right Bars</label>
+                        <select id="yfSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
                     </div>
                 </div>
             </div>
             <div class="settings-card">
-                <div class="settings-card-title">
-                    <span class="mode-tag mt-channel">📦 Channel Breakout</span>
-                    Settings
-                </div>
+                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span> Settings</div>
                 <div class="settings-row">
-                    <div>
-                        <label>Channel Bars</label>
-                        <select id="yfChanBars">
-                            <option value="10">10 bars</option>
-                            <option value="20" selected>20 bars</option>
-                            <option value="30">30 bars</option>
-                            <option value="40">40 bars</option>
-                        </select>
+                    <div><label>Channel Bars</label>
+                        <select id="yfChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select>
                     </div>
-                    <div>
-                        <label>Max Width %</label>
-                        <select id="yfChanWidth">
-                            <option value="1.5">1.5% narrow</option>
-                            <option value="2.5">2.5%</option>
-                            <option value="3.5" selected>3.5% medium</option>
-                            <option value="5.0">5.0% wide</option>
-                            <option value="7.0">7.0% very wide</option>
-                        </select>
+                    <div><label>Max Width %</label>
+                        <select id="yfChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select>
                     </div>
                 </div>
             </div>
         </div>
-
         <div class="progress" id="yfProg"><div class="progress-bar pb-yf" id="yfBar"></div></div>
         <div class="progress-text" id="yfTxt"></div>
         <div class="batch-grid" id="batchGrid"></div>
@@ -836,10 +387,7 @@
             <div class="results-title">Scan Results</div>
             <div class="results-count" id="resultsCount">—</div>
         </div>
-
-        <!-- summary pills -->
         <div class="summary-pills" id="summaryPills"></div>
-
         <div class="filter-tabs">
             <button class="filter-tab active" onclick="filterResults('all',event)">All</button>
             <button class="filter-tab" onclick="filterResults('buy',event)">🟢 Buy (CALL)</button>
@@ -849,7 +397,6 @@
             <button class="filter-tab" onclick="filterResults('both',event)">⭐ Both Signals</button>
             <button class="filter-tab" onclick="filterResults('neutral',event)">🟡 No Signal</button>
         </div>
-
         <div class="tbl-wrap">
             <table>
                 <thead>
@@ -862,7 +409,7 @@
                         <th class="c">Option</th>
                         <th class="r">ATM Strike</th>
                         <th class="r">Stop Loss</th>
-                        <th class="r">Channel / Swing</th>
+                        <th class="r">Levels</th>
                         <th class="c">Confidence</th>
                         <th class="c">Src</th>
                         <th class="c">Action</th>
@@ -872,14 +419,13 @@
                     <tr>
                         <td colspan="12" class="empty-state">
                             <div class="empty-icon">📊</div>
-                            <div>Click Scan — Swing + Channel breakout will run simultaneously</div>
+                            <div>Click Scan — Swing + Channel breakout runs simultaneously</div>
                         </td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
-
 </div>
 
 <!-- MODAL -->
@@ -896,11 +442,16 @@
     </div>
 </div>
 
+<!-- Chart.js + financial candlestick plugin -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
+
 <script>
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 //  CONFIG
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 const AV_KEY = '7UOSK3Z2XFXU992W';
 
 function yfUrl(sym) {
@@ -908,10 +459,10 @@ function yfUrl(sym) {
 }
 
 const PROXIES = [
-    { name: 'corsproxy.io',   url: s => `https://corsproxy.io/?${encodeURIComponent(yfUrl(s))}` },
-    { name: 'allorigins.win', url: s => `https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(s))}` },
-    { name: 'cors.sh',        url: s => `https://cors.sh/${yfUrl(s)}` },
-    { name: 'thingproxy',     url: s => `https://thingproxy.freeboard.io/fetch/${yfUrl(s)}` },
+    { name:'corsproxy.io',   url: s=>`https://corsproxy.io/?${encodeURIComponent(yfUrl(s))}` },
+    { name:'allorigins.win', url: s=>`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(s))}` },
+    { name:'cors.sh',        url: s=>`https://cors.sh/${yfUrl(s)}` },
+    { name:'thingproxy',     url: s=>`https://thingproxy.freeboard.io/fetch/${yfUrl(s)}` },
 ];
 
 let activeProxy = null;
@@ -924,29 +475,27 @@ const PRESETS = {
     all:     'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,PANW,FTNT,DKNG,ROKU,ARKK'
 };
 
-// ═══════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════
-let allResults      = [];
-let filteredResults = [];
+// ═══════════════════════════════════
+//  STATE  — keyed by symbol for safe lookup
+// ═══════════════════════════════════
+// allResults  = Map<symbol, result>  (use Map so lookup is O(1) and index bugs are impossible)
+let resultMap       = new Map();   // symbol → result
+let filteredSymbols = [];          // ordered list of symbols currently shown
 let currentFilter   = 'all';
 let currentChart    = null;
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 //  PROXY TEST
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function testProxies() {
     const statusEl = document.getElementById('proxyStatus');
     const dotEl    = document.getElementById('proxyDot');
     const msgEl    = document.getElementById('proxyMsg');
-
     statusEl.className = 'proxy-status visible ps-testing';
     dotEl.className    = 'proxy-dot dot-spin';
     msgEl.textContent  = 'Testing proxies…';
     activeProxy        = null;
-
-    dbg('Testing ' + PROXIES.length + ' proxies with SPY…');
-
+    dbg('Testing ' + PROXIES.length + ' proxies…');
     for (const proxy of PROXIES) {
         try {
             dbg(`Trying: ${proxy.name}`);
@@ -955,19 +504,16 @@ async function testProxies() {
             const res  = await fetch(proxy.url('SPY'), { signal: ctrl.signal });
             clearTimeout(tid);
             if (!res.ok) { dbg(`${proxy.name} → HTTP ${res.status}`, 'err'); continue; }
-            const text = await res.text();
-            let json; try { json = JSON.parse(text); } catch(e) { dbg(`${proxy.name} → bad JSON`, 'err'); continue; }
+            let json; try { json = JSON.parse(await res.text()); } catch(e) { dbg(`${proxy.name} → bad JSON`, 'err'); continue; }
             const ts = json?.chart?.result?.[0]?.timestamp;
-            if (!ts || ts.length < 2) { activeProxy = proxy; dbg(`${proxy.name} → OK (market closed)`, 'ok'); break; }
-            dbg(`${proxy.name} → OK · ${ts.length} bars`, 'ok');
+            dbg(`${proxy.name} → OK${ts ? ' · '+ts.length+' bars' : ' (market closed)'}`, 'ok');
             activeProxy = proxy; break;
         } catch(e) { dbg(`${proxy.name} → ${e.message}`, 'err'); }
     }
-
     if (activeProxy) {
         statusEl.className = 'proxy-status visible ps-ok';
         dotEl.className    = 'proxy-dot dot-ok';
-        msgEl.textContent  = `✅ Proxy active: ${activeProxy.name} — Yahoo Finance ready`;
+        msgEl.textContent  = `✅ Proxy: ${activeProxy.name} — Yahoo Finance ready`;
     } else {
         statusEl.className = 'proxy-status visible ps-fail';
         dotEl.className    = 'proxy-dot dot-fail';
@@ -975,32 +521,28 @@ async function testProxies() {
     }
 }
 
-// ═══════════════════════════════════════════
-//  DEBUG
-// ═══════════════════════════════════════════
-function dbg(msg, type = 'inf') {
+function dbg(msg, type='inf') {
     const box = document.getElementById('debugBox');
     if (!box) return;
     box.classList.add('visible');
     const el = document.createElement('div');
-    el.className = type === 'err' ? 'd-err' : type === 'ok' ? 'd-ok' : 'd-inf';
+    el.className = type==='err'?'d-err':type==='ok'?'d-ok':'d-inf';
     el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
     box.appendChild(el);
     box.scrollTop = box.scrollHeight;
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 //  SOURCE SWITCHER
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 function switchSource(src) {
-    document.getElementById('btnAV').classList.toggle('active', src === 'av');
-    document.getElementById('btnYF').classList.toggle('active', src === 'yf');
-    document.getElementById('avPanel').classList.toggle('visible', src === 'av');
-    document.getElementById('yfPanel').classList.toggle('visible', src === 'yf');
-    document.getElementById('proxyStatus').classList.toggle('visible', src === 'yf');
-
+    document.getElementById('btnAV').classList.toggle('active', src==='av');
+    document.getElementById('btnYF').classList.toggle('active', src==='yf');
+    document.getElementById('avPanel').classList.toggle('visible', src==='av');
+    document.getElementById('yfPanel').classList.toggle('visible', src==='yf');
+    document.getElementById('proxyStatus').classList.toggle('visible', src==='yf');
     const info = document.getElementById('sourceInfo');
-    if (src === 'av') {
+    if (src==='av') {
         info.className = 'source-info si-av';
         info.innerHTML = '📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · ~16s delay per symbol';
     } else {
@@ -1011,225 +553,162 @@ function switchSource(src) {
 }
 
 function preset(src, key) {
-    document.getElementById(src === 'av' ? 'avSymbols' : 'yfSymbols').value = PRESETS[key];
+    document.getElementById(src==='av'?'avSymbols':'yfSymbols').value = PRESETS[key];
 }
 
-// ═══════════════════════════════════════════
-//  SWING BREAKOUT DETECTOR
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+//  SWING DETECTOR
+// ═══════════════════════════════════
 function detectSwing(bars, lb, rb) {
     const len = bars.length;
-    if (len < lb + rb + 3) return { signal:'neutral', swingLow:null, swingHigh:null, leftLowHigh:null, leftHighLow:null, stopLevel:null };
-    const h = bars.map(b => b.high);
-    const l = bars.map(b => b.low);
-    const c = bars.map(b => b.close);
-
-    let swingLow = null, llh = null;
-    for (let i = rb; i < len - lb - 1; i++) {
-        const v = l[i]; let ok = true;
-        for (let j = i - rb; j <= i + lb; j++) { if (j<0||j>=len||j===i) continue; if (l[j]<=v){ok=false;break;} }
-        if (ok) { swingLow = v; llh = h[i+1]; break; }
+    if (len < lb+rb+3) return { signal:'neutral', swingLow:null, swingHigh:null, leftLowHigh:null, leftHighLow:null, stopLevel:null };
+    const h=bars.map(b=>b.high), l=bars.map(b=>b.low), c=bars.map(b=>b.close);
+    let swingLow=null, llh=null;
+    for (let i=rb; i<len-lb-1; i++) {
+        const v=l[i]; let ok=true;
+        for (let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(l[j]<=v){ok=false;break;}}
+        if(ok){swingLow=v;llh=h[i+1];break;}
     }
-
-    let swingHigh = null, lhl = null;
-    for (let i = rb; i < len - lb - 1; i++) {
-        const v = h[i]; let ok = true;
-        for (let j = i - rb; j <= i + lb; j++) { if (j<0||j>=len||j===i) continue; if (h[j]>=v){ok=false;break;} }
-        if (ok) { swingHigh = v; lhl = l[i+1]; break; }
+    let swingHigh=null, lhl=null;
+    for (let i=rb; i<len-lb-1; i++) {
+        const v=h[i]; let ok=true;
+        for (let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(h[j]>=v){ok=false;break;}}
+        if(ok){swingHigh=v;lhl=l[i+1];break;}
     }
-
-    const cur = c[0], prev = c[1];
-    let signal = 'neutral', stopLevel = null;
-    if (llh!==null && swingLow!==null && cur>llh && prev<=llh && cur>swingLow) { signal='buy'; stopLevel=swingLow; }
-    else if (lhl!==null && swingHigh!==null && cur<lhl && prev>=lhl && cur<swingHigh) { signal='sell'; stopLevel=swingHigh; }
-
-    return { signal, swingLow, swingHigh, leftLowHigh:llh, leftHighLow:lhl, stopLevel };
+    const cur=c[0],prev=c[1];
+    let signal='neutral',stopLevel=null;
+    if(llh!==null&&swingLow!==null&&cur>llh&&prev<=llh&&cur>swingLow){signal='buy';stopLevel=swingLow;}
+    else if(lhl!==null&&swingHigh!==null&&cur<lhl&&prev>=lhl&&cur<swingHigh){signal='sell';stopLevel=swingHigh;}
+    return {signal,swingLow,swingHigh,leftLowHigh:llh,leftHighLow:lhl,stopLevel};
 }
 
-// ═══════════════════════════════════════════
-//  CHANNEL BREAKOUT DETECTOR
-// ═══════════════════════════════════════════
-// Uses bars[1..channelBars] (excludes current bar[0]) to define the channel,
-// then checks if bar[0] closes outside it.
-function detectChannel(bars, channelBars, maxWidthPct) {
+// ═══════════════════════════════════
+//  CHANNEL DETECTOR
+// ═══════════════════════════════════
+function detectChannel(bars, chanBars, maxWidthPct) {
     const len = bars.length;
-    if (len < channelBars + 2) return { signal:'neutral', inChannel:false, resistance:null, support:null, channelWidth:null, stopLevel:null };
-
-    // Channel is defined by bars[1] through bars[channelBars] (previous bars, not current)
-    const window = bars.slice(1, channelBars + 1);
-    const resistance = Math.max(...window.map(b => b.high));
-    const support    = Math.min(...window.map(b => b.low));
-    const mid        = (resistance + support) / 2;
-    const widthPct   = (resistance - support) / mid * 100;
-
-    // Must be tight enough to be considered a channel
+    if (len < chanBars+2) return {signal:'neutral',inChannel:false,resistance:null,support:null,channelWidth:null,stopLevel:null};
+    const window = bars.slice(1, chanBars+1);
+    const resistance = Math.max(...window.map(b=>b.high));
+    const support    = Math.min(...window.map(b=>b.low));
+    const mid        = (resistance+support)/2;
+    const widthPct   = (resistance-support)/mid*100;
     const inChannel  = widthPct <= maxWidthPct;
-
-    if (!inChannel) return { signal:'neutral', inChannel:false, resistance, support, channelWidth:widthPct, stopLevel:null };
-
-    const cur  = bars[0].close;
-    const prev = bars[1].close;
-    let signal = 'neutral', stopLevel = null;
-
-    // Breakout UP: current bar closes above resistance, previous bar was inside
-    if (cur > resistance && prev <= resistance) {
-        signal = 'buy'; stopLevel = support;
-    }
-    // Breakout DOWN: current bar closes below support, previous bar was inside
-    else if (cur < support && prev >= support) {
-        signal = 'sell'; stopLevel = resistance;
-    }
-
-    return { signal, inChannel:true, resistance, support, channelWidth:widthPct, stopLevel };
+    if (!inChannel) return {signal:'neutral',inChannel:false,resistance,support,channelWidth:widthPct,stopLevel:null};
+    const cur=bars[0].close, prev=bars[1].close;
+    let signal='neutral', stopLevel=null;
+    if(cur>resistance&&prev<=resistance){signal='buy';stopLevel=support;}
+    else if(cur<support&&prev>=support){signal='sell';stopLevel=resistance;}
+    return {signal,inChannel:true,resistance,support,channelWidth:widthPct,stopLevel};
 }
 
-// ═══════════════════════════════════════════
-//  ATM STRIKE
-// ═══════════════════════════════════════════
 function calcATM(price) {
-    const iv = price < 25 ? 0.5 : price < 200 ? 1 : 5;
-    return Math.round(price / iv) * iv;
+    const iv = price<25?0.5:price<200?1:5;
+    return Math.round(price/iv)*iv;
 }
 
-// ═══════════════════════════════════════════
-//  BUILD COMBINED RESULT
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+//  BUILD RESULT
+// ═══════════════════════════════════
 function buildResult(symbol, bars, cfg, source) {
-    const cur  = bars[0];
-    const prev = bars[1];
-    const price     = cur.close;
-    const change    = price - prev.close;
-    const changePct = change / prev.close * 100;
-
+    const cur=bars[0], prev=bars[1];
+    const price=cur.close, change=price-prev.close, changePct=change/prev.close*100;
     const sw = detectSwing(bars, cfg.swingL, cfg.swingR);
     const ch = detectChannel(bars, cfg.chanBars, cfg.chanWidth);
 
-    // Merge: determine overall direction
-    // If both agree → strongest signal
-    // If only one fires → use that one
-    // Priority: if both fire same direction = BOTH label
-    let direction = 'neutral';
-    let scanTypes = [];
-    let stopLevel = null;
-    let channelData = ch;
-    let swingData   = sw;
-
-    if (sw.signal !== 'neutral') { scanTypes.push('swing');   direction = sw.signal; stopLevel = sw.stopLevel; }
-    if (ch.signal !== 'neutral') {
-        scanTypes.push('channel');
-        if (direction === 'neutral') { direction = ch.signal; stopLevel = ch.stopLevel; }
-        else if (direction !== ch.signal) {
-            // conflicting signals — keep swing, note both
-            scanTypes = ['swing','channel'];
-        }
+    let direction='neutral', scanTypes=[], stopLevel=null;
+    if(sw.signal!=='neutral'){scanTypes.push('swing');   direction=sw.signal; stopLevel=sw.stopLevel;}
+    if(ch.signal!=='neutral'){
+        if(!scanTypes.includes('swing')||direction===ch.signal) scanTypes.push('channel');
+        else scanTypes.push('channel');
+        if(direction==='neutral'){direction=ch.signal;stopLevel=ch.stopLevel;}
     }
 
-    const scanType = scanTypes.length === 2 ? 'both'
-                   : scanTypes.length === 1 ? scanTypes[0]
-                   : 'none';
+    const scanType = scanTypes.length===2 ? 'both' : scanTypes.length===1 ? scanTypes[0] : 'none';
 
     const strike  = calcATM(price);
-    const optType = direction === 'buy' ? 'CALL' : direction === 'sell' ? 'PUT' : null;
+    const optType = direction==='buy'?'CALL':direction==='sell'?'PUT':null;
 
-    // Confidence — higher if both agree
-    let confidence = 'low';
-    if (scanType === 'both' && sw.signal === ch.signal) {
-        confidence = 'high';
-    } else if (direction !== 'neutral') {
-        const trig = direction === 'buy'
-            ? (sw.signal==='buy' ? sw.leftLowHigh : ch.resistance)
-            : (sw.signal==='sell' ? sw.leftHighLow : ch.support);
-        if (trig) {
-            const brk = Math.abs(price - trig) / trig * 100;
-            if (brk >= 0.4) confidence = 'high';
-            else if (brk >= 0.15) confidence = 'medium';
-        }
+    let confidence='low';
+    if(scanType==='both'&&sw.signal===ch.signal){confidence='high';}
+    else if(direction!=='neutral'){
+        const trig=direction==='buy'?(sw.signal==='buy'?sw.leftLowHigh:ch.resistance):(sw.signal==='sell'?sw.leftHighLow:ch.support);
+        if(trig){const brk=Math.abs(price-trig)/trig*100;if(brk>=0.4)confidence='high';else if(brk>=0.15)confidence='medium';}
     }
 
-    // Channel level label for table
     const levelStr = ch.inChannel
         ? `R:${ch.resistance?.toFixed(2)} / S:${ch.support?.toFixed(2)}`
-        : sw.swingHigh
-        ? `SH:${sw.swingHigh?.toFixed(2)} / SL:${sw.swingLow?.toFixed(2)}`
-        : '—';
+        : `SH:${sw.swingHigh?.toFixed(2) ?? '—'} / SL:${sw.swingLow?.toFixed(2) ?? '—'}`;
 
-    return {
-        symbol, source, price, change, changePct,
-        barTime: cur.time,
-        direction,        // 'buy' | 'sell' | 'neutral'
-        scanType,         // 'swing' | 'channel' | 'both' | 'none'
-        optType, strike, confidence, stopLevel, levelStr,
-        swing: swingData,
-        channel: channelData,
-        bars
-    };
+    return { symbol, source, price, change, changePct, barTime:cur.time,
+             direction, scanType, optType, strike, confidence,
+             stopLevel, levelStr, swing:sw, channel:ch, bars };
 }
 
-// ═══════════════════════════════════════════
-//  MAIN SCAN DISPATCHER
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+//  SCAN DISPATCHER
+// ═══════════════════════════════════
 async function startScan(src) {
-    if (src === 'yf' && !activeProxy) {
-        alert('No working proxy found. Click "Re-test Proxies" or switch to Alpha Vantage.');
-        return;
-    }
-
-    const isAV   = src === 'av';
-    const btn    = document.getElementById(isAV ? 'avBtn' : 'yfBtn');
-    const syms   = document.getElementById(isAV ? 'avSymbols' : 'yfSymbols').value
+    if (src==='yf' && !activeProxy) { alert('No working proxy. Re-test proxies or use Alpha Vantage.'); return; }
+    const isAV  = src==='av';
+    const btn   = document.getElementById(isAV?'avBtn':'yfBtn');
+    const syms  = document.getElementById(isAV?'avSymbols':'yfSymbols').value
                     .trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-    const prog   = document.getElementById(isAV ? 'avProg' : 'yfProg');
-    const bar    = document.getElementById(isAV ? 'avBar'  : 'yfBar');
-    const txt    = document.getElementById(isAV ? 'avTxt'  : 'yfTxt');
+    const prog  = document.getElementById(isAV?'avProg':'yfProg');
+    const bar   = document.getElementById(isAV?'avBar':'yfBar');
+    const txt   = document.getElementById(isAV?'avTxt':'yfTxt');
 
     const cfg = isAV ? {
-        swingL:    parseInt(document.getElementById('avSwingL').value),
-        swingR:    parseInt(document.getElementById('avSwingR').value),
-        chanBars:  parseInt(document.getElementById('avChanBars').value),
-        chanWidth: parseFloat(document.getElementById('avChanWidth').value),
-        outSize:   document.getElementById('avOut').value,
-        delay:     parseInt(document.getElementById('avDelay').value) * 1000
+        swingL:    +document.getElementById('avSwingL').value,
+        swingR:    +document.getElementById('avSwingR').value,
+        chanBars:  +document.getElementById('avChanBars').value,
+        chanWidth: +document.getElementById('avChanWidth').value,
+        outSize:    document.getElementById('avOut').value,
+        delay:     +document.getElementById('avDelay').value * 1000
     } : {
-        swingL:    parseInt(document.getElementById('yfSwingL').value),
-        swingR:    parseInt(document.getElementById('yfSwingR').value),
-        chanBars:  parseInt(document.getElementById('yfChanBars').value),
-        chanWidth: parseFloat(document.getElementById('yfChanWidth').value),
-        batchSize: parseInt(document.getElementById('yfBatch').value),
-        batchDelay:parseInt(document.getElementById('yfDelay').value)
+        swingL:    +document.getElementById('yfSwingL').value,
+        swingR:    +document.getElementById('yfSwingR').value,
+        chanBars:  +document.getElementById('yfChanBars').value,
+        chanWidth: +document.getElementById('yfChanWidth').value,
+        batchSize: +document.getElementById('yfBatch').value,
+        batchDelay:+document.getElementById('yfDelay').value
     };
 
     if (!syms.length) return;
     btn.disabled = true;
     btn.textContent = isAV ? '🔄 Scanning…' : '⚡ Scanning…';
     prog.style.display = 'block'; bar.style.width = '0%';
-    allResults = []; updateTable();
+
+    // Reset result map on fresh scan
+    resultMap.clear();
+    updateTable();
 
     if (isAV) {
         await runAV(syms, cfg, bar, txt, btn);
     } else {
         const grid = document.getElementById('batchGrid');
         const dbgEl= document.getElementById('debugBox');
-        dbgEl.innerHTML = '';
-        grid.innerHTML = ''; grid.classList.add('visible');
+        dbgEl.innerHTML = ''; grid.innerHTML = ''; grid.classList.add('visible');
         dbg(`YF scan · ${syms.length} symbols · proxy: ${activeProxy.name}`);
         await runYF(syms, cfg, bar, txt, btn, grid);
     }
 }
 
 async function runAV(syms, cfg, bar, txt, btn) {
-    for (let i = 0; i < syms.length; i++) {
+    for (let i=0; i<syms.length; i++) {
         try {
             const bars = await fetchAV(syms[i], cfg.outSize);
-            if (bars) { allResults.push(buildResult(syms[i], bars, cfg, 'av')); updateTable(); }
+            if (bars) {
+                resultMap.set(syms[i], buildResult(syms[i], bars, cfg, 'av'));
+                updateTable();
+            }
         } catch(e) { console.warn(syms[i], e.message); }
-
         const pct = Math.round(((i+1)/syms.length)*100);
-        bar.style.width = pct + '%';
+        bar.style.width = pct+'%';
         txt.textContent = progressMsg(i+1, syms.length, pct);
         if (i < syms.length-1) await sleep(cfg.delay);
     }
-
-    btn.disabled = false; btn.textContent = '🔍 Start Scan';
+    btn.disabled=false; btn.textContent='🔍 Start Scan';
     txt.textContent = doneMsg();
 }
 
@@ -1237,75 +716,74 @@ async function runYF(syms, cfg, bar, txt, btn, grid) {
     const chips = {};
     syms.forEach(sym => {
         const el = document.createElement('div');
-        el.className = 'bchip'; el.id = 'chip-'+sym; el.textContent = sym;
-        grid.appendChild(el); chips[sym] = el;
+        el.className='bchip'; el.id='chip-'+sym; el.textContent=sym;
+        grid.appendChild(el); chips[sym]=el;
     });
-
-    const batches = [];
-    for (let i=0; i<syms.length; i+=cfg.batchSize) batches.push(syms.slice(i,i+cfg.batchSize));
-
-    let done = 0;
+    const batches=[];
+    for(let i=0;i<syms.length;i+=cfg.batchSize) batches.push(syms.slice(i,i+cfg.batchSize));
+    let done=0;
     for (let bi=0; bi<batches.length; bi++) {
-        const batch = batches[bi];
-        batch.forEach(sym => chips[sym].className = 'bchip loading');
-
+        const batch=batches[bi];
+        batch.forEach(sym => chips[sym].className='bchip loading');
         await Promise.all(batch.map(async sym => {
             try {
                 const bars = await fetchYF(sym);
-                if (bars && bars.length >= 10) {
+                if (bars && bars.length>=10) {
                     const r = buildResult(sym, bars, cfg, 'yf');
-                    allResults.push(r);
-                    chips[sym].className = 'bchip ' + chipClass(r);
+                    resultMap.set(sym, r);
+                    chips[sym].className = 'bchip '+chipClass(r);
                     dbg(`${sym} · ${bars.length} bars · dir:${r.direction} · type:${r.scanType}`, r.direction==='neutral'?'inf':'ok');
                     updateTable();
                 } else { chips[sym].className='bchip error'; dbg(`${sym} · no data`,'err'); }
             } catch(e) { chips[sym].className='bchip error'; dbg(`${sym} · ${e.message}`,'err'); }
             finally { done++; }
         }));
-
-        const pct = Math.round((done/syms.length)*100);
-        bar.style.width = pct + '%';
-        txt.textContent = progressMsg(done, syms.length, pct);
-        if (bi < batches.length-1) await sleep(cfg.batchDelay);
+        const pct=Math.round((done/syms.length)*100);
+        bar.style.width=pct+'%';
+        txt.textContent=progressMsg(done,syms.length,pct);
+        if(bi<batches.length-1) await sleep(cfg.batchDelay);
     }
-
-    btn.disabled = false; btn.textContent = '⚡ Fast Scan';
-    txt.textContent = doneMsg();
-    if (allResults.length===0) txt.textContent += ' ⚠️ Yahoo only returns bars during market hours (9:30am–4pm ET)';
+    btn.disabled=false; btn.textContent='⚡ Fast Scan';
+    txt.textContent=doneMsg();
+    if(resultMap.size===0) txt.textContent+=' ⚠️ Yahoo only returns bars during market hours (9:30am–4pm ET)';
 }
 
 function chipClass(r) {
-    if (r.scanType === 'both')         return 'done-both';
-    if (r.direction === 'buy')         return 'done-buy';
-    if (r.direction === 'sell')        return 'done-sell';
+    if(r.scanType==='both')    return 'done-both';
+    if(r.direction==='buy')    return 'done-buy';
+    if(r.direction==='sell')   return 'done-sell';
     return 'done-none';
 }
 
+function allResultsArr() { return [...resultMap.values()]; }
+
 function progressMsg(done, total, pct) {
-    const b = allResults.filter(r=>r.direction==='buy').length;
-    const s = allResults.filter(r=>r.direction==='sell').length;
-    const bt= allResults.filter(r=>r.scanType==='both').length;
-    return `${done}/${total} (${pct}%) · BUY: ${b} · SELL: ${s} · Both signals: ${bt}`;
+    const all=allResultsArr();
+    const b=all.filter(r=>r.direction==='buy').length;
+    const s=all.filter(r=>r.direction==='sell').length;
+    const bt=all.filter(r=>r.scanType==='both').length;
+    return `${done}/${total} (${pct}%) · BUY: ${b} · SELL: ${s} · Both: ${bt}`;
 }
 
 function doneMsg() {
-    const b  = allResults.filter(r=>r.direction==='buy').length;
-    const s  = allResults.filter(r=>r.direction==='sell').length;
-    const bt = allResults.filter(r=>r.scanType==='both').length;
-    return `✅ Complete · ${allResults.length} scanned · BUY: ${b} · SELL: ${s} · Both signals: ${bt}`;
+    const all=allResultsArr();
+    const b=all.filter(r=>r.direction==='buy').length;
+    const s=all.filter(r=>r.direction==='sell').length;
+    const bt=all.filter(r=>r.scanType==='both').length;
+    return `✅ Complete · ${all.length} scanned · BUY: ${b} · SELL: ${s} · Both: ${bt}`;
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 //  DATA FETCHERS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
 async function fetchAV(symbol, outputSize) {
     const url  = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${encodeURIComponent(symbol)}&interval=5min&outputsize=${outputSize}&apikey=${AV_KEY}`;
     const json = await (await fetch(url)).json();
     const series = json['Time Series (5min)'];
     if (!series) return null;
     const times = Object.keys(series).sort().reverse();
-    if (times.length < 20) return null;
-    return times.map(t => ({
+    if (times.length<20) return null;
+    return times.map(t=>({
         time:  t,
         open:  parseFloat(series[t]['1. open']),
         high:  parseFloat(series[t]['2. high']),
@@ -1316,126 +794,123 @@ async function fetchAV(symbol, outputSize) {
 }
 
 async function fetchYF(symbol) {
-    const ctrl = new AbortController();
-    const tid  = setTimeout(() => ctrl.abort(), 8000);
+    const ctrl=new AbortController(), tid=setTimeout(()=>ctrl.abort(),8000);
     try {
-        const res  = await fetch(activeProxy.url(symbol), { signal: ctrl.signal });
+        const res=await fetch(activeProxy.url(symbol),{signal:ctrl.signal});
         clearTimeout(tid);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        const result = json?.chart?.result?.[0];
-        if (!result) return null;
-        const ts = result.timestamp;
-        const q  = result.indicators?.quote?.[0];
-        if (!ts || !q) return null;
-        const bars = [];
-        for (let i = ts.length-1; i >= 0; i--) {
-            if (q.close[i]==null||isNaN(q.close[i])) continue;
-            const d = new Date(ts[i]*1000);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json=await res.json();
+        const result=json?.chart?.result?.[0];
+        if(!result) return null;
+        const ts=result.timestamp, q=result.indicators?.quote?.[0];
+        if(!ts||!q) return null;
+        const bars=[];
+        for(let i=ts.length-1;i>=0;i--){
+            if(q.close[i]==null||isNaN(q.close[i])) continue;
+            const d=new Date(ts[i]*1000);
             bars.push({
                 time:  d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}),
-                open:  q.open[i]  ?? q.close[i],
-                high:  q.high[i]  ?? q.close[i],
-                low:   q.low[i]   ?? q.close[i],
+                timestamp: ts[i]*1000,
+                open:  q.open[i]??q.close[i],
+                high:  q.high[i]??q.close[i],
+                low:   q.low[i]??q.close[i],
                 close: q.close[i],
-                vol:   q.volume[i]?? 0
+                vol:   q.volume[i]??0
             });
         }
-        return bars.length >= 5 ? bars : null;
-    } catch(e) { clearTimeout(tid); throw e; }
+        return bars.length>=5 ? bars : null;
+    } catch(e){clearTimeout(tid);throw e;}
 }
 
-// ═══════════════════════════════════════════
-//  TABLE
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════
+//  TABLE — uses symbol key, not index
+// ═══════════════════════════════════
 function filterResults(f, e) {
-    currentFilter = f;
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    if (e) e.target.classList.add('active');
+    currentFilter=f;
+    document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+    if(e) e.target.classList.add('active');
     updateTable();
 }
 
-function f2(v) { return v!==null&&v!==undefined ? '$'+Number(v).toFixed(2) : '—'; }
+function f2(v){ return v!==null&&v!==undefined ? '$'+Number(v).toFixed(2) : '—'; }
 
 function updateTable() {
     const container = document.getElementById('resultsContainer');
     const tbody     = document.getElementById('resultsBody');
     const countEl   = document.getElementById('resultsCount');
     const pillsEl   = document.getElementById('summaryPills');
+    const all       = allResultsArr();
 
-    if (allResults.length === 0) { container.style.display = 'none'; return; }
+    if (all.length===0) { container.style.display='none'; return; }
 
-    // filter
-    filteredResults = currentFilter === 'all'     ? [...allResults]
-        : currentFilter === 'buy'     ? allResults.filter(r => r.direction === 'buy')
-        : currentFilter === 'sell'    ? allResults.filter(r => r.direction === 'sell')
-        : currentFilter === 'swing'   ? allResults.filter(r => r.scanType === 'swing')
-        : currentFilter === 'channel' ? allResults.filter(r => r.scanType === 'channel')
-        : currentFilter === 'both'    ? allResults.filter(r => r.scanType === 'both')
-        : currentFilter === 'neutral' ? allResults.filter(r => r.direction === 'neutral')
-        : [...allResults];
+    // Apply filter
+    const filtered = currentFilter==='all'     ? all
+        : currentFilter==='buy'     ? all.filter(r=>r.direction==='buy')
+        : currentFilter==='sell'    ? all.filter(r=>r.direction==='sell')
+        : currentFilter==='swing'   ? all.filter(r=>r.scanType==='swing')
+        : currentFilter==='channel' ? all.filter(r=>r.scanType==='channel')
+        : currentFilter==='both'    ? all.filter(r=>r.scanType==='both')
+        : currentFilter==='neutral' ? all.filter(r=>r.direction==='neutral')
+        : all;
 
-    container.style.display = 'block';
+    // Store ordered symbols for safe modal lookup
+    const sortKey = r => (r.scanType==='both'?'0':r.direction==='buy'?'1':r.direction==='sell'?'2':'3')+'_'+r.symbol;
+    const sorted  = [...filtered].sort((a,b) => sortKey(a).localeCompare(sortKey(b)));
+    filteredSymbols = sorted.map(r => r.symbol);
 
-    // summary counts
-    const nBuy  = allResults.filter(r=>r.direction==='buy').length;
-    const nSell = allResults.filter(r=>r.direction==='sell').length;
-    const nSwing= allResults.filter(r=>r.scanType==='swing').length;
-    const nChan = allResults.filter(r=>r.scanType==='channel').length;
-    const nBoth = allResults.filter(r=>r.scanType==='both').length;
-    const nNone = allResults.filter(r=>r.direction==='neutral').length;
+    container.style.display='block';
 
-    countEl.textContent = `${allResults.length} scanned · showing ${filteredResults.length}`;
+    // Summary pills
+    const nBuy=all.filter(r=>r.direction==='buy').length;
+    const nSell=all.filter(r=>r.direction==='sell').length;
+    const nSwing=all.filter(r=>r.scanType==='swing').length;
+    const nChan=all.filter(r=>r.scanType==='channel').length;
+    const nBoth=all.filter(r=>r.scanType==='both').length;
+    const nNone=all.filter(r=>r.direction==='neutral').length;
 
-    pillsEl.innerHTML = `
+    countEl.textContent=`${all.length} scanned · showing ${sorted.length}`;
+    pillsEl.innerHTML=`
         <span class="s-pill sp-buy">🟢 Buy: ${nBuy}</span>
         <span class="s-pill sp-sell">🔴 Sell: ${nSell}</span>
-        <span style="color:#dfe6e9;margin:0 2px;">|</span>
+        <span style="color:#dfe6e9;margin:0 2px">|</span>
         <span class="s-pill sp-swing">📈 Swing: ${nSwing}</span>
         <span class="s-pill sp-channel">📦 Channel: ${nChan}</span>
         <span class="s-pill sp-both">⭐ Both: ${nBoth}</span>
         <span class="s-pill sp-neutral">🟡 No signal: ${nNone}</span>
     `;
 
-    if (filteredResults.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" class="empty-state">
-            <div class="empty-icon">🔍</div>
-            <div>No results for filter: ${currentFilter}</div></td></tr>`;
+    if (sorted.length===0) {
+        tbody.innerHTML=`<tr><td colspan="12" class="empty-state"><div class="empty-icon">🔍</div><div>No results for filter: ${currentFilter}</div></td></tr>`;
         return;
     }
 
-    // sort: both > buy > sell > neutral
-    const ord = { both:0, buy:1, sell:2, neutral:3 };
-    const sortKey = r => `${r.scanType==='both'?0:r.direction==='buy'?1:r.direction==='sell'?2:3}_${r.symbol}`;
-    const sorted = [...filteredResults].sort((a,b) => sortKey(a).localeCompare(sortKey(b)));
-
     tbody.innerHTML = sorted.map((r, idx) => {
-        const pos = r.change >= 0;
-
-        const dirBadge = r.direction === 'buy'
+        const pos = r.change>=0;
+        const dirBadge = r.direction==='buy'
             ? `<span class="signal-badge signal-bullish">🟢 BUY</span>`
-            : r.direction === 'sell'
+            : r.direction==='sell'
             ? `<span class="signal-badge signal-bearish">🔴 SELL</span>`
             : `<span class="signal-badge signal-neutral">🟡 WATCH</span>`;
 
-        const typeBadge = r.scanType === 'both'
-            ? `<span class="scan-type st-both">⭐ SWING + CHANNEL</span>`
-            : r.scanType === 'swing'
+        const typeBadge = r.scanType==='both'
+            ? `<span class="scan-type st-both">⭐ BOTH</span>`
+            : r.scanType==='swing'
             ? `<span class="scan-type st-swing">📈 SWING</span>`
-            : r.scanType === 'channel'
+            : r.scanType==='channel'
             ? `<span class="scan-type st-channel">📦 CHANNEL</span>`
             : `<span style="color:#aaa;font-size:11px;">—</span>`;
 
-        const optBadge = r.optType === 'CALL'
+        const optBadge = r.optType==='CALL'
             ? `<span class="opt-pill opt-call">CALL</span>`
-            : r.optType === 'PUT'
+            : r.optType==='PUT'
             ? `<span class="opt-pill opt-put">PUT</span>`
             : `—`;
 
-        const srcTag = r.source === 'av'
+        const srcTag = r.source==='av'
             ? `<span class="src-tag st-av">AV</span>`
             : `<span class="src-tag st-yf">YF</span>`;
 
+        // ── KEY FIX: pass symbol string, not array index ──
         return `<tr>
             <td class="sym">${r.symbol}</td>
             <td class="r" style="font-weight:600;">${f2(r.price)}</td>
@@ -1450,42 +925,41 @@ function updateTable() {
             <td class="r muted" style="font-size:11px;">${r.levelStr}</td>
             <td class="c"><span class="conf-${r.confidence}">${r.confidence.toUpperCase()}</span></td>
             <td class="c">${srcTag}</td>
-            <td class="c"><button class="view-btn" onclick="showDetail(${idx})">📊 Analyze</button></td>
+            <td class="c"><button class="view-btn" onclick="showDetail('${r.symbol}')">📊 Analyze</button></td>
         </tr>`;
     }).join('');
 }
 
-// ═══════════════════════════════════════════
-//  MODAL
-// ═══════════════════════════════════════════
-function showDetail(idx) {
-    const r    = filteredResults[idx];
-    const isBuy= r.direction === 'buy';
-    const isSel= r.direction === 'sell';
-    const sw   = r.swing;
-    const ch   = r.channel;
+// ═══════════════════════════════════
+//  MODAL — looks up by symbol, never by index
+// ═══════════════════════════════════
+function showDetail(symbol) {
+    // Always fetch the freshest result from the map
+    const r = resultMap.get(symbol);
+    if (!r) { alert('No data for ' + symbol); return; }
+
+    const isBuy=r.direction==='buy', isSel=r.direction==='sell';
+    const sw=r.swing, ch=r.channel;
 
     document.getElementById('modalTitle').textContent = `${r.symbol} — Breakout Analysis`;
     document.getElementById('modalSub').textContent   =
         `${r.source==='av'?'Alpha Vantage':'Yahoo Finance'} · 5-min · ${r.barTime} · `
-      + (r.scanType==='both'?'⭐ Both signals fired':r.scanType==='swing'?'📈 Swing signal':r.scanType==='channel'?'📦 Channel signal':'No signal');
+      + (r.scanType==='both'?'⭐ Both signals':r.scanType==='swing'?'📈 Swing':r.scanType==='channel'?'📦 Channel':'No signal');
 
-    // channel visualizer
-    let chanViz = '';
-    if (ch.resistance !== null && ch.support !== null) {
-        const range   = ch.resistance - ch.support;
-        const pricePos= Math.min(Math.max((r.price - ch.support) / range * 100, 0), 100);
-        const fillLeft= 0; const fillRight = 100 - 100; // full bar
-        chanViz = `
+    let chanViz='';
+    if (ch.resistance!==null&&ch.support!==null) {
+        const range=(ch.resistance-ch.support)||0.01;
+        const pricePos=Math.min(Math.max((r.price-ch.support)/range*100,0),100);
+        chanViz=`
         <div class="channel-viz">
-            <div class="channel-viz-title">📦 Channel Structure (last ${r.channel.channelWidth?.toFixed(2)}% wide)</div>
+            <div class="channel-viz-title">📦 Channel Structure — width: ${ch.channelWidth?.toFixed(2)}% · ${ch.inChannel?'✅ Qualifies':'❌ Too wide'}</div>
             <div class="channel-bar-wrap">
                 <div class="channel-bar-fill" style="left:0%;right:0%;"></div>
                 <div class="channel-price-marker" style="left:${pricePos.toFixed(1)}%;"></div>
             </div>
             <div class="channel-labels">
                 <span style="color:#d63031;font-weight:700;">Support: ${f2(ch.support)}</span>
-                <span style="color:#636e72;">Width: ${ch.channelWidth?.toFixed(2)}%</span>
+                <span>Width: ${ch.channelWidth?.toFixed(2)}%</span>
                 <span style="color:#00b894;font-weight:700;">Resistance: ${f2(ch.resistance)}</span>
             </div>
         </div>`;
@@ -1494,23 +968,23 @@ function showDetail(idx) {
     document.getElementById('modalBody').innerHTML = `
         <div class="analysis-grid">
             <div class="zone-box bullish">
-                <div class="zone-title">🟢 BUY SIGNAL</div>
-                <div class="zone-price">${isBuy ? f2(r.price) : '—'}</div>
+                <div class="zone-title">🟢 BUY ZONE — ATM CALL</div>
+                <div class="zone-price">${isBuy?f2(r.price):'—'}</div>
                 <div class="zone-desc">
-                    ${sw.signal==='buy' ? `<strong>📈 Swing trigger:</strong> Close above ${f2(sw.leftLowHigh)} (left-candle high of swing low)<br>Swing low: ${f2(sw.swingLow)}<br>` : ''}
-                    ${ch.signal==='buy' ? `<strong>📦 Channel trigger:</strong> Close above resistance ${f2(ch.resistance)}<br>Channel support: ${f2(ch.support)}<br>` : ''}
+                    ${sw.signal==='buy'?`<strong>📈 Swing trigger:</strong> Close above ${f2(sw.leftLowHigh)}<br>Swing low: ${f2(sw.swingLow)}<br>`:''}
+                    ${ch.signal==='buy'?`<strong>📦 Channel trigger:</strong> Close above resistance ${f2(ch.resistance)}<br>Channel support: ${f2(ch.support)}<br>`:''}
                     <strong>ATM CALL strike:</strong> ${f2(r.strike)}<br>
-                    ${isBuy ? '<strong style="color:#155724">✅ Signal active on last 5-min bar</strong>' : 'No buy signal on current bar'}
+                    ${isBuy?'<strong style="color:#155724">✅ Signal active on last 5-min bar</strong>':'No buy signal on current bar'}
                 </div>
             </div>
             <div class="zone-box bearish">
-                <div class="zone-title">🔴 SELL SIGNAL</div>
-                <div class="zone-price">${isSel ? f2(r.price) : '—'}</div>
+                <div class="zone-title">🔴 SELL ZONE — ATM PUT</div>
+                <div class="zone-price">${isSel?f2(r.price):'—'}</div>
                 <div class="zone-desc">
-                    ${sw.signal==='sell' ? `<strong>📈 Swing trigger:</strong> Close below ${f2(sw.leftHighLow)} (left-candle low of swing high)<br>Swing high: ${f2(sw.swingHigh)}<br>` : ''}
-                    ${ch.signal==='sell' ? `<strong>📦 Channel trigger:</strong> Close below support ${f2(ch.support)}<br>Channel resistance: ${f2(ch.resistance)}<br>` : ''}
+                    ${sw.signal==='sell'?`<strong>📈 Swing trigger:</strong> Close below ${f2(sw.leftHighLow)}<br>Swing high: ${f2(sw.swingHigh)}<br>`:''}
+                    ${ch.signal==='sell'?`<strong>📦 Channel trigger:</strong> Close below support ${f2(ch.support)}<br>Channel resistance: ${f2(ch.resistance)}<br>`:''}
                     <strong>ATM PUT strike:</strong> ${f2(r.strike)}<br>
-                    ${isSel ? '<strong style="color:#721c24">✅ Signal active on last 5-min bar</strong>' : 'No sell signal on current bar'}
+                    ${isSel?'<strong style="color:#721c24">✅ Signal active on last 5-min bar</strong>':'No sell signal on current bar'}
                 </div>
             </div>
         </div>
@@ -1521,7 +995,7 @@ function showDetail(idx) {
             <div class="stats-title">📐 Signal Detail</div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-lbl">Price</div>
+                    <div class="stat-lbl">5-Min Close</div>
                     <div class="stat-val">${f2(r.price)}</div>
                     <div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:11px;">
                         ${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
@@ -1539,13 +1013,11 @@ function showDetail(idx) {
                     <div class="stat-val" style="font-size:14px;">
                         ${r.scanType==='both'?'⭐ BOTH':r.scanType==='swing'?'📈 SWING':r.scanType==='channel'?'📦 CHANNEL':'—'}
                     </div>
-                    <div class="stat-sub">${r.scanType==='both'?'Both scanners agree — strongest signal':''}</div>
+                    <div class="stat-sub">${r.scanType==='both'?'Both confirm — strongest signal':''}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-lbl">Option</div>
-                    <div class="stat-val" style="color:${isBuy?'#00b894':isSel?'#d63031':'#636e72'}">
-                        ${r.optType ?? '—'}
-                    </div>
+                    <div class="stat-val" style="color:${isBuy?'#00b894':isSel?'#d63031':'#636e72'}">${r.optType??'—'}</div>
                     <div class="stat-sub">ATM strike ${f2(r.strike)}</div>
                 </div>
                 <div class="stat-card">
@@ -1555,24 +1027,25 @@ function showDetail(idx) {
                 </div>
                 <div class="stat-card">
                     <div class="stat-lbl">Channel Width</div>
-                    <div class="stat-val" style="font-size:16px;">${ch.channelWidth ? ch.channelWidth.toFixed(2)+'%' : '—'}</div>
+                    <div class="stat-val" style="font-size:16px;">${ch.channelWidth?ch.channelWidth.toFixed(2)+'%':'—'}</div>
                     <div class="stat-sub">${ch.inChannel?'In channel ✓':'Outside channel params'}</div>
                 </div>
             </div>
         </div>
 
         <div class="chart-section">
-            <div class="chart-title">📈 5-Min Price Chart with Swing + Channel Levels</div>
-            <canvas id="detailChart" style="max-height:300px;"></canvas>
+            <div class="chart-title">🕯️ 5-Min Candlestick Chart — ${r.symbol}</div>
+            <div class="chart-sub">Green/red candles · Dashed lines = swing &amp; channel levels</div>
+            <canvas id="detailChart" style="max-height:340px;"></canvas>
         </div>
 
         <div class="recommendation">
             <div class="rec-title">
-                ${r.scanType==='both' && isBuy  ? '⭐ STRONG BUY — Both Swing + Channel confirm · Buy ATM CALL'
-                : r.scanType==='both' && isSel  ? '⭐ STRONG SELL — Both Swing + Channel confirm · Buy ATM PUT'
-                : isBuy                         ? '🟢 BUY SIGNAL — Buy ATM CALL Option'
-                : isSel                         ? '🔴 SELL SIGNAL — Buy ATM PUT Option'
-                :                                 '🟡 NO SIGNAL — Monitor for breakout'}
+                ${r.scanType==='both'&&isBuy  ?'⭐ STRONG BUY — Both Swing + Channel confirm · Buy ATM CALL'
+                :r.scanType==='both'&&isSel   ?'⭐ STRONG SELL — Both Swing + Channel confirm · Buy ATM PUT'
+                :isBuy                         ?'🟢 BUY SIGNAL — Buy ATM CALL Option'
+                :isSel                         ?'🔴 SELL SIGNAL — Buy ATM PUT Option'
+                :                               '🟡 NO SIGNAL — Monitor for breakout'}
             </div>
             <div class="rec-grid">
                 <div class="rec-item"><div class="rec-label">Symbol</div><div class="rec-value">${r.symbol}</div></div>
@@ -1585,51 +1058,119 @@ function showDetail(idx) {
         </div>
     `;
 
-    document.getElementById('modal').style.display = 'block';
-    setTimeout(() => drawChart(r), 100);
+    document.getElementById('modal').style.display='block';
+    setTimeout(()=>drawCandleChart(r), 120);
 }
 
-function drawChart(r) {
+// ═══════════════════════════════════
+//  CANDLESTICK CHART
+// ═══════════════════════════════════
+function drawCandleChart(r) {
     const ctx = document.getElementById('detailChart');
     if (!ctx) return;
-    if (currentChart) currentChart.destroy();
+    if (currentChart) { currentChart.destroy(); currentChart=null; }
 
-    const show   = r.bars.slice(0, 78).reverse();
-    const labels = show.map(b => b.time);
-    const closes = show.map(b => b.close);
-    const len    = show.length;
+    const show = r.bars.slice(0, 60).reverse(); // oldest → newest
+    const len  = show.length;
 
-    const ds = [{ label:'Price (5-min)', data:closes, borderColor:'#2d3436', borderWidth:2, pointRadius:0, fill:false, tension:0.1 }];
+    // Build OHLC data with timestamps for the financial plugin
+    // If we have real timestamps use them; otherwise synthesise from index
+    const now      = Date.now();
+    const interval = 5 * 60 * 1000; // 5 min in ms
 
-    // swing levels
-    if (r.swing.swingLow)    ds.push({ label:`Swing Low ${f2(r.swing.swingLow)}`,       data:Array(len).fill(r.swing.swingLow),    borderColor:'#00b894', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false });
-    if (r.swing.swingHigh)   ds.push({ label:`Swing High ${f2(r.swing.swingHigh)}`,     data:Array(len).fill(r.swing.swingHigh),   borderColor:'#d63031', borderWidth:1.5, borderDash:[6,4], pointRadius:0, fill:false });
-    if (r.swing.leftLowHigh) ds.push({ label:`Buy Trig ${f2(r.swing.leftLowHigh)}`,     data:Array(len).fill(r.swing.leftLowHigh), borderColor:'#00cec9', borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false });
-    if (r.swing.leftHighLow) ds.push({ label:`Sell Trig ${f2(r.swing.leftHighLow)}`,    data:Array(len).fill(r.swing.leftHighLow), borderColor:'#e17055', borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false });
-    // channel levels
-    if (r.channel.resistance) ds.push({ label:`Channel R ${f2(r.channel.resistance)}`,  data:Array(len).fill(r.channel.resistance), borderColor:'#6c5ce7', borderWidth:2,  borderDash:[8,3], pointRadius:0, fill:false });
-    if (r.channel.support)    ds.push({ label:`Channel S ${f2(r.channel.support)}`,     data:Array(len).fill(r.channel.support),    borderColor:'#a29bfe', borderWidth:2,  borderDash:[8,3], pointRadius:0, fill:false });
+    const candleData = show.map((b, i) => {
+        const ts = b.timestamp ? b.timestamp : now - (len - 1 - i) * interval;
+        return { x: ts, o: b.open, h: b.high, l: b.low, c: b.close };
+    });
+
+    // Overlay lines use same timestamp axis
+    const firstTs = candleData[0].x;
+    const lastTs  = candleData[candleData.length-1].x;
+
+    function hline(val, label, color, dash) {
+        return {
+            label, type:'line',
+            data:[{x:firstTs, y:val},{x:lastTs, y:val}],
+            borderColor: color, borderWidth: 1.5,
+            borderDash: dash || [6,4],
+            pointRadius: 0, fill: false,
+            parsing: false
+        };
+    }
+
+    const datasets = [{
+        label: r.symbol + ' (5-min)',
+        type: 'candlestick',
+        data: candleData,
+        parsing: false,
+        color: {
+            up:   '#00b894',
+            down: '#d63031',
+            unchanged: '#636e72'
+        },
+        borderColor: {
+            up:   '#00b894',
+            down: '#d63031',
+            unchanged: '#636e72'
+        }
+    }];
+
+    if (r.swing.swingLow)    datasets.push(hline(r.swing.swingLow,    `Swing Low ${f2(r.swing.swingLow)}`,     '#00b894', [6,4]));
+    if (r.swing.swingHigh)   datasets.push(hline(r.swing.swingHigh,   `Swing High ${f2(r.swing.swingHigh)}`,   '#d63031', [6,4]));
+    if (r.swing.leftLowHigh) datasets.push(hline(r.swing.leftLowHigh, `Buy Trig ${f2(r.swing.leftLowHigh)}`,   '#00cec9', [2,5]));
+    if (r.swing.leftHighLow) datasets.push(hline(r.swing.leftHighLow, `Sell Trig ${f2(r.swing.leftHighLow)}`,  '#e17055', [2,5]));
+    if (r.channel.resistance) datasets.push(hline(r.channel.resistance,`Chan R ${f2(r.channel.resistance)}`,   '#6c5ce7', [8,3]));
+    if (r.channel.support)    datasets.push(hline(r.channel.support,   `Chan S ${f2(r.channel.support)}`,      '#a29bfe', [8,3]));
 
     currentChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels, datasets: ds },
+        type: 'candlestick',
+        data: { datasets },
         options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display:true, position:'top', labels:{ font:{size:10}, boxWidth:16 } } },
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode:'index', intersect:false },
+            plugins: {
+                legend: {
+                    display: true, position:'top',
+                    labels: { font:{size:10}, boxWidth:14,
+                        filter: item => item.datasetIndex > 0 // hide candle entry from legend
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => {
+                            if (ctx.dataset.type === 'candlestick') {
+                                const d = ctx.raw;
+                                return [`O: $${d.o?.toFixed(2)}  H: $${d.h?.toFixed(2)}`,
+                                        `L: $${d.l?.toFixed(2)}  C: $${d.c?.toFixed(2)}`];
+                            }
+                            return `${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2)}`;
+                        }
+                    }
+                }
+            },
             scales: {
-                x: { ticks:{ font:{size:10}, maxTicksLimit:12 }, grid:{ color:'#ecf0f1' } },
-                y: { ticks:{ callback: v=>'$'+v.toFixed(2) },    grid:{ color:'#ecf0f1' } }
+                x: {
+                    type: 'timeseries',
+                    time: { unit:'minute', displayFormats:{ minute:'HH:mm' } },
+                    ticks: { font:{size:9}, maxTicksLimit:12, color:'#636e72' },
+                    grid: { color:'#ecf0f1' }
+                },
+                y: {
+                    ticks: { callback: v=>'$'+v.toFixed(2), color:'#636e72' },
+                    grid:  { color:'#ecf0f1' }
+                }
             }
         }
     });
 }
 
 function closeModal() {
-    document.getElementById('modal').style.display = 'none';
-    if (currentChart) { currentChart.destroy(); currentChart = null; }
+    document.getElementById('modal').style.display='none';
+    if (currentChart) { currentChart.destroy(); currentChart=null; }
 }
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
 </script>
 </body>
 </html>
