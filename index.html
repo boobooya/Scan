@@ -212,6 +212,15 @@
         .panel-sub   { font-size: 11px; color: #636e72; }
         .panel-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
 
+        /* Chart.js wrapper divs — MUST have explicit pixel height for maintainAspectRatio:false */
+        .cw-xl  { position: relative; width: 100%; height: 360px; }
+        .cw-lg  { position: relative; width: 100%; height: 260px; }
+        .cw-md  { position: relative; width: 100%; height: 220px; }
+        .cw-sm  { position: relative; width: 100%; height: 180px; }
+        .cw-vp  { position: relative; width: 100%; height: 280px;
+                  display: grid; grid-template-columns: 1fr 130px; gap: 0; }
+        .cw-vp-sub { position: relative; height: 280px; }
+
         .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
         .zone-box { padding: 16px; border-radius: 10px; border-left: 4px solid; }
         .zone-box.bullish { background: #d4edda; border-color: #00b894; }
@@ -1179,7 +1188,7 @@ function showDetail(symbol){
                 </div>
             </div>
             <div class="hurst-legend" id="hurstLegend"></div>
-            <canvas id="chartMain" style="max-height:340px;"></canvas>
+            <div class="cw-xl"><canvas id="chartMain"></canvas></div>
         </div>
 
         <!-- PANEL 2: Market Structure -->
@@ -1190,7 +1199,7 @@ function showDetail(symbol){
                     <div class="panel-sub" id="msTrend">Trend: —</div>
                 </div>
             </div>
-            <canvas id="chartMS" style="max-height:220px;"></canvas>
+            <div class="cw-md"><canvas id="chartMS"></canvas></div>
         </div>
 
         <!-- PANEL 3: RSI + Divergence -->
@@ -1201,7 +1210,7 @@ function showDetail(symbol){
                     <div class="panel-sub" id="rsiStatus">RSI: —</div>
                 </div>
             </div>
-            <canvas id="chartRSI" style="max-height:200px;"></canvas>
+            <div class="cw-sm"><canvas id="chartRSI"></canvas></div>
         </div>
 
         <!-- PANEL 4: ATR Chandelier Stop -->
@@ -1212,7 +1221,7 @@ function showDetail(symbol){
                     <div class="panel-sub" id="atrStatus">ATR Stop: —</div>
                 </div>
             </div>
-            <canvas id="chartATR" style="max-height:220px;"></canvas>
+            <div class="cw-md"><canvas id="chartATR"></canvas></div>
         </div>
 
         <!-- PANEL 5: VWAP + Bands -->
@@ -1223,7 +1232,7 @@ function showDetail(symbol){
                     <div class="panel-sub" id="vwapStatus">VWAP: —</div>
                 </div>
             </div>
-            <canvas id="chartVWAP" style="max-height:220px;"></canvas>
+            <div class="cw-md"><canvas id="chartVWAP"></canvas></div>
         </div>
 
         <!-- PANEL 6: Volume Profile -->
@@ -1234,10 +1243,7 @@ function showDetail(symbol){
                     <div class="panel-sub" id="vpStatus">POC: —</div>
                 </div>
             </div>
-            <div style="display:grid;grid-template-columns:1fr 130px;gap:0;">
-                <canvas id="chartVP" style="max-height:260px;"></canvas>
-                <canvas id="chartVPProfile" style="max-height:260px;"></canvas>
-            </div>
+            <div class="cw-vp"><div class="cw-vp-sub"><canvas id="chartVP"></canvas></div><div class="cw-vp-sub"><canvas id="chartVPProfile"></canvas></div></div>
         </div>
 
         <!-- PANEL 7: Analysis Reasoning -->
