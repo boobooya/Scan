@@ -14,46 +14,116 @@
             min-height: 100vh;
         }
 
+        /* ── HEADER ── */
         .header {
             background: #111420;
             border-bottom: 1px solid #1e2235;
-            padding: 18px 24px;
+            padding: 16px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
-        .header-left h1 { font-size: 20px; color: #fff; font-weight: 700; }
+        .header-left h1 { font-size: 19px; color: #fff; font-weight: 800; }
         .header-left p  { font-size: 11px; color: #5a6080; margin-top: 3px; }
 
-        .header-badge {
-            background: rgba(79,110,247,0.15);
-            border: 1px solid rgba(79,110,247,0.35);
-            color: #7b9bff;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 5px 12px;
-            border-radius: 20px;
-            letter-spacing: 0.5px;
+        .header-right { display: flex; align-items: center; gap: 10px; }
+
+        /* ── SOURCE TOGGLE ── */
+        .source-toggle {
+            display: flex;
+            background: #0b0d14;
+            border: 1px solid #1e2235;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        .container { max-width: 1800px; margin: 0 auto; padding: 18px 20px; }
+        .src-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            color: #5a6080;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .src-btn.active {
+            background: #4f6ef7;
+            color: #fff;
+        }
+
+        .src-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+        }
+
+        .src-av   { background: #f59e0b; }
+        .src-yf   { background: #22d3a0; }
+
+        .speed-badge {
+            font-size: 10px;
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-weight: 700;
+            margin-left: 2px;
+        }
+
+        .badge-slow { background: rgba(245,158,11,0.18); color: #f59e0b; }
+        .badge-fast { background: rgba(34,211,160,0.18); color: #22d3a0; }
+
+        /* ── SOURCE INFO BAR ── */
+        .source-info {
+            padding: 9px 20px;
+            font-size: 11px;
+            border-bottom: 1px solid #1e2235;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .si-av  { background: rgba(245,158,11,0.07); color: #c89a3a; }
+        .si-yf  { background: rgba(34,211,160,0.07); color: #1d9e75; }
+
+        .si-icon { font-size: 14px; }
+        .si-key  { font-weight: 700; margin-right: 4px; }
+
+        /* ── CONTAINER ── */
+        .container { max-width: 1800px; margin: 0 auto; padding: 16px 20px; }
 
         /* ── CONTROLS ── */
         .controls {
             background: #111420;
             border: 1px solid #1e2235;
-            padding: 18px 20px;
+            padding: 16px 20px;
             border-radius: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
+
+        /* Alpha Vantage controls */
+        .av-controls { display: none; }
+        .av-controls.visible { display: block; }
+
+        /* Yahoo controls */
+        .yf-controls { display: none; }
+        .yf-controls.visible { display: block; }
 
         .control-row {
             display: grid;
-            grid-template-columns: 1fr 130px 130px 130px auto;
             gap: 12px;
             align-items: end;
         }
+
+        .cr-av { grid-template-columns: 1fr 130px 130px 130px auto; }
+        .cr-yf { grid-template-columns: 1fr 130px 130px auto auto; }
 
         label {
             display: block;
@@ -62,12 +132,12 @@
             color: #5a6080;
             text-transform: uppercase;
             letter-spacing: 0.6px;
-            margin-bottom: 6px;
+            margin-bottom: 5px;
         }
 
         input, select {
             width: 100%;
-            padding: 9px 11px;
+            padding: 8px 11px;
             background: #0b0d14;
             border: 1px solid #1e2235;
             border-radius: 7px;
@@ -81,8 +151,7 @@
         select option { background: #111420; }
 
         .scan-btn {
-            padding: 10px 24px;
-            background: linear-gradient(135deg, #4f6ef7, #7c3aed);
+            padding: 9px 22px;
             border: none;
             border-radius: 7px;
             color: #fff;
@@ -93,9 +162,11 @@
             transition: opacity 0.15s;
         }
 
-        .scan-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .scan-btn-av { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .scan-btn-yf { background: linear-gradient(135deg, #22d3a0, #0f6e56); }
+        .scan-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-        .quick-btns { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+        .quick-btns { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 9px; }
 
         .quick-btn {
             padding: 4px 10px;
@@ -111,19 +182,76 @@
         .quick-btn:hover { background: #252840; color: #fff; border-color: #4f6ef7; }
 
         /* progress */
-        .progress { background: #1a1d2e; height: 3px; border-radius: 2px; overflow: hidden; margin: 12px 0 5px; display: none; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, #4f6ef7, #7c3aed); transition: width 0.3s; width: 0; }
-        .progress-text { font-size: 11px; color: #5a6080; text-align: center; min-height: 16px; }
+        .progress {
+            background: #1a1d2e;
+            height: 3px;
+            border-radius: 2px;
+            overflow: hidden;
+            margin: 11px 0 4px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            transition: width 0.3s;
+            width: 0;
+        }
+
+        .pb-av { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .pb-yf { background: linear-gradient(90deg, #22d3a0, #0f6e56); }
+
+        .progress-text { font-size: 11px; color: #5a6080; text-align: center; min-height: 15px; }
+
+        /* parallel progress for Yahoo */
+        .batch-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 5px;
+            margin-top: 10px;
+            max-height: 80px;
+            overflow: hidden;
+        }
+
+        .batch-grid.visible { display: grid; }
+
+        .batch-sym {
+            font-size: 10px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 700;
+            background: #1a1d2e;
+            color: #5a6080;
+            border: 1px solid #1e2235;
+            transition: all 0.2s;
+        }
+
+        .batch-sym.loading { color: #fbbf24; border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.07); }
+        .batch-sym.done-buy  { color: #22d3a0; border-color: rgba(34,211,160,0.3); background: rgba(34,211,160,0.07); }
+        .batch-sym.done-sell { color: #f87171; border-color: rgba(248,113,113,0.3); background: rgba(248,113,113,0.07); }
+        .batch-sym.done-none { color: #5a6080; border-color: #1e2235; }
+        .batch-sym.error     { color: #ef4444; border-color: rgba(239,68,68,0.3); }
 
         /* legend */
         .legend-row {
-            display: flex; gap: 18px; align-items: center;
-            margin-top: 12px; padding-top: 12px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-top: 11px;
+            padding-top: 11px;
             border-top: 1px solid #1e2235;
-            font-size: 11px; color: #5a6080; flex-wrap: wrap;
+            font-size: 11px;
+            color: #5a6080;
+            flex-wrap: wrap;
         }
 
-        .ldot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 5px; vertical-align: middle; }
+        .ldot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+            vertical-align: middle;
+        }
 
         /* ── RESULTS ── */
         .results-container {
@@ -135,25 +263,38 @@
         }
 
         .results-header {
-            padding: 13px 20px;
+            padding: 12px 20px;
             border-bottom: 1px solid #1e2235;
-            display: flex; justify-content: space-between; align-items: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             background: #0e1020;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .results-title { font-size: 14px; font-weight: 700; color: #fff; }
         .results-meta  { font-size: 11px; color: #5a6080; }
 
         .filter-tabs {
-            display: flex; gap: 6px; padding: 10px 20px;
-            border-bottom: 1px solid #1e2235; background: #0e1020; flex-wrap: wrap;
+            display: flex;
+            gap: 5px;
+            padding: 9px 20px;
+            border-bottom: 1px solid #1e2235;
+            background: #0e1020;
+            flex-wrap: wrap;
         }
 
         .filter-tab {
-            padding: 5px 13px;
-            background: #1a1d2e; border: 1px solid #1e2235;
-            border-radius: 5px; font-size: 11px; font-weight: 700;
-            cursor: pointer; color: #7a84aa; transition: all 0.12s;
+            padding: 5px 12px;
+            background: #1a1d2e;
+            border: 1px solid #1e2235;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #7a84aa;
+            transition: all 0.12s;
         }
 
         .filter-tab.active { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
@@ -161,48 +302,62 @@
         .tbl-wrap { overflow-x: auto; }
 
         table { width: 100%; border-collapse: collapse; }
-
         thead { background: #0e1020; position: sticky; top: 0; z-index: 10; }
 
         th {
-            padding: 10px 13px; text-align: left;
-            font-size: 10px; font-weight: 700; color: #5a6080;
-            text-transform: uppercase; letter-spacing: 0.5px;
-            border-bottom: 1px solid #1e2235; white-space: nowrap;
+            padding: 9px 12px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            color: #5a6080;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #1e2235;
+            white-space: nowrap;
         }
 
         th.r { text-align: right; }
         th.c { text-align: center; }
 
-        tbody tr { border-bottom: 1px solid #161825; transition: background 0.12s; }
+        tbody tr { border-bottom: 1px solid #161825; transition: background 0.1s; }
         tbody tr:hover { background: #161825; }
 
-        td { padding: 10px 13px; font-size: 12px; color: #b0b8d8; white-space: nowrap; }
+        td {
+            padding: 9px 12px;
+            font-size: 12px;
+            color: #b0b8d8;
+            white-space: nowrap;
+        }
 
         .sym  { font-weight: 800; font-size: 14px; color: #fff; }
         .prc  { font-weight: 700; color: #fff; text-align: right; }
         .r    { text-align: right; }
         .c    { text-align: center; }
-
         .pos  { color: #22d3a0; font-weight: 700; }
         .neg  { color: #f87171; font-weight: 700; }
 
-        /* signal pill */
         .sig {
-            display: inline-flex; align-items: center; gap: 4px;
-            padding: 3px 9px; border-radius: 20px;
-            font-size: 11px; font-weight: 800; letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
         }
 
         .sig-buy  { background: rgba(34,211,160,0.12); color: #22d3a0; border: 1px solid rgba(34,211,160,0.28); }
         .sig-sell { background: rgba(248,113,113,0.12); color: #f87171; border: 1px solid rgba(248,113,113,0.28); }
         .sig-watch{ background: rgba(251,191,36,0.10);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.22); }
 
-        /* option pill */
         .opt {
             display: inline-block;
-            padding: 3px 9px; border-radius: 12px;
-            font-size: 11px; font-weight: 800; letter-spacing: 0.5px;
+            padding: 3px 9px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
         }
 
         .opt-call { background: rgba(34,211,160,0.18); color: #22d3a0; border: 1px solid rgba(34,211,160,0.38); }
@@ -213,11 +368,28 @@
         .conf-medium { color: #fbbf24; font-weight: 600; font-size: 10px; }
         .conf-low    { color: #5a6080; font-size: 10px; }
 
-        .detail-btn {
-            padding: 4px 11px; background: #1a1d2e; color: #7a84aa;
-            border: 1px solid #1e2235; border-radius: 5px;
-            font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.12s;
+        .src-tag {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-weight: 700;
         }
+
+        .src-tag-av { background: rgba(245,158,11,0.15); color: #f59e0b; }
+        .src-tag-yf { background: rgba(34,211,160,0.15); color: #22d3a0; }
+
+        .detail-btn {
+            padding: 4px 10px;
+            background: #1a1d2e;
+            color: #7a84aa;
+            border: 1px solid #1e2235;
+            border-radius: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.12s;
+        }
+
         .detail-btn:hover { background: #4f6ef7; color: #fff; border-color: #4f6ef7; }
 
         .empty-state { text-align: center; padding: 50px 20px; color: #5a6080; }
@@ -225,141 +397,169 @@
 
         /* ── MODAL ── */
         .modal {
-            display: none; position: fixed; inset: 0;
-            background: rgba(0,0,0,0.88); z-index: 9999;
-            overflow-y: auto; padding: 20px;
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            z-index: 9999;
+            overflow-y: auto;
+            padding: 20px;
         }
 
         .modal-content {
-            background: #111420; border: 1px solid #1e2235;
-            max-width: 1050px; margin: 20px auto;
-            border-radius: 12px; overflow: hidden;
+            background: #111420;
+            border: 1px solid #1e2235;
+            max-width: 1050px;
+            margin: 20px auto;
+            border-radius: 12px;
+            overflow: hidden;
         }
 
         .modal-hdr {
             background: linear-gradient(135deg, #4f6ef7, #7c3aed);
-            padding: 20px 26px; display: flex;
-            justify-content: space-between; align-items: center;
+            padding: 20px 26px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
 
         .modal-hdr-title { font-size: 18px; font-weight: 700; color: #fff; }
-        .modal-hdr-sub   { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+        .modal-hdr-sub   { font-size: 11px; color: rgba(255,255,255,0.65); margin-top: 3px; }
 
         .close-btn {
-            background: rgba(255,255,255,0.14); color: #fff;
-            border: none; padding: 7px 14px; border-radius: 6px;
-            cursor: pointer; font-weight: 700; font-size: 13px;
+            background: rgba(255,255,255,0.14);
+            color: #fff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            flex-shrink: 0;
         }
 
-        .modal-body { padding: 24px; }
+        .modal-body { padding: 22px; }
 
-        /* zones */
-        .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+        .zones { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; margin-bottom: 16px; }
 
-        .zone {
-            padding: 16px; border-radius: 9px; border-left: 4px solid;
-        }
-
+        .zone { padding: 15px; border-radius: 9px; border-left: 4px solid; }
         .zone.bull { background: rgba(34,211,160,0.07); border-color: #22d3a0; }
         .zone.bear { background: rgba(248,113,113,0.07); border-color: #f87171; }
 
-        .zone-ttl { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 8px; }
-        .zone-price { font-size: 24px; font-weight: 800; margin-bottom: 7px; }
+        .zone-ttl   { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 7px; }
+        .zone-price { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
         .zone.bull .zone-price { color: #22d3a0; }
         .zone.bear .zone-price { color: #f87171; }
-        .zone-desc { font-size: 12px; line-height: 1.75; color: #7a84aa; }
+        .zone-desc  { font-size: 12px; line-height: 1.75; color: #7a84aa; }
 
-        /* stats row */
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; margin-bottom: 18px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px,1fr)); gap: 9px; margin-bottom: 16px; }
 
         .stat {
-            background: #0b0d14; border: 1px solid #1e2235;
-            padding: 13px; border-radius: 8px;
+            background: #0b0d14;
+            border: 1px solid #1e2235;
+            padding: 12px;
+            border-radius: 8px;
         }
 
         .stat-lbl { font-size: 10px; color: #5a6080; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
-        .stat-val { font-size: 20px; font-weight: 700; color: #fff; }
+        .stat-val { font-size: 19px; font-weight: 700; color: #fff; }
         .stat-sub { font-size: 10px; color: #5a6080; margin-top: 3px; }
 
-        /* swing cards */
-        .swing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+        .swing-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-bottom: 16px; }
 
-        .sw-card {
-            padding: 14px; border-radius: 8px; border: 1px solid;
-        }
-
+        .sw-card { padding: 13px; border-radius: 8px; border: 1px solid; }
         .sw-card.low  { background: rgba(34,211,160,0.06); border-color: rgba(34,211,160,0.28); }
         .sw-card.high { background: rgba(248,113,113,0.06); border-color: rgba(248,113,113,0.28); }
 
-        .sw-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #5a6080; margin-bottom: 6px; }
-        .sw-val { font-size: 20px; font-weight: 800; }
+        .sw-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #5a6080; margin-bottom: 5px; }
+        .sw-val { font-size: 19px; font-weight: 800; }
         .sw-card.low  .sw-val { color: #22d3a0; }
         .sw-card.high .sw-val { color: #f87171; }
         .sw-sub { font-size: 11px; color: #5a6080; margin-top: 4px; line-height: 1.6; }
 
-        /* chart */
         .chart-box {
-            background: #0b0d14; border: 1px solid #1e2235;
-            padding: 16px; border-radius: 9px; margin-bottom: 18px;
+            background: #0b0d14;
+            border: 1px solid #1e2235;
+            padding: 15px;
+            border-radius: 9px;
+            margin-bottom: 16px;
         }
 
-        .chart-ttl { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 12px; }
+        .chart-ttl { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 11px; }
 
-        /* rec */
         .rec {
             background: linear-gradient(135deg, #4f6ef7, #7c3aed);
-            color: #fff; padding: 20px; border-radius: 10px;
+            color: #fff;
+            padding: 18px;
+            border-radius: 10px;
         }
 
-        .rec-ttl { font-size: 15px; font-weight: 700; margin-bottom: 13px; }
-        .rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 10px; }
-        .rec-item { background: rgba(255,255,255,0.12); padding: 13px; border-radius: 8px; }
+        .rec-ttl  { font-size: 14px; font-weight: 700; margin-bottom: 12px; }
+        .rec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px,1fr)); gap: 9px; }
+        .rec-item { background: rgba(255,255,255,0.12); padding: 12px; border-radius: 8px; }
         .rec-lbl  { font-size: 10px; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-        .rec-val  { font-size: 17px; font-weight: 700; }
-
-        /* timestamps */
-        .ts-badge {
-            font-size: 10px; color: #5a6080;
-            background: #1a1d2e; border: 1px solid #1e2235;
-            padding: 2px 8px; border-radius: 10px; margin-left: 8px;
-        }
+        .rec-val  { font-size: 16px; font-weight: 700; }
 
         @media (max-width: 900px) {
-            .control-row { grid-template-columns: 1fr 1fr; }
+            .control-row { grid-template-columns: 1fr 1fr !important; }
             .zones, .swing-cards { grid-template-columns: 1fr; }
-            th, td { padding: 8px 9px; }
+            th, td { padding: 7px 9px; }
         }
     </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="header">
     <div class="header-left">
         <h1>⚡ 5-Min Swing Breakout Scanner</h1>
         <p>Detects swing low/high breakouts on 5-minute bars · ATM CALL on buy · ATM PUT on sell</p>
     </div>
-    <div class="header-badge">5-MIN INTRADAY</div>
+    <div class="header-right">
+        <div class="source-toggle">
+            <button class="src-btn active" id="btnAV" onclick="switchSource('av')">
+                <span class="src-dot src-av"></span>
+                Alpha Vantage
+                <span class="speed-badge badge-slow">sequential</span>
+            </button>
+            <button class="src-btn" id="btnYF" onclick="switchSource('yf')">
+                <span class="src-dot src-yf"></span>
+                Yahoo Finance
+                <span class="speed-badge badge-fast">parallel ⚡</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- SOURCE INFO BAR -->
+<div class="source-info si-av" id="sourceInfoBar">
+    <span class="si-icon">📡</span>
+    <span>
+        <span class="si-key">Alpha Vantage</span>
+        Free tier · 5 calls/min · scans one symbol at a time · requires API key ·
+        <span style="color:#f59e0b;">~16s delay between symbols</span>
+    </span>
 </div>
 
 <div class="container">
 
-    <!-- CONTROLS -->
-    <div class="controls">
-        <div class="control-row">
+    <!-- ALPHA VANTAGE CONTROLS -->
+    <div class="controls av-controls visible" id="avControls">
+        <div class="control-row cr-av">
             <div>
-                <label>Symbols to Scan (comma-separated)</label>
-                <input type="text" id="symbolInput" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
+                <label>Symbols to Scan</label>
+                <input type="text" id="avSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
                 <div class="quick-btns">
-                    <button class="quick-btn" onclick="loadPreset('etfs')">📈 ETFs</button>
-                    <button class="quick-btn" onclick="loadPreset('tech')">💻 Tech</button>
-                    <button class="quick-btn" onclick="loadPreset('finance')">🏦 Finance</button>
-                    <button class="quick-btn" onclick="loadPreset('energy')">⚡ Energy</button>
-                    <button class="quick-btn" onclick="loadPreset('all')">⭐ All 250+</button>
+                    <button class="quick-btn" onclick="loadPreset('av','etfs')">📈 ETFs</button>
+                    <button class="quick-btn" onclick="loadPreset('av','tech')">💻 Tech</button>
+                    <button class="quick-btn" onclick="loadPreset('av','finance')">🏦 Finance</button>
+                    <button class="quick-btn" onclick="loadPreset('av','energy')">⚡ Energy</button>
+                    <button class="quick-btn" onclick="loadPreset('av','all')">⭐ All 250+</button>
                 </div>
             </div>
             <div>
-                <label>Swing Bars (L/R)</label>
-                <select id="swingBars">
+                <label>Swing Bars</label>
+                <select id="avSwingBars">
                     <option value="3">3 bars</option>
                     <option value="5" selected>5 bars</option>
                     <option value="8">8 bars</option>
@@ -368,33 +568,81 @@
             </div>
             <div>
                 <label>Output Size</label>
-                <select id="outputSize">
-                    <option value="compact">Compact (~100 bars)</option>
-                    <option value="full" selected>Full (~390 bars)</option>
+                <select id="avOutputSize">
+                    <option value="compact">Compact (~100)</option>
+                    <option value="full" selected>Full (~390)</option>
                 </select>
             </div>
             <div>
                 <label>Delay (sec)</label>
-                <select id="speedSelect">
-                    <option value="13">13s (fast)</option>
-                    <option value="16" selected>16s (normal)</option>
-                    <option value="22">22s (safe)</option>
-                    <option value="30">30s (slow)</option>
+                <select id="avDelay">
+                    <option value="13">13s fast</option>
+                    <option value="16" selected>16s normal</option>
+                    <option value="22">22s safe</option>
+                    <option value="30">30s slow</option>
                 </select>
             </div>
-            <button class="scan-btn" id="scanBtn" onclick="startScan()">🔍 Scan 5-Min</button>
+            <button class="scan-btn scan-btn-av" id="avScanBtn" onclick="startAVScan()">🔍 Scan (AV)</button>
         </div>
-
-        <div class="progress" id="progress">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
-        <div class="progress-text" id="progressText"></div>
-
+        <div class="progress" id="avProgress"><div class="progress-bar pb-av" id="avProgressBar"></div></div>
+        <div class="progress-text" id="avProgressText"></div>
         <div class="legend-row">
-            <span><span class="ldot" style="background:#22d3a0"></span>BUY — 5-min close broke above left-candle HIGH of swing low → ATM CALL</span>
-            <span><span class="ldot" style="background:#f87171"></span>SELL — 5-min close broke below left-candle LOW of swing high → ATM PUT</span>
-            <span><span class="ldot" style="background:#fbbf24"></span>WATCH — no breakout on last completed 5-min bar</span>
-            <span style="margin-left:auto; color:#5a6080;">Alpha Vantage · TIME_SERIES_INTRADAY · interval=5min</span>
+            <span><span class="ldot" style="background:#22d3a0"></span>BUY — close above left-candle HIGH of swing low → CALL</span>
+            <span><span class="ldot" style="background:#f87171"></span>SELL — close below left-candle LOW of swing high → PUT</span>
+            <span style="margin-left:auto;color:#f59e0b;">Alpha Vantage · TIME_SERIES_INTRADAY · 5min</span>
+        </div>
+    </div>
+
+    <!-- YAHOO FINANCE CONTROLS -->
+    <div class="controls yf-controls" id="yfControls">
+        <div class="control-row cr-yf">
+            <div>
+                <label>Symbols to Scan</label>
+                <input type="text" id="yfSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
+                <div class="quick-btns">
+                    <button class="quick-btn" onclick="loadPreset('yf','etfs')">📈 ETFs</button>
+                    <button class="quick-btn" onclick="loadPreset('yf','tech')">💻 Tech</button>
+                    <button class="quick-btn" onclick="loadPreset('yf','finance')">🏦 Finance</button>
+                    <button class="quick-btn" onclick="loadPreset('yf','energy')">⚡ Energy</button>
+                    <button class="quick-btn" onclick="loadPreset('yf','all')">⭐ All 250+</button>
+                </div>
+            </div>
+            <div>
+                <label>Swing Bars</label>
+                <select id="yfSwingBars">
+                    <option value="3">3 bars</option>
+                    <option value="5" selected>5 bars</option>
+                    <option value="8">8 bars</option>
+                    <option value="10">10 bars</option>
+                </select>
+            </div>
+            <div>
+                <label>Batch Size</label>
+                <select id="yfBatchSize">
+                    <option value="5">5 parallel</option>
+                    <option value="10" selected>10 parallel</option>
+                    <option value="15">15 parallel</option>
+                    <option value="20">20 parallel</option>
+                </select>
+            </div>
+            <div>
+                <label>Batch Delay</label>
+                <select id="yfDelay">
+                    <option value="800">0.8s</option>
+                    <option value="1200" selected>1.2s</option>
+                    <option value="2000">2s</option>
+                </select>
+            </div>
+            <button class="scan-btn scan-btn-yf" id="yfScanBtn" onclick="startYFScan()">⚡ Scan Fast (YF)</button>
+        </div>
+        <div class="progress" id="yfProgress"><div class="progress-bar pb-yf" id="yfProgressBar"></div></div>
+        <div class="progress-text" id="yfProgressText"></div>
+        <div class="batch-grid" id="batchGrid"></div>
+        <div class="legend-row">
+            <span><span class="ldot" style="background:#22d3a0"></span>BUY → CALL</span>
+            <span><span class="ldot" style="background:#f87171"></span>SELL → PUT</span>
+            <span><span class="ldot" style="background:#fbbf24"></span>WATCH</span>
+            <span style="margin-left:auto;color:#22d3a0;">Yahoo Finance · No API key · Parallel fetching · No rate limit</span>
         </div>
     </div>
 
@@ -404,19 +652,18 @@
             <div class="results-title">5-Min Scan Results</div>
             <div class="results-meta" id="resultsMeta">—</div>
         </div>
-
         <div class="filter-tabs">
             <button class="filter-tab active" onclick="filterResults('all',event)">All</button>
             <button class="filter-tab" onclick="filterResults('buy',event)">🟢 BUY / CALL</button>
             <button class="filter-tab" onclick="filterResults('sell',event)">🔴 SELL / PUT</button>
             <button class="filter-tab" onclick="filterResults('neutral',event)">🟡 Watch</button>
         </div>
-
         <div class="tbl-wrap">
             <table>
                 <thead>
                     <tr>
                         <th>Symbol</th>
+                        <th class="c">Source</th>
                         <th class="r">Last Price</th>
                         <th class="r">Bar Change</th>
                         <th class="r">Bar Time</th>
@@ -434,9 +681,9 @@
                 </thead>
                 <tbody id="resultsBody">
                     <tr>
-                        <td colspan="14" class="empty-state">
+                        <td colspan="15" class="empty-state">
                             <div class="empty-icon">📊</div>
-                            <div>Click "Scan 5-Min" to detect live swing breakout signals</div>
+                            <div>Choose a data source above and click Scan</div>
                         </td>
                     </tr>
                 </tbody>
@@ -452,7 +699,7 @@
         <div class="modal-hdr">
             <div>
                 <div class="modal-hdr-title" id="modalTitle">Analysis</div>
-                <div class="modal-hdr-sub" id="modalSub"></div>
+                <div class="modal-hdr-sub"  id="modalSub"></div>
             </div>
             <button class="close-btn" onclick="closeModal()">✕ Close</button>
         </div>
@@ -462,119 +709,201 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
-const API_KEY = '7UOSK3Z2XFXU992W';
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════
+const AV_KEY = '7UOSK3Z2XFXU992W';
+
+// Yahoo Finance proxy — allorigins wraps CORS
+const YF_PROXY = 'https://api.allorigins.win/raw?url=';
 
 const PRESETS = {
-    all: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,PANW,FTNT,DKNG,ROKU,ARKK',
-    etfs: 'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,GLD,SLV,GDX,TLT,HYG,USO,SQQQ,TQQQ,SPXL',
-    tech: 'AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,MU,SNOW,NOW,DDOG,NET,ZS,CRWD,PANW,FTNT,PLTR',
+    etfs:    'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,GLD,SLV,GDX,TLT,HYG,USO,SQQQ,TQQQ,SPXL',
+    tech:    'AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,MU,SNOW,NOW,DDOG,NET,ZS,CRWD,PANW,FTNT,PLTR',
     finance: 'JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,V,MA,PYPL,SQ,COIN',
-    energy: 'XLE,XOP,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,OXY,EOG,GLD,SLV,GDX,USO'
+    energy:  'XLE,XOP,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,OXY,EOG,GLD,SLV,GDX,USO',
+    all:     'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,XLE,XOP,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,PANW,FTNT,DKNG,ROKU,ARKK'
 };
 
-let allResults    = [];
-let filteredResults = [];
-let currentFilter = 'all';
-let currentChart  = null;
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let allResults     = [];
+let filteredResults= [];
+let currentFilter  = 'all';
+let currentChart   = null;
+let activeSource   = 'av';
 
-function loadPreset(p) { document.getElementById('symbolInput').value = PRESETS[p]; }
+// ═══════════════════════════════════════════════════════════════
+//  SOURCE SWITCHER
+// ═══════════════════════════════════════════════════════════════
+function switchSource(src) {
+    activeSource = src;
 
-// ─── ATM STRIKE ────────────────────────────────────────────────────────────
-function calcATM(price) {
-    const interval = price < 25 ? 0.5 : price < 200 ? 1 : 5;
-    return Math.round(price / interval) * interval;
+    document.getElementById('btnAV').classList.toggle('active', src === 'av');
+    document.getElementById('btnYF').classList.toggle('active', src === 'yf');
+
+    document.getElementById('avControls').classList.toggle('visible', src === 'av');
+    document.getElementById('yfControls').classList.toggle('visible', src === 'yf');
+
+    const bar = document.getElementById('sourceInfoBar');
+    if (src === 'av') {
+        bar.className = 'source-info si-av';
+        bar.innerHTML = `<span class="si-icon">📡</span>
+            <span><span class="si-key">Alpha Vantage</span>
+            Free tier · 5 calls/min · sequential scan · API key required ·
+            <span style="color:#f59e0b;">~16s delay between symbols</span></span>`;
+    } else {
+        bar.className = 'source-info si-yf';
+        bar.innerHTML = `<span class="si-icon">⚡</span>
+            <span><span class="si-key">Yahoo Finance</span>
+            No API key · No rate limit · parallel batches · via allorigins.win proxy ·
+            <span style="color:#22d3a0;">10–20x faster than Alpha Vantage free tier</span></span>`;
+    }
 }
 
-// ─── SWING BREAKOUT DETECTOR (5-min bars) ─────────────────────────────────
-// bars[] = [{time, open, high, low, close}] newest-first
-function detectSwing(bars, leftBars, rightBars) {
-    const len    = bars.length;
-    const needed = leftBars + rightBars + 3;
+function loadPreset(src, key) {
+    const id = src === 'av' ? 'avSymbols' : 'yfSymbols';
+    document.getElementById(id).value = PRESETS[key];
+}
 
+// ═══════════════════════════════════════════════════════════════
+//  SHARED: SWING DETECTOR + ATM
+// ═══════════════════════════════════════════════════════════════
+function calcATM(price) {
+    const iv = price < 25 ? 0.5 : price < 200 ? 1 : 5;
+    return Math.round(price / iv) * iv;
+}
+
+function detectSwing(bars, lb, rb) {
+    const len = bars.length;
     const empty = { signal:'neutral', swingLow:null, swingHigh:null,
                     leftLowHigh:null, leftHighLow:null, stopLevel:null };
+    if (len < lb + rb + 3) return empty;
 
-    if (len < needed) return empty;
+    const c = bars.map(b => b.close);
+    const h = bars.map(b => b.high);
+    const l = bars.map(b => b.low);
 
-    const closes = bars.map(b => b.close);
-    const highs  = bars.map(b => b.high);
-    const lows   = bars.map(b => b.low);
-
-    // ── latest swing LOW ──
-    let swingLow = null, leftLowHigh = null;
-
-    for (let i = rightBars; i < len - leftBars - 1; i++) {
-        const cLow = lows[i];
+    // latest swing LOW
+    let swingLow = null, llh = null;
+    for (let i = rb; i < len - lb - 1; i++) {
+        const v = l[i];
         let ok = true;
-        for (let j = i - rightBars; j <= i + leftBars; j++) {
+        for (let j = i - rb; j <= i + lb; j++) {
             if (j < 0 || j >= len || j === i) continue;
-            if (lows[j] <= cLow) { ok = false; break; }
+            if (l[j] <= v) { ok = false; break; }
         }
-        if (ok) {
-            swingLow    = cLow;
-            leftLowHigh = highs[i + 1];   // left candle = one bar older
-            break;
-        }
+        if (ok) { swingLow = v; llh = h[i + 1]; break; }
     }
 
-    // ── latest swing HIGH ──
-    let swingHigh = null, leftHighLow = null;
-
-    for (let i = rightBars; i < len - leftBars - 1; i++) {
-        const cHigh = highs[i];
+    // latest swing HIGH
+    let swingHigh = null, lhl = null;
+    for (let i = rb; i < len - lb - 1; i++) {
+        const v = h[i];
         let ok = true;
-        for (let j = i - rightBars; j <= i + leftBars; j++) {
+        for (let j = i - rb; j <= i + lb; j++) {
             if (j < 0 || j >= len || j === i) continue;
-            if (highs[j] >= cHigh) { ok = false; break; }
+            if (h[j] >= v) { ok = false; break; }
         }
-        if (ok) {
-            swingHigh   = cHigh;
-            leftHighLow = lows[i + 1];
-            break;
-        }
+        if (ok) { swingHigh = v; lhl = l[i + 1]; break; }
     }
 
-    // ── entry check on bar[0] vs bar[1] (5-min close) ──
-    const cur  = closes[0];
-    const prev = closes[1];
+    const cur = c[0], prev = c[1];
     let signal = 'neutral', stopLevel = null;
 
-    if (leftLowHigh !== null && swingLow !== null) {
-        if (cur > leftLowHigh && prev <= leftLowHigh && cur > swingLow) {
-            signal    = 'buy';
-            stopLevel = swingLow;
-        }
+    if (llh !== null && swingLow !== null && cur > llh && prev <= llh && cur > swingLow) {
+        signal = 'buy'; stopLevel = swingLow;
+    } else if (lhl !== null && swingHigh !== null && cur < lhl && prev >= lhl && cur < swingHigh) {
+        signal = 'sell'; stopLevel = swingHigh;
     }
 
-    if (signal === 'neutral' && leftHighLow !== null && swingHigh !== null) {
-        if (cur < leftHighLow && prev >= leftHighLow && cur < swingHigh) {
-            signal    = 'sell';
-            stopLevel = swingHigh;
-        }
-    }
-
-    return { signal, swingLow, swingHigh, leftLowHigh, leftHighLow, stopLevel };
+    return { signal, swingLow, swingHigh, leftLowHigh: llh, leftHighLow: lhl, stopLevel };
 }
 
-// ─── FETCH 5-MIN BARS ──────────────────────────────────────────────────────
-async function fetch5Min(symbol, outputSize) {
-    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY`
-              + `&symbol=${encodeURIComponent(symbol)}`
-              + `&interval=5min`
-              + `&outputsize=${outputSize}`
-              + `&apikey=${API_KEY}`;
+function buildResult(symbol, bars, swingBars, source) {
+    const cur  = bars[0];
+    const prev = bars[1];
+    const price    = cur.close;
+    const change   = price - prev.close;
+    const changePct= change / prev.close * 100;
 
+    const sw = detectSwing(bars, swingBars, swingBars);
+    const strike  = calcATM(price);
+    const optType = sw.signal === 'buy' ? 'CALL' : sw.signal === 'sell' ? 'PUT' : null;
+
+    let confidence = 'low';
+    if (sw.signal !== 'neutral') {
+        const trig = sw.signal === 'buy' ? sw.leftLowHigh : sw.leftHighLow;
+        const brk  = Math.abs(price - trig) / trig * 100;
+        if (brk >= 0.4) confidence = 'high';
+        else if (brk >= 0.15) confidence = 'medium';
+    }
+
+    return {
+        symbol, source, price, change, changePct,
+        barTime: cur.time,
+        signal: sw.signal, optType, strike, confidence,
+        stopLevel: sw.stopLevel,
+        swingLow:  sw.swingLow,
+        swingHigh: sw.swingHigh,
+        leftLowHigh: sw.leftLowHigh,
+        leftHighLow: sw.leftHighLow,
+        bars
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ALPHA VANTAGE — sequential
+// ═══════════════════════════════════════════════════════════════
+async function startAVScan() {
+    const btn       = document.getElementById('avScanBtn');
+    const symbols   = document.getElementById('avSymbols').value.trim()
+                        .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const swingBars = parseInt(document.getElementById('avSwingBars').value);
+    const outSize   = document.getElementById('avOutputSize').value;
+    const delay     = parseInt(document.getElementById('avDelay').value) * 1000;
+    const progEl    = document.getElementById('avProgress');
+    const progBar   = document.getElementById('avProgressBar');
+    const progTxt   = document.getElementById('avProgressText');
+
+    if (!symbols.length) return;
+
+    btn.disabled = true; btn.textContent = '🔄 Scanning…';
+    progEl.style.display = 'block'; progBar.style.width = '0%';
+    allResults = []; updateTable();
+
+    for (let i = 0; i < symbols.length; i++) {
+        try {
+            const bars = await fetchAV(symbols[i], outSize);
+            if (bars) { allResults.push(buildResult(symbols[i], bars, swingBars, 'av')); updateTable(); }
+        } catch(e) { console.warn(symbols[i], e.message); }
+
+        const pct = Math.round(((i+1)/symbols.length)*100);
+        progBar.style.width = pct + '%';
+        const b = allResults.filter(r=>r.signal==='buy').length;
+        const s = allResults.filter(r=>r.signal==='sell').length;
+        progTxt.textContent = `${i+1}/${symbols.length} · ${pct}% · BUY: ${b} · SELL: ${s}`;
+        if (i < symbols.length - 1) await sleep(delay);
+    }
+
+    btn.disabled = false; btn.textContent = '🔍 Scan (AV)';
+    const b = allResults.filter(r=>r.signal==='buy').length;
+    const s = allResults.filter(r=>r.signal==='sell').length;
+    progTxt.textContent = `✅ Done · ${allResults.length} scanned · BUY: ${b} · SELL: ${s}`;
+}
+
+async function fetchAV(symbol, outputSize) {
+    const url = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY`
+              + `&symbol=${encodeURIComponent(symbol)}&interval=5min`
+              + `&outputsize=${outputSize}&apikey=${AV_KEY}`;
     const res  = await fetch(url);
     const json = await res.json();
-
     const series = json['Time Series (5min)'];
     if (!series) return null;
-
-    // Sort newest-first
     const times = Object.keys(series).sort().reverse();
     if (times.length < 20) return null;
-
-    const bars = times.map(t => ({
+    return times.map(t => ({
         time:  t,
         open:  parseFloat(series[t]['1. open']),
         high:  parseFloat(series[t]['2. high']),
@@ -582,103 +911,135 @@ async function fetch5Min(symbol, outputSize) {
         close: parseFloat(series[t]['4. close']),
         vol:   parseInt(series[t]['5. volume'])
     }));
-
-    return bars;
 }
 
-// ─── SCAN ──────────────────────────────────────────────────────────────────
-async function startScan() {
-    const btn        = document.getElementById('scanBtn');
-    const input      = document.getElementById('symbolInput').value.trim();
-    const delay      = parseInt(document.getElementById('speedSelect').value) * 1000;
-    const swingBars  = parseInt(document.getElementById('swingBars').value);
-    const outputSize = document.getElementById('outputSize').value;
-    const progressEl = document.getElementById('progress');
-    const progressBar= document.getElementById('progressBar');
-    const progressTxt= document.getElementById('progressText');
+// ═══════════════════════════════════════════════════════════════
+//  YAHOO FINANCE — parallel batches
+// ═══════════════════════════════════════════════════════════════
+async function startYFScan() {
+    const btn       = document.getElementById('yfScanBtn');
+    const symbols   = document.getElementById('yfSymbols').value.trim()
+                        .split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    const swingBars = parseInt(document.getElementById('yfSwingBars').value);
+    const batchSize = parseInt(document.getElementById('yfBatchSize').value);
+    const batchDelay= parseInt(document.getElementById('yfDelay').value);
+    const progEl    = document.getElementById('yfProgress');
+    const progBar   = document.getElementById('yfProgressBar');
+    const progTxt   = document.getElementById('yfProgressText');
+    const batchGrid = document.getElementById('batchGrid');
 
-    if (!input) { alert('Enter at least one symbol'); return; }
+    if (!symbols.length) return;
 
-    const symbols = input.split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
+    btn.disabled = true; btn.textContent = '⚡ Scanning…';
+    progEl.style.display = 'block'; progBar.style.width = '0%';
+    batchGrid.innerHTML = '';
+    batchGrid.classList.add('visible');
+    allResults = []; updateTable();
 
-    btn.disabled = true;
-    btn.textContent = '🔄 Scanning…';
-    progressEl.style.display = 'block';
-    progressBar.style.width  = '0%';
-    allResults = [];
-    updateTable();
+    // Pre-fill batch grid chips
+    const chips = {};
+    symbols.forEach(sym => {
+        const el = document.createElement('div');
+        el.className = 'batch-sym';
+        el.id = 'chip-' + sym;
+        el.textContent = sym;
+        batchGrid.appendChild(el);
+        chips[sym] = el;
+    });
 
-    for (let i = 0; i < symbols.length; i++) {
-        const sym = symbols[i];
-        try {
-            const bars = await fetch5Min(sym, outputSize);
-            if (bars) {
-                const result = buildResult(sym, bars, swingBars);
-                allResults.push(result);
-                updateTable();
-            }
-        } catch(e) {
-            console.warn(`${sym}:`, e.message);
-        }
-
-        const pct = Math.round(((i + 1) / symbols.length) * 100);
-        progressBar.style.width = pct + '%';
-
-        const buys  = allResults.filter(r => r.signal === 'buy').length;
-        const sells = allResults.filter(r => r.signal === 'sell').length;
-        progressTxt.textContent =
-            `${i+1}/${symbols.length} · ${pct}% · BUY: ${buys} · SELL: ${sells} · Done: ${allResults.length}`;
-
-        if (i < symbols.length - 1) await sleep(delay);
+    // Split into batches
+    const batches = [];
+    for (let i = 0; i < symbols.length; i += batchSize) {
+        batches.push(symbols.slice(i, i + batchSize));
     }
 
-    btn.disabled = false;
-    btn.textContent = '🔍 Scan 5-Min';
+    let completed = 0;
 
-    const buys  = allResults.filter(r => r.signal === 'buy').length;
-    const sells = allResults.filter(r => r.signal === 'sell').length;
-    progressTxt.textContent =
-        `✅ Complete · ${allResults.length} scanned · BUY signals: ${buys} · SELL signals: ${sells}`;
-}
+    for (let bi = 0; bi < batches.length; bi++) {
+        const batch = batches[bi];
 
-function buildResult(symbol, bars, swingBars) {
-    const cur  = bars[0];
-    const prev = bars[1];
+        // Mark batch as loading
+        batch.forEach(sym => chips[sym].className = 'batch-sym loading');
 
-    const price     = cur.close;
-    const change    = cur.close - prev.close;
-    const changePct = (change / prev.close * 100);
-    const barTime   = cur.time;
+        // Fire all in batch simultaneously
+        const promises = batch.map(sym =>
+            fetchYF(sym)
+                .then(bars => {
+                    if (bars) {
+                        const r = buildResult(sym, bars, swingBars, 'yf');
+                        allResults.push(r);
+                        chips[sym].className = 'batch-sym ' +
+                            (r.signal === 'buy'  ? 'done-buy'  :
+                             r.signal === 'sell' ? 'done-sell' : 'done-none');
+                        updateTable();
+                    } else {
+                        chips[sym].className = 'batch-sym error';
+                    }
+                })
+                .catch(() => { chips[sym].className = 'batch-sym error'; })
+                .finally(() => { completed++; })
+        );
 
-    const swing = detectSwing(bars, swingBars, swingBars);
+        await Promise.all(promises);
 
-    const strike  = calcATM(price);
-    const optType = swing.signal === 'buy' ? 'CALL'
-                  : swing.signal === 'sell' ? 'PUT' : null;
+        const pct = Math.round((completed / symbols.length) * 100);
+        progBar.style.width = pct + '%';
+        const b = allResults.filter(r=>r.signal==='buy').length;
+        const s = allResults.filter(r=>r.signal==='sell').length;
+        progTxt.textContent =
+            `Batch ${bi+1}/${batches.length} · ${completed}/${symbols.length} (${pct}%) · BUY: ${b} · SELL: ${s}`;
 
-    // Confidence: how far price broke past the trigger line
-    let confidence = 'low';
-    if (swing.signal !== 'neutral') {
-        const trigger = swing.signal === 'buy' ? swing.leftLowHigh : swing.leftHighLow;
-        const brk = Math.abs(price - trigger) / trigger * 100;
-        if (brk >= 0.4) confidence = 'high';
-        else if (brk >= 0.15) confidence = 'medium';
+        if (bi < batches.length - 1) await sleep(batchDelay);
     }
 
-    return {
-        symbol, price, change, changePct, barTime,
-        signal:    swing.signal,
-        optType,   strike, confidence,
-        stopLevel: swing.stopLevel,
-        swingLow:  swing.swingLow,
-        swingHigh: swing.swingHigh,
-        leftLowHigh:  swing.leftLowHigh,
-        leftHighLow:  swing.leftHighLow,
-        bars  // keep for charting
-    };
+    btn.disabled = false; btn.textContent = '⚡ Scan Fast (YF)';
+    const b = allResults.filter(r=>r.signal==='buy').length;
+    const s = allResults.filter(r=>r.signal==='sell').length;
+    progTxt.textContent =
+        `✅ Done · ${allResults.length} scanned · BUY: ${b} · SELL: ${s}`;
 }
 
-// ─── TABLE ─────────────────────────────────────────────────────────────────
+async function fetchYF(symbol) {
+    // Yahoo Finance chart API — 5min interval, 1 day range (~78 bars)
+    const yfUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`
+                + `?interval=5m&range=1d`;
+    const proxied = YF_PROXY + encodeURIComponent(yfUrl);
+
+    const res  = await fetch(proxied);
+    const json = await res.json();
+
+    const result = json?.chart?.result?.[0];
+    if (!result) return null;
+
+    const timestamps = result.timestamp;
+    const q = result.indicators?.quote?.[0];
+    if (!timestamps || !q) return null;
+
+    const bars = [];
+    for (let i = timestamps.length - 1; i >= 0; i--) {
+        if (q.close[i] == null) continue;
+        const d = new Date(timestamps[i] * 1000);
+        const timeStr = d.toLocaleString('en-US', {
+            month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit',
+            hour12: false
+        });
+        bars.push({
+            time:  timeStr,
+            open:  q.open[i]   || q.close[i],
+            high:  q.high[i]   || q.close[i],
+            low:   q.low[i]    || q.close[i],
+            close: q.close[i],
+            vol:   q.volume[i] || 0
+        });
+    }
+
+    return bars.length >= 10 ? bars : null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TABLE
+// ═══════════════════════════════════════════════════════════════
 function filterResults(f, e) {
     currentFilter = f;
     document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
@@ -686,9 +1047,7 @@ function filterResults(f, e) {
     updateTable();
 }
 
-function fmt(v, decimals = 2) {
-    return v !== null && v !== undefined ? '$' + v.toFixed(decimals) : '—';
-}
+function fmt(v, d=2) { return v !== null && v !== undefined ? '$' + Number(v).toFixed(d) : '—'; }
 
 function updateTable() {
     const container = document.getElementById('resultsContainer');
@@ -702,24 +1061,25 @@ function updateTable() {
 
     container.style.display = 'block';
 
-    const buys  = allResults.filter(r => r.signal === 'buy').length;
-    const sells = allResults.filter(r => r.signal === 'sell').length;
-    meta.textContent =
-        `${allResults.length} scanned · BUY: ${buys} · SELL: ${sells} · showing ${filteredResults.length}`;
+    const b = allResults.filter(r=>r.signal==='buy').length;
+    const s = allResults.filter(r=>r.signal==='sell').length;
+    meta.textContent = `${allResults.length} scanned · BUY: ${b} · SELL: ${s} · showing ${filteredResults.length}`;
 
     if (filteredResults.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="14" class="empty-state">
+        tbody.innerHTML = `<tr><td colspan="15" class="empty-state">
             <div class="empty-icon">🔍</div>
-            <div>No ${currentFilter} signals on the 5-min chart</div>
-        </td></tr>`;
+            <div>No ${currentFilter} signals found</div></td></tr>`;
         return;
     }
 
-    const order = { buy: 0, sell: 1, neutral: 2 };
-    const sorted = [...filteredResults].sort((a, b) => order[a.signal] - order[b.signal]);
+    const ord = { buy:0, sell:1, neutral:2 };
+    const sorted = [...filteredResults].sort((a,b) => ord[a.signal] - ord[b.signal]);
 
     tbody.innerHTML = sorted.map((r, idx) => {
-        const isPos = r.change >= 0;
+        const pos = r.change >= 0;
+        const timeStr = r.barTime
+            ? (r.barTime.includes(' ') ? r.barTime.split(' ').slice(-1)[0]?.slice(0,5) : r.barTime)
+            : '—';
 
         const sigHtml = r.signal === 'buy'
             ? `<span class="sig sig-buy">▲ BUY</span>`
@@ -733,14 +1093,16 @@ function updateTable() {
             ? `<span class="opt opt-put">PUT</span>`
             : `<span class="opt-none">—</span>`;
 
-        // format bar time to just HH:MM
-        const timeStr = r.barTime ? r.barTime.split(' ')[1]?.slice(0,5) ?? r.barTime : '—';
+        const srcTag = r.source === 'av'
+            ? `<span class="src-tag src-tag-av">AV</span>`
+            : `<span class="src-tag src-tag-yf">YF</span>`;
 
         return `<tr>
             <td class="sym">${r.symbol}</td>
+            <td class="c">${srcTag}</td>
             <td class="prc">${fmt(r.price)}</td>
-            <td class="r ${isPos ? 'pos' : 'neg'}">
-                ${isPos ? '+' : ''}${r.change.toFixed(2)} (${isPos ? '+' : ''}${r.changePct.toFixed(2)}%)
+            <td class="r ${pos?'pos':'neg'}">
+                ${pos?'+':''}${r.change.toFixed(2)} (${pos?'+':''}${r.changePct.toFixed(2)}%)
             </td>
             <td class="r" style="color:#5a6080;font-size:11px;">${timeStr}</td>
             <td class="c">${sigHtml}</td>
@@ -757,16 +1119,19 @@ function updateTable() {
     }).join('');
 }
 
-// ─── MODAL ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════════════
 function showDetail(idx) {
-    const r    = filteredResults[idx];
-    const isBuy  = r.signal === 'buy';
-    const isSell = r.signal === 'sell';
+    const r     = filteredResults[idx];
+    const isBuy = r.signal === 'buy';
+    const isSel = r.signal === 'sell';
+    const srcLabel = r.source === 'av' ? 'Alpha Vantage' : 'Yahoo Finance';
 
     document.getElementById('modalTitle').textContent = `${r.symbol} — 5-Min Swing Breakout`;
-    document.getElementById('modalSub').textContent   =
-        `Last bar: ${r.barTime}  ·  Close: ${fmt(r.price)}  ·  `
-      + (isBuy ? 'BUY signal → ATM CALL' : isSell ? 'SELL signal → ATM PUT' : 'No signal');
+    document.getElementById('modalSub').textContent =
+        `${srcLabel} · Last bar: ${r.barTime} · Close: ${fmt(r.price)} · `
+      + (isBuy ? 'BUY → ATM CALL' : isSel ? 'SELL → ATM PUT' : 'No signal');
 
     document.getElementById('modalBody').innerHTML = `
         <div class="zones">
@@ -774,9 +1139,9 @@ function showDetail(idx) {
                 <div class="zone-ttl">🟢 BUY TRIGGER — ATM CALL</div>
                 <div class="zone-price">${fmt(r.leftLowHigh)}</div>
                 <div class="zone-desc">
-                    <strong>Trigger line:</strong> Left-candle HIGH of swing low<br>
-                    <strong>Swing low level:</strong> ${fmt(r.swingLow)}<br>
-                    <strong>Stop loss:</strong> Close below ${fmt(r.swingLow)} on 5-min bar<br>
+                    <strong>Trigger:</strong> Left-candle HIGH of swing low<br>
+                    <strong>Swing low:</strong> ${fmt(r.swingLow)}<br>
+                    <strong>Stop loss:</strong> 5-min close below ${fmt(r.swingLow)}<br>
                     <strong>ATM CALL strike:</strong> ${fmt(r.strike)}<br>
                     ${isBuy ? '<strong style="color:#22d3a0">✅ Signal fired on last 5-min bar</strong>' : ''}
                 </div>
@@ -785,11 +1150,11 @@ function showDetail(idx) {
                 <div class="zone-ttl">🔴 SELL TRIGGER — ATM PUT</div>
                 <div class="zone-price">${fmt(r.leftHighLow)}</div>
                 <div class="zone-desc">
-                    <strong>Trigger line:</strong> Left-candle LOW of swing high<br>
-                    <strong>Swing high level:</strong> ${fmt(r.swingHigh)}<br>
-                    <strong>Stop loss:</strong> Close above ${fmt(r.swingHigh)} on 5-min bar<br>
+                    <strong>Trigger:</strong> Left-candle LOW of swing high<br>
+                    <strong>Swing high:</strong> ${fmt(r.swingHigh)}<br>
+                    <strong>Stop loss:</strong> 5-min close above ${fmt(r.swingHigh)}<br>
                     <strong>ATM PUT strike:</strong> ${fmt(r.strike)}<br>
-                    ${isSell ? '<strong style="color:#f87171">✅ Signal fired on last 5-min bar</strong>' : ''}
+                    ${isSel ? '<strong style="color:#f87171">✅ Signal fired on last 5-min bar</strong>' : ''}
                 </div>
             </div>
         </div>
@@ -799,7 +1164,7 @@ function showDetail(idx) {
                 <div class="sw-lbl">Latest Swing Low (5-min)</div>
                 <div class="sw-val">${fmt(r.swingLow)}</div>
                 <div class="sw-sub">
-                    Left-candle high (buy trigger): ${fmt(r.leftLowHigh)}<br>
+                    Buy trigger (left-candle high): ${fmt(r.leftLowHigh)}<br>
                     Stop if long: close below ${fmt(r.swingLow)}
                 </div>
             </div>
@@ -807,7 +1172,7 @@ function showDetail(idx) {
                 <div class="sw-lbl">Latest Swing High (5-min)</div>
                 <div class="sw-val">${fmt(r.swingHigh)}</div>
                 <div class="sw-sub">
-                    Left-candle low (sell trigger): ${fmt(r.leftHighLow)}<br>
+                    Sell trigger (left-candle low): ${fmt(r.leftHighLow)}<br>
                     Stop if short: close above ${fmt(r.swingHigh)}
                 </div>
             </div>
@@ -815,22 +1180,22 @@ function showDetail(idx) {
 
         <div class="stats">
             <div class="stat">
-                <div class="stat-lbl">Last 5-min Close</div>
+                <div class="stat-lbl">5-Min Close</div>
                 <div class="stat-val">${fmt(r.price)}</div>
-                <div class="stat-sub ${r.change >= 0 ? 'pos' : 'neg'}" style="font-size:11px;">
-                    ${r.change >= 0 ? '+' : ''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
+                <div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:11px;">
+                    ${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
                 </div>
             </div>
             <div class="stat">
                 <div class="stat-lbl">Signal</div>
-                <div class="stat-val" style="color:${isBuy ? '#22d3a0' : isSell ? '#f87171' : '#fbbf24'}">
-                    ${isBuy ? 'BUY' : isSell ? 'SELL' : 'WATCH'}
+                <div class="stat-val" style="color:${isBuy?'#22d3a0':isSel?'#f87171':'#fbbf24'}">
+                    ${isBuy?'BUY':isSel?'SELL':'WATCH'}
                 </div>
                 <div class="stat-sub">Confidence: ${r.confidence.toUpperCase()}</div>
             </div>
             <div class="stat">
-                <div class="stat-lbl">Option to Buy</div>
-                <div class="stat-val" style="color:${isBuy ? '#22d3a0' : isSell ? '#f87171' : '#5a6080'}">
+                <div class="stat-lbl">Option</div>
+                <div class="stat-val" style="color:${isBuy?'#22d3a0':isSel?'#f87171':'#5a6080'}">
                     ${r.optType ?? '—'}
                 </div>
                 <div class="stat-sub">ATM strike ${fmt(r.strike)}</div>
@@ -838,36 +1203,40 @@ function showDetail(idx) {
             <div class="stat">
                 <div class="stat-lbl">Stop Level</div>
                 <div class="stat-val" style="color:#fbbf24;">${fmt(r.stopLevel)}</div>
-                <div class="stat-sub">${isBuy ? 'Close below swing low' : isSell ? 'Close above swing high' : '—'}</div>
+                <div class="stat-sub">${isBuy?'Below swing low':isSel?'Above swing high':'—'}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-lbl">Data Source</div>
+                <div class="stat-val" style="font-size:14px;">${r.source === 'av' ? '🟡 AV' : '🟢 YF'}</div>
+                <div class="stat-sub">${r.source === 'av' ? 'Alpha Vantage' : 'Yahoo Finance'}</div>
             </div>
             <div class="stat">
                 <div class="stat-lbl">Bar Time</div>
-                <div class="stat-val" style="font-size:14px;">${r.barTime?.split(' ')[1] ?? '—'}</div>
-                <div class="stat-sub">${r.barTime?.split(' ')[0] ?? ''}</div>
+                <div class="stat-val" style="font-size:13px;">${r.barTime?.split(' ').slice(-1)[0]?.slice(0,5) ?? '—'}</div>
+                <div class="stat-sub">${r.barTime?.split(' ').slice(0,2).join(' ') ?? ''}</div>
             </div>
         </div>
 
         <div class="chart-box">
-            <div class="chart-ttl">📈 5-Min Price Chart — Last 78 Bars with Swing Levels</div>
-            <canvas id="detailChart" style="max-height:300px;"></canvas>
+            <div class="chart-ttl">📈 5-Min Price Chart with Swing Levels</div>
+            <canvas id="detailChart" style="max-height:290px;"></canvas>
         </div>
 
         <div class="rec">
             <div class="rec-ttl">
                 ${isBuy  ? '🟢 BUY SIGNAL — Buy ATM CALL Option'
-                : isSell ? '🔴 SELL SIGNAL — Buy ATM PUT Option'
-                :           '🟡 NO SIGNAL — Watch for breakout'}
+                : isSel ? '🔴 SELL SIGNAL — Buy ATM PUT Option'
+                :          '🟡 NO SIGNAL — Monitor for breakout'}
             </div>
             <div class="rec-grid">
                 <div class="rec-item"><div class="rec-lbl">Symbol</div><div class="rec-val">${r.symbol}</div></div>
                 <div class="rec-item"><div class="rec-lbl">5-Min Price</div><div class="rec-val">${fmt(r.price)}</div></div>
-                <div class="rec-item"><div class="rec-lbl">Option Type</div><div class="rec-val">${r.optType ?? '—'}</div></div>
+                <div class="rec-item"><div class="rec-lbl">Option Type</div><div class="rec-val">${r.optType??'—'}</div></div>
                 <div class="rec-item"><div class="rec-lbl">ATM Strike</div><div class="rec-val">${fmt(r.strike)}</div></div>
                 <div class="rec-item"><div class="rec-lbl">Stop Loss</div><div class="rec-val">${fmt(r.stopLevel)}</div></div>
                 <div class="rec-item"><div class="rec-lbl">DTE Pref</div><div class="rec-val">≤ 7 days</div></div>
             </div>
-        </div>
-    `;
+        </div>`;
 
     document.getElementById('modal').style.display = 'block';
     setTimeout(() => drawChart(r), 100);
@@ -878,12 +1247,15 @@ function drawChart(r) {
     if (!ctx) return;
     if (currentChart) currentChart.destroy();
 
-    const barsToShow = r.bars.slice(0, 78).reverse(); // oldest first for chart
-    const labels  = barsToShow.map(b => b.time.split(' ')[1]?.slice(0,5) ?? b.time);
-    const closes  = barsToShow.map(b => b.close);
-    const len     = barsToShow.length;
+    const show = r.bars.slice(0, 78).reverse();
+    const labels = show.map(b => {
+        const t = b.time;
+        return t.includes(' ') ? t.split(' ').slice(-1)[0]?.slice(0,5) : t;
+    });
+    const closes = show.map(b => b.close);
+    const len = show.length;
 
-    const datasets = [{
+    const ds = [{
         label: 'Close (5-min)',
         data: closes,
         borderColor: '#c8cde4',
@@ -893,67 +1265,23 @@ function drawChart(r) {
         tension: 0.1
     }];
 
-    if (r.swingLow) datasets.push({
-        label: `Swing Low ${fmt(r.swingLow)}`,
-        data: Array(len).fill(r.swingLow),
-        borderColor: '#22d3a0',
-        borderWidth: 1.5,
-        borderDash: [6, 4],
-        pointRadius: 0,
-        fill: false
-    });
-
-    if (r.swingHigh) datasets.push({
-        label: `Swing High ${fmt(r.swingHigh)}`,
-        data: Array(len).fill(r.swingHigh),
-        borderColor: '#f87171',
-        borderWidth: 1.5,
-        borderDash: [6, 4],
-        pointRadius: 0,
-        fill: false
-    });
-
-    if (r.leftLowHigh) datasets.push({
-        label: `Buy Trigger ${fmt(r.leftLowHigh)}`,
-        data: Array(len).fill(r.leftLowHigh),
-        borderColor: '#4ade80',
-        borderWidth: 1,
-        borderDash: [2, 5],
-        pointRadius: 0,
-        fill: false
-    });
-
-    if (r.leftHighLow) datasets.push({
-        label: `Sell Trigger ${fmt(r.leftHighLow)}`,
-        data: Array(len).fill(r.leftHighLow),
-        borderColor: '#fb923c',
-        borderWidth: 1,
-        borderDash: [2, 5],
-        pointRadius: 0,
-        fill: false
-    });
+    if (r.swingLow) ds.push({ label: `Swing Low ${fmt(r.swingLow)}`, data: Array(len).fill(r.swingLow), borderColor: '#22d3a0', borderWidth: 1.5, borderDash: [6,4], pointRadius: 0, fill: false });
+    if (r.swingHigh) ds.push({ label: `Swing High ${fmt(r.swingHigh)}`, data: Array(len).fill(r.swingHigh), borderColor: '#f87171', borderWidth: 1.5, borderDash: [6,4], pointRadius: 0, fill: false });
+    if (r.leftLowHigh) ds.push({ label: `Buy Trigger ${fmt(r.leftLowHigh)}`, data: Array(len).fill(r.leftLowHigh), borderColor: '#4ade80', borderWidth: 1, borderDash: [2,5], pointRadius: 0, fill: false });
+    if (r.leftHighLow) ds.push({ label: `Sell Trigger ${fmt(r.leftHighLow)}`, data: Array(len).fill(r.leftHighLow), borderColor: '#fb923c', borderWidth: 1, borderDash: [2,5], pointRadius: 0, fill: false });
 
     currentChart = new Chart(ctx, {
         type: 'line',
-        data: { labels, datasets },
+        data: { labels, datasets: ds },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: {
-                    display: true, position: 'top',
-                    labels: { color: '#7a84aa', font: { size: 10 }, boxWidth: 18 }
-                }
+                legend: { display: true, position: 'top', labels: { color:'#7a84aa', font:{size:10}, boxWidth:16 } }
             },
             scales: {
-                x: {
-                    ticks: { color: '#5a6080', font: { size: 9 }, maxTicksLimit: 12 },
-                    grid: { color: '#161825' }
-                },
-                y: {
-                    ticks: { color: '#5a6080', callback: v => '$' + v.toFixed(2) },
-                    grid: { color: '#161825' }
-                }
+                x: { ticks: { color:'#5a6080', font:{size:9}, maxTicksLimit:12 }, grid: { color:'#161825' } },
+                y: { ticks: { color:'#5a6080', callback: v=>'$'+v.toFixed(2) }, grid: { color:'#161825' } }
             }
         }
     });
