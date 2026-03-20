@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>5-Min Breakout Scanner</title>
+    <title>Multi-Timeframe Breakout Scanner</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; min-height: 100vh; }
@@ -18,24 +18,14 @@
         .header h1 { font-size: 22px; margin-bottom: 4px; }
         .header p  { opacity: 0.88; font-size: 12px; }
 
-        .source-toggle {
-            display: flex; background: rgba(255,255,255,0.15);
-            border-radius: 8px; overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.25);
-        }
-        .src-btn {
-            padding: 8px 16px; border: none; background: transparent;
-            color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700;
-            cursor: pointer; display: flex; align-items: center; gap: 6px;
-            transition: all 0.15s; white-space: nowrap;
-        }
+        .source-toggle { display: flex; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.25); }
+        .src-btn { padding: 8px 16px; border: none; background: transparent; color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; white-space: nowrap; }
         .src-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
         .src-dot { width: 7px; height: 7px; border-radius: 50%; }
-        .src-av  { background: #fcd34d; }
-        .src-yf  { background: #6ee7b7; }
+        .src-av { background: #fcd34d; } .src-yf { background: #6ee7b7; }
         .spd-badge { font-size: 9px; padding: 2px 6px; border-radius: 8px; font-weight: 700; }
-        .spd-slow  { background: rgba(252,211,77,0.25); color: #fcd34d; }
-        .spd-fast  { background: rgba(110,231,183,0.25); color: #6ee7b7; }
+        .spd-slow { background: rgba(252,211,77,0.25); color: #fcd34d; }
+        .spd-fast { background: rgba(110,231,183,0.25); color: #6ee7b7; }
 
         .container { max-width: 1500px; margin: 0 auto; padding: 20px; }
 
@@ -49,8 +39,7 @@
         .ps-ok      { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
         .ps-fail    { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
         .proxy-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .dot-ok   { background: #22c55e; }
-        .dot-fail { background: #ef4444; }
+        .dot-ok   { background: #22c55e; } .dot-fail { background: #ef4444; }
         .dot-spin { background: #f59e0b; animation: pulse 1s linear infinite; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
@@ -58,18 +47,37 @@
         .av-panel { display: none; } .av-panel.visible { display: block; }
         .yf-panel { display: none; } .yf-panel.visible { display: block; }
 
-        .mode-banner {
-            display: flex; align-items: center; gap: 10px; padding: 10px 14px;
-            border-radius: 8px; margin-bottom: 16px;
-            background: linear-gradient(90deg,#667eea15,#764ba215);
-            border: 1px solid #667eea30; font-size: 12px; color: #4a5568; flex-wrap: wrap;
-        }
+        .mode-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; background: linear-gradient(90deg,#667eea15,#764ba215); border: 1px solid #667eea30; font-size: 12px; color: #4a5568; flex-wrap: wrap; }
         .mode-tag { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
         .mt-swing   { background: #e0e7ff; color: #3730a3; }
         .mt-channel { background: #fef3c7; color: #92400e; }
 
+        /* TIMEFRAME SELECTOR */
+        .tf-row {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .tf-label { font-size: 12px; font-weight: 700; color: #636e72; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
+        .tf-btns  { display: flex; gap: 6px; flex-wrap: wrap; }
+        .tf-btn {
+            padding: 7px 14px; border: 2px solid #dfe6e9;
+            border-radius: 7px; background: white;
+            font-size: 12px; font-weight: 700; cursor: pointer;
+            color: #636e72; transition: all 0.15s; white-space: nowrap;
+        }
+        .tf-btn:hover { border-color: #667eea; color: #667eea; }
+        .tf-btn.active { background: #667eea; color: white; border-color: #667eea; }
+
+        .tf-info-bar {
+            padding: 8px 14px; border-radius: 7px;
+            background: #f0f4ff; border: 1px solid #c7d2fe;
+            font-size: 11px; color: #4338ca;
+            margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+
         .control-row { display: grid; gap: 14px; align-items: end; }
-        .cr-main { grid-template-columns: 1fr 120px 120px 120px auto; }
+        .cr-main { grid-template-columns: 1fr 120px 130px auto; }
 
         .section-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 14px; }
         .section-divider span { font-size: 12px; font-weight: 700; color: #636e72; white-space: nowrap; }
@@ -123,11 +131,11 @@
 
         .summary-pills { display: flex; gap: 8px; padding: 10px 20px; border-bottom: 1px solid #ecf0f1; background: #f8f9fa; flex-wrap: wrap; align-items: center; }
         .s-pill { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-        .sp-buy { background: #d4edda; color: #155724; }
-        .sp-sell { background: #f8d7da; color: #721c24; }
-        .sp-swing { background: #e0e7ff; color: #3730a3; }
+        .sp-buy     { background: #d4edda; color: #155724; }
+        .sp-sell    { background: #f8d7da; color: #721c24; }
+        .sp-swing   { background: #e0e7ff; color: #3730a3; }
         .sp-channel { background: #fef3c7; color: #92400e; }
-        .sp-both { background: #ede9fe; color: #4c1d95; }
+        .sp-both    { background: #ede9fe; color: #4c1d95; }
         .sp-neutral { background: #f3f4f6; color: #6b7280; }
 
         .filter-tabs { display: flex; gap: 6px; padding: 10px 20px; border-bottom: 1px solid #ecf0f1; background: #f8f9fa; flex-wrap: wrap; }
@@ -165,6 +173,8 @@
         .src-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
         .st-av { background: #fef3c7; color: #92400e; }
         .st-yf { background: #d1fae5; color: #065f46; }
+
+        .tf-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; background: #e0e7ff; color: #3730a3; }
 
         .conf-high   { color: #00b894; font-weight: 700; }
         .conf-medium { color: #fdcb6e; font-weight: 600; }
@@ -232,8 +242,8 @@
 
 <div class="header">
     <div>
-        <h1>📊 5-Min Breakout Scanner</h1>
-        <p>Swing breakout + Channel breakout · runs simultaneously · ATM CALL on buy · ATM PUT on sell</p>
+        <h1>📊 Multi-Timeframe Breakout Scanner</h1>
+        <p>Swing + Channel breakout · 5min to Monthly · ATM CALL on buy · ATM PUT on sell</p>
     </div>
     <div class="source-toggle">
         <button class="src-btn active" id="btnAV" onclick="switchSource('av')">
@@ -248,8 +258,9 @@
 </div>
 
 <div class="container">
+
     <div class="source-info si-av" id="sourceInfo">
-        📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · ~16s delay per symbol
+        📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential
     </div>
 
     <div class="proxy-status" id="proxyStatus">
@@ -261,11 +272,25 @@
     <!-- AV PANEL -->
     <div class="controls av-panel visible" id="avPanel">
         <div class="mode-banner">
-            <span>Running both scanners simultaneously:</span>
-            <span class="mode-tag mt-swing">📈 Swing Breakout</span>+
-            <span class="mode-tag mt-channel">📦 Channel Breakout</span>
-            <span>→ merged &amp; labeled per symbol</span>
+            Running simultaneously: <span class="mode-tag mt-swing">📈 Swing</span> + <span class="mode-tag mt-channel">📦 Channel</span> breakout on every symbol
         </div>
+
+        <!-- Timeframe selector -->
+        <div class="tf-row">
+            <span class="tf-label">⏱ Timeframe:</span>
+            <div class="tf-btns" id="avTfBtns">
+                <button class="tf-btn active" onclick="setTF('av','5min',this)">5 Min</button>
+                <button class="tf-btn" onclick="setTF('av','15min',this)">15 Min</button>
+                <button class="tf-btn" onclick="setTF('av','60min',this)">1 Hour</button>
+                <button class="tf-btn" onclick="setTF('av','daily',this)">Daily</button>
+                <button class="tf-btn" onclick="setTF('av','weekly',this)">Weekly</button>
+                <button class="tf-btn" onclick="setTF('av','monthly',this)">Monthly</button>
+            </div>
+        </div>
+        <div class="tf-info-bar" id="avTfInfo">
+            ℹ️ <strong>5-Min:</strong> Uses TIME_SERIES_INTRADAY · Full output ~390 bars · Best for day trading
+        </div>
+
         <div class="control-row cr-main">
             <div>
                 <label>Symbols to Scan</label>
@@ -289,13 +314,13 @@
                     <option value="30">🐌 30s</option>
                 </select>
             </div>
-            <div></div>
             <button class="scan-btn btn-av" id="avBtn" onclick="startScan('av')">🔍 Start Scan</button>
         </div>
+
         <div class="section-divider"><span>Scanner Settings</span></div>
         <div class="settings-grid">
             <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span> Settings</div>
+                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span></div>
                 <div class="settings-row">
                     <div><label>Left Bars</label>
                         <select id="avSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
@@ -306,7 +331,7 @@
                 </div>
             </div>
             <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span> Settings</div>
+                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span></div>
                 <div class="settings-row">
                     <div><label>Channel Bars</label>
                         <select id="avChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select>
@@ -324,11 +349,26 @@
     <!-- YF PANEL -->
     <div class="controls yf-panel" id="yfPanel">
         <div class="mode-banner">
-            <span>Running both scanners simultaneously:</span>
-            <span class="mode-tag mt-swing">📈 Swing Breakout</span>+
-            <span class="mode-tag mt-channel">📦 Channel Breakout</span>
-            <span>→ merged &amp; labeled per symbol</span>
+            Running simultaneously: <span class="mode-tag mt-swing">📈 Swing</span> + <span class="mode-tag mt-channel">📦 Channel</span> breakout on every symbol
         </div>
+
+        <div class="tf-row">
+            <span class="tf-label">⏱ Timeframe:</span>
+            <div class="tf-btns" id="yfTfBtns">
+                <button class="tf-btn active" onclick="setTF('yf','5m',this)">5 Min</button>
+                <button class="tf-btn" onclick="setTF('yf','15m',this)">15 Min</button>
+                <button class="tf-btn" onclick="setTF('yf','1h',this)">1 Hour</button>
+                <button class="tf-btn" onclick="setTF('yf','2h',this)">2 Hours</button>
+                <button class="tf-btn" onclick="setTF('yf','4h',this)">4 Hours</button>
+                <button class="tf-btn" onclick="setTF('yf','1d',this)">Daily</button>
+                <button class="tf-btn" onclick="setTF('yf','1wk',this)">Weekly</button>
+                <button class="tf-btn" onclick="setTF('yf','1mo',this)">Monthly</button>
+            </div>
+        </div>
+        <div class="tf-info-bar" id="yfTfInfo">
+            ℹ️ <strong>5 Min:</strong> range=1d · ~78 bars · Best for day trading
+        </div>
+
         <div class="control-row cr-main">
             <div>
                 <label>Symbols to Scan</label>
@@ -347,13 +387,13 @@
             <div><label>Batch Delay</label>
                 <select id="yfDelay"><option value="800">0.8s</option><option value="1200" selected>1.2s</option><option value="2000">2s</option></select>
             </div>
-            <div></div>
             <button class="scan-btn btn-yf" id="yfBtn" onclick="startScan('yf')">⚡ Fast Scan</button>
         </div>
+
         <div class="section-divider"><span>Scanner Settings</span></div>
         <div class="settings-grid">
             <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span> Settings</div>
+                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span></div>
                 <div class="settings-row">
                     <div><label>Left Bars</label>
                         <select id="yfSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select>
@@ -364,7 +404,7 @@
                 </div>
             </div>
             <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span> Settings</div>
+                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span></div>
                 <div class="settings-row">
                     <div><label>Channel Bars</label>
                         <select id="yfChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select>
@@ -402,6 +442,7 @@
                 <thead>
                     <tr>
                         <th>Symbol</th>
+                        <th class="c">TF</th>
                         <th class="r">Price</th>
                         <th class="r">Change</th>
                         <th class="c">Direction</th>
@@ -410,16 +451,16 @@
                         <th class="r">ATM Strike</th>
                         <th class="r">Stop Loss</th>
                         <th class="r">Levels</th>
-                        <th class="c">Confidence</th>
+                        <th class="c">Conf</th>
                         <th class="c">Src</th>
                         <th class="c">Action</th>
                     </tr>
                 </thead>
                 <tbody id="resultsBody">
                     <tr>
-                        <td colspan="12" class="empty-state">
+                        <td colspan="13" class="empty-state">
                             <div class="empty-icon">📊</div>
-                            <div>Click Scan — Swing + Channel breakout runs simultaneously</div>
+                            <div>Select a timeframe and click Scan</div>
                         </td>
                     </tr>
                 </tbody>
@@ -442,7 +483,6 @@
     </div>
 </div>
 
-<!-- Chart.js + financial candlestick plugin -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
@@ -450,19 +490,60 @@
 
 <script>
 // ═══════════════════════════════════
+//  TIMEFRAME CONFIG
+// ═══════════════════════════════════
+
+// Alpha Vantage timeframe map
+// key → { fn, interval?, outputsize, label, chartUnit }
+const AV_TF = {
+    '5min':    { fn:'TIME_SERIES_INTRADAY',  interval:'5min',  outputsize:'full',   label:'5 Min',    chartUnit:'minute',  infoMsg:'TIME_SERIES_INTRADAY · 5min · Full ~390 bars · Day trading' },
+    '15min':   { fn:'TIME_SERIES_INTRADAY',  interval:'15min', outputsize:'full',   label:'15 Min',   chartUnit:'minute',  infoMsg:'TIME_SERIES_INTRADAY · 15min · Full ~390 bars · Swing trading' },
+    '60min':   { fn:'TIME_SERIES_INTRADAY',  interval:'60min', outputsize:'full',   label:'1 Hour',   chartUnit:'hour',    infoMsg:'TIME_SERIES_INTRADAY · 60min · Full ~390 bars · Swing/position' },
+    'daily':   { fn:'TIME_SERIES_DAILY',     interval:null,    outputsize:'full',   label:'Daily',    chartUnit:'day',     infoMsg:'TIME_SERIES_DAILY · ~500 bars · Position trading' },
+    'weekly':  { fn:'TIME_SERIES_WEEKLY',    interval:null,    outputsize:null,     label:'Weekly',   chartUnit:'week',    infoMsg:'TIME_SERIES_WEEKLY · Multi-year history · Long-term' },
+    'monthly': { fn:'TIME_SERIES_MONTHLY',   interval:null,    outputsize:null,     label:'Monthly',  chartUnit:'month',   infoMsg:'TIME_SERIES_MONTHLY · Multi-year history · Long-term' },
+};
+
+// Yahoo Finance timeframe map
+// key → { interval, range, label, chartUnit }
+const YF_TF = {
+    '5m':  { interval:'5m',  range:'1d',  label:'5 Min',   chartUnit:'minute', infoMsg:'range=1d · ~78 bars · Day trading' },
+    '15m': { interval:'15m', range:'5d',  label:'15 Min',  chartUnit:'minute', infoMsg:'range=5d · ~130 bars · Swing trading' },
+    '1h':  { interval:'1h',  range:'1mo', label:'1 Hour',  chartUnit:'hour',   infoMsg:'range=1mo · ~160 bars · Swing/position' },
+    '2h':  { interval:'2h',  range:'3mo', label:'2 Hours', chartUnit:'hour',   infoMsg:'range=3mo · ~90 bars · Position' },
+    '4h':  { interval:'4h',  range:'6mo', label:'4 Hours', chartUnit:'hour',   infoMsg:'range=6mo · ~90 bars · Position/long-term' },
+    '1d':  { interval:'1d',  range:'2y',  label:'Daily',   chartUnit:'day',    infoMsg:'range=2y · ~500 bars · Position trading' },
+    '1wk': { interval:'1wk', range:'5y',  label:'Weekly',  chartUnit:'week',   infoMsg:'range=5y · ~260 bars · Long-term' },
+    '1mo': { interval:'1mo', range:'10y', label:'Monthly', chartUnit:'month',  infoMsg:'range=10y · ~120 bars · Long-term' },
+};
+
+let activeTF = { av: '5min', yf: '5m' };
+
+function setTF(src, tf, btn) {
+    activeTF[src] = tf;
+    const container = document.getElementById(src==='av'?'avTfBtns':'yfTfBtns');
+    container.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const infoEl = document.getElementById(src==='av'?'avTfInfo':'yfTfInfo');
+    const cfg    = src==='av' ? AV_TF[tf] : YF_TF[tf];
+    infoEl.innerHTML = `ℹ️ <strong>${cfg.label}:</strong> ${cfg.infoMsg}`;
+}
+
+// ═══════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════
 const AV_KEY = '7UOSK3Z2XFXU992W';
 
-function yfUrl(sym) {
-    return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=5m&range=1d&includePrePost=false`;
+function yfUrl(sym, tfKey) {
+    const tf = YF_TF[tfKey];
+    return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${tf.interval}&range=${tf.range}&includePrePost=false`;
 }
 
 const PROXIES = [
-    { name:'corsproxy.io',   url: s=>`https://corsproxy.io/?${encodeURIComponent(yfUrl(s))}` },
-    { name:'allorigins.win', url: s=>`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(s))}` },
-    { name:'cors.sh',        url: s=>`https://cors.sh/${yfUrl(s)}` },
-    { name:'thingproxy',     url: s=>`https://thingproxy.freeboard.io/fetch/${yfUrl(s)}` },
+    { name:'corsproxy.io',   url:(s,tf)=>`https://corsproxy.io/?${encodeURIComponent(yfUrl(s,tf))}` },
+    { name:'allorigins.win', url:(s,tf)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(s,tf))}` },
+    { name:'cors.sh',        url:(s,tf)=>`https://cors.sh/${yfUrl(s,tf)}` },
+    { name:'thingproxy',     url:(s,tf)=>`https://thingproxy.freeboard.io/fetch/${yfUrl(s,tf)}` },
 ];
 
 let activeProxy = null;
@@ -476,11 +557,10 @@ const PRESETS = {
 };
 
 // ═══════════════════════════════════
-//  STATE  — keyed by symbol for safe lookup
+//  STATE
 // ═══════════════════════════════════
-// allResults  = Map<symbol, result>  (use Map so lookup is O(1) and index bugs are impossible)
-let resultMap       = new Map();   // symbol → result
-let filteredSymbols = [];          // ordered list of symbols currently shown
+let resultMap       = new Map();
+let filteredSymbols = [];
 let currentFilter   = 'all';
 let currentChart    = null;
 
@@ -488,91 +568,90 @@ let currentChart    = null;
 //  PROXY TEST
 // ═══════════════════════════════════
 async function testProxies() {
-    const statusEl = document.getElementById('proxyStatus');
-    const dotEl    = document.getElementById('proxyDot');
-    const msgEl    = document.getElementById('proxyMsg');
-    statusEl.className = 'proxy-status visible ps-testing';
-    dotEl.className    = 'proxy-dot dot-spin';
-    msgEl.textContent  = 'Testing proxies…';
-    activeProxy        = null;
-    dbg('Testing ' + PROXIES.length + ' proxies…');
+    const statusEl=document.getElementById('proxyStatus');
+    const dotEl=document.getElementById('proxyDot');
+    const msgEl=document.getElementById('proxyMsg');
+    statusEl.className='proxy-status visible ps-testing';
+    dotEl.className='proxy-dot dot-spin';
+    msgEl.textContent='Testing proxies…';
+    activeProxy=null;
+    dbg('Testing '+PROXIES.length+' proxies…');
     for (const proxy of PROXIES) {
         try {
-            dbg(`Trying: ${proxy.name}`);
-            const ctrl = new AbortController();
-            const tid  = setTimeout(() => ctrl.abort(), 6000);
-            const res  = await fetch(proxy.url('SPY'), { signal: ctrl.signal });
+            dbg('Trying: '+proxy.name);
+            const ctrl=new AbortController(), tid=setTimeout(()=>ctrl.abort(),6000);
+            const res=await fetch(proxy.url('SPY','5m'),{signal:ctrl.signal});
             clearTimeout(tid);
-            if (!res.ok) { dbg(`${proxy.name} → HTTP ${res.status}`, 'err'); continue; }
-            let json; try { json = JSON.parse(await res.text()); } catch(e) { dbg(`${proxy.name} → bad JSON`, 'err'); continue; }
-            const ts = json?.chart?.result?.[0]?.timestamp;
-            dbg(`${proxy.name} → OK${ts ? ' · '+ts.length+' bars' : ' (market closed)'}`, 'ok');
-            activeProxy = proxy; break;
-        } catch(e) { dbg(`${proxy.name} → ${e.message}`, 'err'); }
+            if(!res.ok){dbg(proxy.name+' → HTTP '+res.status,'err');continue;}
+            let json; try{json=JSON.parse(await res.text());}catch(e){dbg(proxy.name+' → bad JSON','err');continue;}
+            const ts=json?.chart?.result?.[0]?.timestamp;
+            dbg(proxy.name+' → OK'+(ts?' · '+ts.length+' bars':' (market closed)'),'ok');
+            activeProxy=proxy; break;
+        } catch(e){dbg(proxy.name+' → '+e.message,'err');}
     }
-    if (activeProxy) {
-        statusEl.className = 'proxy-status visible ps-ok';
-        dotEl.className    = 'proxy-dot dot-ok';
-        msgEl.textContent  = `✅ Proxy: ${activeProxy.name} — Yahoo Finance ready`;
+    if(activeProxy){
+        statusEl.className='proxy-status visible ps-ok';
+        dotEl.className='proxy-dot dot-ok';
+        msgEl.textContent='✅ Proxy: '+activeProxy.name+' — Yahoo Finance ready';
     } else {
-        statusEl.className = 'proxy-status visible ps-fail';
-        dotEl.className    = 'proxy-dot dot-fail';
-        msgEl.textContent  = '❌ All proxies failed — try Alpha Vantage instead';
+        statusEl.className='proxy-status visible ps-fail';
+        dotEl.className='proxy-dot dot-fail';
+        msgEl.textContent='❌ All proxies failed — try Alpha Vantage';
     }
 }
 
-function dbg(msg, type='inf') {
-    const box = document.getElementById('debugBox');
-    if (!box) return;
+function dbg(msg,type='inf'){
+    const box=document.getElementById('debugBox');
+    if(!box)return;
     box.classList.add('visible');
-    const el = document.createElement('div');
-    el.className = type==='err'?'d-err':type==='ok'?'d-ok':'d-inf';
-    el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    const el=document.createElement('div');
+    el.className=type==='err'?'d-err':type==='ok'?'d-ok':'d-inf';
+    el.textContent='['+new Date().toLocaleTimeString()+'] '+msg;
     box.appendChild(el);
-    box.scrollTop = box.scrollHeight;
+    box.scrollTop=box.scrollHeight;
 }
 
 // ═══════════════════════════════════
-//  SOURCE SWITCHER
+//  SOURCE / TF SWITCHER
 // ═══════════════════════════════════
-function switchSource(src) {
-    document.getElementById('btnAV').classList.toggle('active', src==='av');
-    document.getElementById('btnYF').classList.toggle('active', src==='yf');
-    document.getElementById('avPanel').classList.toggle('visible', src==='av');
-    document.getElementById('yfPanel').classList.toggle('visible', src==='yf');
-    document.getElementById('proxyStatus').classList.toggle('visible', src==='yf');
-    const info = document.getElementById('sourceInfo');
-    if (src==='av') {
-        info.className = 'source-info si-av';
-        info.innerHTML = '📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · ~16s delay per symbol';
+function switchSource(src){
+    document.getElementById('btnAV').classList.toggle('active',src==='av');
+    document.getElementById('btnYF').classList.toggle('active',src==='yf');
+    document.getElementById('avPanel').classList.toggle('visible',src==='av');
+    document.getElementById('yfPanel').classList.toggle('visible',src==='yf');
+    document.getElementById('proxyStatus').classList.toggle('visible',src==='yf');
+    const info=document.getElementById('sourceInfo');
+    if(src==='av'){
+        info.className='source-info si-av';
+        info.innerHTML='📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · 2h &amp; 4h not available (use Yahoo Finance)';
     } else {
-        info.className = 'source-info si-yf';
-        info.innerHTML = '⚡ <strong>Yahoo Finance</strong> — No API key · No rate limit · parallel batches · 10–20× faster';
-        if (!activeProxy) testProxies();
+        info.className='source-info si-yf';
+        info.innerHTML='⚡ <strong>Yahoo Finance</strong> — No API key · No rate limit · parallel · all timeframes including 2h &amp; 4h';
+        if(!activeProxy) testProxies();
     }
 }
 
-function preset(src, key) {
-    document.getElementById(src==='av'?'avSymbols':'yfSymbols').value = PRESETS[key];
+function preset(src,key){
+    document.getElementById(src==='av'?'avSymbols':'yfSymbols').value=PRESETS[key];
 }
 
 // ═══════════════════════════════════
-//  SWING DETECTOR
+//  SWING + CHANNEL DETECTORS
 // ═══════════════════════════════════
-function detectSwing(bars, lb, rb) {
-    const len = bars.length;
-    if (len < lb+rb+3) return { signal:'neutral', swingLow:null, swingHigh:null, leftLowHigh:null, leftHighLow:null, stopLevel:null };
-    const h=bars.map(b=>b.high), l=bars.map(b=>b.low), c=bars.map(b=>b.close);
-    let swingLow=null, llh=null;
-    for (let i=rb; i<len-lb-1; i++) {
-        const v=l[i]; let ok=true;
-        for (let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(l[j]<=v){ok=false;break;}}
+function detectSwing(bars,lb,rb){
+    const len=bars.length;
+    if(len<lb+rb+3) return {signal:'neutral',swingLow:null,swingHigh:null,leftLowHigh:null,leftHighLow:null,stopLevel:null};
+    const h=bars.map(b=>b.high),l=bars.map(b=>b.low),c=bars.map(b=>b.close);
+    let swingLow=null,llh=null;
+    for(let i=rb;i<len-lb-1;i++){
+        const v=l[i];let ok=true;
+        for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(l[j]<=v){ok=false;break;}}
         if(ok){swingLow=v;llh=h[i+1];break;}
     }
-    let swingHigh=null, lhl=null;
-    for (let i=rb; i<len-lb-1; i++) {
-        const v=h[i]; let ok=true;
-        for (let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(h[j]>=v){ok=false;break;}}
+    let swingHigh=null,lhl=null;
+    for(let i=rb;i<len-lb-1;i++){
+        const v=h[i];let ok=true;
+        for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(h[j]>=v){ok=false;break;}}
         if(ok){swingHigh=v;lhl=l[i+1];break;}
     }
     const cur=c[0],prev=c[1];
@@ -582,52 +661,43 @@ function detectSwing(bars, lb, rb) {
     return {signal,swingLow,swingHigh,leftLowHigh:llh,leftHighLow:lhl,stopLevel};
 }
 
-// ═══════════════════════════════════
-//  CHANNEL DETECTOR
-// ═══════════════════════════════════
-function detectChannel(bars, chanBars, maxWidthPct) {
-    const len = bars.length;
-    if (len < chanBars+2) return {signal:'neutral',inChannel:false,resistance:null,support:null,channelWidth:null,stopLevel:null};
-    const window = bars.slice(1, chanBars+1);
-    const resistance = Math.max(...window.map(b=>b.high));
-    const support    = Math.min(...window.map(b=>b.low));
-    const mid        = (resistance+support)/2;
-    const widthPct   = (resistance-support)/mid*100;
-    const inChannel  = widthPct <= maxWidthPct;
-    if (!inChannel) return {signal:'neutral',inChannel:false,resistance,support,channelWidth:widthPct,stopLevel:null};
-    const cur=bars[0].close, prev=bars[1].close;
-    let signal='neutral', stopLevel=null;
+function detectChannel(bars,chanBars,maxWidthPct){
+    const len=bars.length;
+    if(len<chanBars+2) return {signal:'neutral',inChannel:false,resistance:null,support:null,channelWidth:null,stopLevel:null};
+    const window=bars.slice(1,chanBars+1);
+    const resistance=Math.max(...window.map(b=>b.high));
+    const support=Math.min(...window.map(b=>b.low));
+    const mid=(resistance+support)/2;
+    const widthPct=(resistance-support)/mid*100;
+    const inChannel=widthPct<=maxWidthPct;
+    if(!inChannel) return {signal:'neutral',inChannel:false,resistance,support,channelWidth:widthPct,stopLevel:null};
+    const cur=bars[0].close,prev=bars[1].close;
+    let signal='neutral',stopLevel=null;
     if(cur>resistance&&prev<=resistance){signal='buy';stopLevel=support;}
     else if(cur<support&&prev>=support){signal='sell';stopLevel=resistance;}
     return {signal,inChannel:true,resistance,support,channelWidth:widthPct,stopLevel};
 }
 
-function calcATM(price) {
-    const iv = price<25?0.5:price<200?1:5;
-    return Math.round(price/iv)*iv;
-}
+function calcATM(price){const iv=price<25?0.5:price<200?1:5;return Math.round(price/iv)*iv;}
 
 // ═══════════════════════════════════
 //  BUILD RESULT
 // ═══════════════════════════════════
-function buildResult(symbol, bars, cfg, source) {
-    const cur=bars[0], prev=bars[1];
-    const price=cur.close, change=price-prev.close, changePct=change/prev.close*100;
-    const sw = detectSwing(bars, cfg.swingL, cfg.swingR);
-    const ch = detectChannel(bars, cfg.chanBars, cfg.chanWidth);
+function buildResult(symbol,bars,cfg,source,tfLabel){
+    const cur=bars[0],prev=bars[1];
+    const price=cur.close,change=price-prev.close,changePct=change/prev.close*100;
+    const sw=detectSwing(bars,cfg.swingL,cfg.swingR);
+    const ch=detectChannel(bars,cfg.chanBars,cfg.chanWidth);
 
-    let direction='neutral', scanTypes=[], stopLevel=null;
-    if(sw.signal!=='neutral'){scanTypes.push('swing');   direction=sw.signal; stopLevel=sw.stopLevel;}
+    let direction='neutral',scanTypes=[],stopLevel=null;
+    if(sw.signal!=='neutral'){scanTypes.push('swing');direction=sw.signal;stopLevel=sw.stopLevel;}
     if(ch.signal!=='neutral'){
-        if(!scanTypes.includes('swing')||direction===ch.signal) scanTypes.push('channel');
-        else scanTypes.push('channel');
+        scanTypes.push('channel');
         if(direction==='neutral'){direction=ch.signal;stopLevel=ch.stopLevel;}
     }
-
-    const scanType = scanTypes.length===2 ? 'both' : scanTypes.length===1 ? scanTypes[0] : 'none';
-
-    const strike  = calcATM(price);
-    const optType = direction==='buy'?'CALL':direction==='sell'?'PUT':null;
+    const scanType=scanTypes.length===2?'both':scanTypes.length===1?scanTypes[0]:'none';
+    const strike=calcATM(price);
+    const optType=direction==='buy'?'CALL':direction==='sell'?'PUT':null;
 
     let confidence='low';
     if(scanType==='both'&&sw.signal===ch.signal){confidence='high';}
@@ -636,169 +706,64 @@ function buildResult(symbol, bars, cfg, source) {
         if(trig){const brk=Math.abs(price-trig)/trig*100;if(brk>=0.4)confidence='high';else if(brk>=0.15)confidence='medium';}
     }
 
-    const levelStr = ch.inChannel
-        ? `R:${ch.resistance?.toFixed(2)} / S:${ch.support?.toFixed(2)}`
-        : `SH:${sw.swingHigh?.toFixed(2) ?? '—'} / SL:${sw.swingLow?.toFixed(2) ?? '—'}`;
+    const levelStr=ch.inChannel
+        ?`R:${ch.resistance?.toFixed(2)} / S:${ch.support?.toFixed(2)}`
+        :`SH:${sw.swingHigh?.toFixed(2)??'—'} / SL:${sw.swingLow?.toFixed(2)??'—'}`;
 
-    return { symbol, source, price, change, changePct, barTime:cur.time,
-             direction, scanType, optType, strike, confidence,
-             stopLevel, levelStr, swing:sw, channel:ch, bars };
+    return {symbol,source,price,change,changePct,barTime:cur.time,
+            tfLabel, direction,scanType,optType,strike,confidence,
+            stopLevel,levelStr,swing:sw,channel:ch,bars};
 }
 
 // ═══════════════════════════════════
-//  SCAN DISPATCHER
+//  AV FETCH — handles all timeframes
 // ═══════════════════════════════════
-async function startScan(src) {
-    if (src==='yf' && !activeProxy) { alert('No working proxy. Re-test proxies or use Alpha Vantage.'); return; }
-    const isAV  = src==='av';
-    const btn   = document.getElementById(isAV?'avBtn':'yfBtn');
-    const syms  = document.getElementById(isAV?'avSymbols':'yfSymbols').value
-                    .trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-    const prog  = document.getElementById(isAV?'avProg':'yfProg');
-    const bar   = document.getElementById(isAV?'avBar':'yfBar');
-    const txt   = document.getElementById(isAV?'avTxt':'yfTxt');
+async function fetchAV(symbol, tfKey, outputSize) {
+    const tf  = AV_TF[tfKey];
+    let url;
 
-    const cfg = isAV ? {
-        swingL:    +document.getElementById('avSwingL').value,
-        swingR:    +document.getElementById('avSwingR').value,
-        chanBars:  +document.getElementById('avChanBars').value,
-        chanWidth: +document.getElementById('avChanWidth').value,
-        outSize:    document.getElementById('avOut').value,
-        delay:     +document.getElementById('avDelay').value * 1000
-    } : {
-        swingL:    +document.getElementById('yfSwingL').value,
-        swingR:    +document.getElementById('yfSwingR').value,
-        chanBars:  +document.getElementById('yfChanBars').value,
-        chanWidth: +document.getElementById('yfChanWidth').value,
-        batchSize: +document.getElementById('yfBatch').value,
-        batchDelay:+document.getElementById('yfDelay').value
-    };
-
-    if (!syms.length) return;
-    btn.disabled = true;
-    btn.textContent = isAV ? '🔄 Scanning…' : '⚡ Scanning…';
-    prog.style.display = 'block'; bar.style.width = '0%';
-
-    // Reset result map on fresh scan
-    resultMap.clear();
-    updateTable();
-
-    if (isAV) {
-        await runAV(syms, cfg, bar, txt, btn);
+    if (tf.fn === 'TIME_SERIES_INTRADAY') {
+        url = `https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&interval=${tf.interval}&outputsize=${outputSize}&apikey=${AV_KEY}`;
+    } else if (tf.fn === 'TIME_SERIES_DAILY') {
+        url = `https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&outputsize=${outputSize}&apikey=${AV_KEY}`;
     } else {
-        const grid = document.getElementById('batchGrid');
-        const dbgEl= document.getElementById('debugBox');
-        dbgEl.innerHTML = ''; grid.innerHTML = ''; grid.classList.add('visible');
-        dbg(`YF scan · ${syms.length} symbols · proxy: ${activeProxy.name}`);
-        await runYF(syms, cfg, bar, txt, btn, grid);
+        // weekly / monthly — no outputsize param
+        url = `https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&apikey=${AV_KEY}`;
     }
-}
 
-async function runAV(syms, cfg, bar, txt, btn) {
-    for (let i=0; i<syms.length; i++) {
-        try {
-            const bars = await fetchAV(syms[i], cfg.outSize);
-            if (bars) {
-                resultMap.set(syms[i], buildResult(syms[i], bars, cfg, 'av'));
-                updateTable();
-            }
-        } catch(e) { console.warn(syms[i], e.message); }
-        const pct = Math.round(((i+1)/syms.length)*100);
-        bar.style.width = pct+'%';
-        txt.textContent = progressMsg(i+1, syms.length, pct);
-        if (i < syms.length-1) await sleep(cfg.delay);
-    }
-    btn.disabled=false; btn.textContent='🔍 Start Scan';
-    txt.textContent = doneMsg();
-}
-
-async function runYF(syms, cfg, bar, txt, btn, grid) {
-    const chips = {};
-    syms.forEach(sym => {
-        const el = document.createElement('div');
-        el.className='bchip'; el.id='chip-'+sym; el.textContent=sym;
-        grid.appendChild(el); chips[sym]=el;
-    });
-    const batches=[];
-    for(let i=0;i<syms.length;i+=cfg.batchSize) batches.push(syms.slice(i,i+cfg.batchSize));
-    let done=0;
-    for (let bi=0; bi<batches.length; bi++) {
-        const batch=batches[bi];
-        batch.forEach(sym => chips[sym].className='bchip loading');
-        await Promise.all(batch.map(async sym => {
-            try {
-                const bars = await fetchYF(sym);
-                if (bars && bars.length>=10) {
-                    const r = buildResult(sym, bars, cfg, 'yf');
-                    resultMap.set(sym, r);
-                    chips[sym].className = 'bchip '+chipClass(r);
-                    dbg(`${sym} · ${bars.length} bars · dir:${r.direction} · type:${r.scanType}`, r.direction==='neutral'?'inf':'ok');
-                    updateTable();
-                } else { chips[sym].className='bchip error'; dbg(`${sym} · no data`,'err'); }
-            } catch(e) { chips[sym].className='bchip error'; dbg(`${sym} · ${e.message}`,'err'); }
-            finally { done++; }
-        }));
-        const pct=Math.round((done/syms.length)*100);
-        bar.style.width=pct+'%';
-        txt.textContent=progressMsg(done,syms.length,pct);
-        if(bi<batches.length-1) await sleep(cfg.batchDelay);
-    }
-    btn.disabled=false; btn.textContent='⚡ Fast Scan';
-    txt.textContent=doneMsg();
-    if(resultMap.size===0) txt.textContent+=' ⚠️ Yahoo only returns bars during market hours (9:30am–4pm ET)';
-}
-
-function chipClass(r) {
-    if(r.scanType==='both')    return 'done-both';
-    if(r.direction==='buy')    return 'done-buy';
-    if(r.direction==='sell')   return 'done-sell';
-    return 'done-none';
-}
-
-function allResultsArr() { return [...resultMap.values()]; }
-
-function progressMsg(done, total, pct) {
-    const all=allResultsArr();
-    const b=all.filter(r=>r.direction==='buy').length;
-    const s=all.filter(r=>r.direction==='sell').length;
-    const bt=all.filter(r=>r.scanType==='both').length;
-    return `${done}/${total} (${pct}%) · BUY: ${b} · SELL: ${s} · Both: ${bt}`;
-}
-
-function doneMsg() {
-    const all=allResultsArr();
-    const b=all.filter(r=>r.direction==='buy').length;
-    const s=all.filter(r=>r.direction==='sell').length;
-    const bt=all.filter(r=>r.scanType==='both').length;
-    return `✅ Complete · ${all.length} scanned · BUY: ${b} · SELL: ${s} · Both: ${bt}`;
-}
-
-// ═══════════════════════════════════
-//  DATA FETCHERS
-// ═══════════════════════════════════
-async function fetchAV(symbol, outputSize) {
-    const url  = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${encodeURIComponent(symbol)}&interval=5min&outputsize=${outputSize}&apikey=${AV_KEY}`;
     const json = await (await fetch(url)).json();
-    const series = json['Time Series (5min)'];
-    if (!series) return null;
-    const times = Object.keys(series).sort().reverse();
-    if (times.length<20) return null;
-    return times.map(t=>({
-        time:  t,
-        open:  parseFloat(series[t]['1. open']),
-        high:  parseFloat(series[t]['2. high']),
-        low:   parseFloat(series[t]['3. low']),
-        close: parseFloat(series[t]['4. close']),
-        vol:   parseInt(series[t]['5. volume'])
-    }));
+
+    // Find the time series key — differs per function
+    const seriesKey = Object.keys(json).find(k => k.startsWith('Time Series') || k.startsWith('Weekly') || k.startsWith('Monthly'));
+    if (!seriesKey) return null;
+
+    const series = json[seriesKey];
+    const times  = Object.keys(series).sort().reverse();
+    if (times.length < 20) return null;
+
+    return times.map(t => {
+        const row = series[t];
+        return {
+            time:  t,
+            timestamp: new Date(t).getTime(),
+            open:  parseFloat(row['1. open']),
+            high:  parseFloat(row['2. high']),
+            low:   parseFloat(row['3. low']),
+            close: parseFloat(row['4. close']),
+            vol:   parseInt(row['5. volume'] || row['6. volume'] || 0)
+        };
+    });
 }
 
-async function fetchYF(symbol) {
-    const ctrl=new AbortController(), tid=setTimeout(()=>ctrl.abort(),8000);
+// ═══════════════════════════════════
+//  YF FETCH — all timeframes
+// ═══════════════════════════════════
+async function fetchYF(symbol, tfKey) {
+    const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),8000);
     try {
-        const res=await fetch(activeProxy.url(symbol),{signal:ctrl.signal});
+        const res=await fetch(activeProxy.url(symbol,tfKey),{signal:ctrl.signal});
         clearTimeout(tid);
-        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        if(!res.ok) throw new Error('HTTP '+res.status);
         const json=await res.json();
         const result=json?.chart?.result?.[0];
         if(!result) return null;
@@ -808,59 +773,186 @@ async function fetchYF(symbol) {
         for(let i=ts.length-1;i>=0;i--){
             if(q.close[i]==null||isNaN(q.close[i])) continue;
             const d=new Date(ts[i]*1000);
+            const tfCfg=YF_TF[tfKey];
+            // Format time label based on timeframe
+            let timeLabel;
+            if(['5m','15m','1h','2h','4h'].includes(tfKey)){
+                timeLabel=d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+            } else if(tfKey==='1d'){
+                timeLabel=d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+            } else {
+                timeLabel=d.toLocaleDateString('en-US',{year:'numeric',month:'short'});
+            }
             bars.push({
-                time:  d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}),
+                time:      timeLabel,
                 timestamp: ts[i]*1000,
-                open:  q.open[i]??q.close[i],
-                high:  q.high[i]??q.close[i],
-                low:   q.low[i]??q.close[i],
-                close: q.close[i],
-                vol:   q.volume[i]??0
+                open:      q.open[i]??q.close[i],
+                high:      q.high[i]??q.close[i],
+                low:       q.low[i]??q.close[i],
+                close:     q.close[i],
+                vol:       q.volume[i]??0
             });
         }
-        return bars.length>=5 ? bars : null;
+        return bars.length>=5?bars:null;
     } catch(e){clearTimeout(tid);throw e;}
 }
 
 // ═══════════════════════════════════
-//  TABLE — uses symbol key, not index
+//  SCAN DISPATCHER
 // ═══════════════════════════════════
-function filterResults(f, e) {
+async function startScan(src){
+    if(src==='yf'&&!activeProxy){alert('No working proxy. Re-test or use Alpha Vantage.');return;}
+    const isAV=src==='av';
+    const tfKey=activeTF[src];
+    const tfLabel=isAV?AV_TF[tfKey].label:YF_TF[tfKey].label;
+    const btn=document.getElementById(isAV?'avBtn':'yfBtn');
+    const syms=document.getElementById(isAV?'avSymbols':'yfSymbols').value
+                .trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+    const prog=document.getElementById(isAV?'avProg':'yfProg');
+    const bar=document.getElementById(isAV?'avBar':'yfBar');
+    const txt=document.getElementById(isAV?'avTxt':'yfTxt');
+
+    const cfg=isAV?{
+        swingL:+document.getElementById('avSwingL').value,
+        swingR:+document.getElementById('avSwingR').value,
+        chanBars:+document.getElementById('avChanBars').value,
+        chanWidth:+document.getElementById('avChanWidth').value,
+        outSize:document.getElementById('avOut').value,
+        delay:+document.getElementById('avDelay').value*1000,
+        tfKey,tfLabel
+    }:{
+        swingL:+document.getElementById('yfSwingL').value,
+        swingR:+document.getElementById('yfSwingR').value,
+        chanBars:+document.getElementById('yfChanBars').value,
+        chanWidth:+document.getElementById('yfChanWidth').value,
+        batchSize:+document.getElementById('yfBatch').value,
+        batchDelay:+document.getElementById('yfDelay').value,
+        tfKey,tfLabel
+    };
+
+    if(!syms.length) return;
+    btn.disabled=true;
+    btn.textContent=isAV?'🔄 Scanning…':'⚡ Scanning…';
+    prog.style.display='block'; bar.style.width='0%';
+    resultMap.clear(); updateTable();
+
+    if(isAV){
+        await runAV(syms,cfg,bar,txt,btn);
+    } else {
+        const grid=document.getElementById('batchGrid');
+        const dbgEl=document.getElementById('debugBox');
+        dbgEl.innerHTML=''; grid.innerHTML=''; grid.classList.add('visible');
+        dbg('YF scan · '+syms.length+' symbols · '+tfLabel+' · proxy: '+activeProxy.name);
+        await runYF(syms,cfg,bar,txt,btn,grid);
+    }
+}
+
+async function runAV(syms,cfg,bar,txt,btn){
+    for(let i=0;i<syms.length;i++){
+        try{
+            const bars=await fetchAV(syms[i],cfg.tfKey,cfg.outSize);
+            if(bars){resultMap.set(syms[i],buildResult(syms[i],bars,cfg,'av',cfg.tfLabel));updateTable();}
+        }catch(e){console.warn(syms[i],e.message);}
+        const pct=Math.round(((i+1)/syms.length)*100);
+        bar.style.width=pct+'%';
+        txt.textContent=progressMsg(i+1,syms.length,pct,cfg.tfLabel);
+        if(i<syms.length-1) await sleep(cfg.delay);
+    }
+    btn.disabled=false; btn.textContent='🔍 Start Scan';
+    txt.textContent=doneMsg(cfg.tfLabel);
+}
+
+async function runYF(syms,cfg,bar,txt,btn,grid){
+    const chips={};
+    syms.forEach(sym=>{
+        const el=document.createElement('div');
+        el.className='bchip';el.id='chip-'+sym;el.textContent=sym;
+        grid.appendChild(el);chips[sym]=el;
+    });
+    const batches=[];
+    for(let i=0;i<syms.length;i+=cfg.batchSize) batches.push(syms.slice(i,i+cfg.batchSize));
+    let done=0;
+    for(let bi=0;bi<batches.length;bi++){
+        const batch=batches[bi];
+        batch.forEach(sym=>chips[sym].className='bchip loading');
+        await Promise.all(batch.map(async sym=>{
+            try{
+                const bars=await fetchYF(sym,cfg.tfKey);
+                if(bars&&bars.length>=10){
+                    const r=buildResult(sym,bars,cfg,'yf',cfg.tfLabel);
+                    resultMap.set(sym,r);
+                    chips[sym].className='bchip '+chipClass(r);
+                    dbg(sym+' · '+bars.length+' bars · '+r.direction+' · '+r.scanType,r.direction==='neutral'?'inf':'ok');
+                    updateTable();
+                }else{chips[sym].className='bchip error';dbg(sym+' · no data','err');}
+            }catch(e){chips[sym].className='bchip error';dbg(sym+' · '+e.message,'err');}
+            finally{done++;}
+        }));
+        const pct=Math.round((done/syms.length)*100);
+        bar.style.width=pct+'%';
+        txt.textContent=progressMsg(done,syms.length,pct,cfg.tfLabel);
+        if(bi<batches.length-1) await sleep(cfg.batchDelay);
+    }
+    btn.disabled=false; btn.textContent='⚡ Fast Scan';
+    txt.textContent=doneMsg(cfg.tfLabel);
+    if(resultMap.size===0&&['5m','15m'].includes(cfg.tfKey))
+        txt.textContent+=' ⚠️ Intraday data only available during market hours';
+}
+
+function chipClass(r){
+    if(r.scanType==='both') return 'done-both';
+    if(r.direction==='buy') return 'done-buy';
+    if(r.direction==='sell')return 'done-sell';
+    return 'done-none';
+}
+
+function allArr(){return [...resultMap.values()];}
+
+function progressMsg(done,total,pct,tf){
+    const all=allArr();
+    return `[${tf}] ${done}/${total} (${pct}%) · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length} · Both: ${all.filter(r=>r.scanType==='both').length}`;
+}
+
+function doneMsg(tf){
+    const all=allArr();
+    return `✅ [${tf}] ${all.length} scanned · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length} · Both: ${all.filter(r=>r.scanType==='both').length}`;
+}
+
+// ═══════════════════════════════════
+//  TABLE
+// ═══════════════════════════════════
+function filterResults(f,e){
     currentFilter=f;
     document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
     if(e) e.target.classList.add('active');
     updateTable();
 }
 
-function f2(v){ return v!==null&&v!==undefined ? '$'+Number(v).toFixed(2) : '—'; }
+function f2(v){return v!==null&&v!==undefined?'$'+Number(v).toFixed(2):'—';}
 
-function updateTable() {
-    const container = document.getElementById('resultsContainer');
-    const tbody     = document.getElementById('resultsBody');
-    const countEl   = document.getElementById('resultsCount');
-    const pillsEl   = document.getElementById('summaryPills');
-    const all       = allResultsArr();
+function updateTable(){
+    const container=document.getElementById('resultsContainer');
+    const tbody=document.getElementById('resultsBody');
+    const countEl=document.getElementById('resultsCount');
+    const pillsEl=document.getElementById('summaryPills');
+    const all=allArr();
 
-    if (all.length===0) { container.style.display='none'; return; }
+    if(all.length===0){container.style.display='none';return;}
 
-    // Apply filter
-    const filtered = currentFilter==='all'     ? all
-        : currentFilter==='buy'     ? all.filter(r=>r.direction==='buy')
-        : currentFilter==='sell'    ? all.filter(r=>r.direction==='sell')
-        : currentFilter==='swing'   ? all.filter(r=>r.scanType==='swing')
-        : currentFilter==='channel' ? all.filter(r=>r.scanType==='channel')
-        : currentFilter==='both'    ? all.filter(r=>r.scanType==='both')
-        : currentFilter==='neutral' ? all.filter(r=>r.direction==='neutral')
-        : all;
+    const filtered=currentFilter==='all'?all
+        :currentFilter==='buy'    ?all.filter(r=>r.direction==='buy')
+        :currentFilter==='sell'   ?all.filter(r=>r.direction==='sell')
+        :currentFilter==='swing'  ?all.filter(r=>r.scanType==='swing')
+        :currentFilter==='channel'?all.filter(r=>r.scanType==='channel')
+        :currentFilter==='both'   ?all.filter(r=>r.scanType==='both')
+        :currentFilter==='neutral'?all.filter(r=>r.direction==='neutral')
+        :all;
 
-    // Store ordered symbols for safe modal lookup
-    const sortKey = r => (r.scanType==='both'?'0':r.direction==='buy'?'1':r.direction==='sell'?'2':'3')+'_'+r.symbol;
-    const sorted  = [...filtered].sort((a,b) => sortKey(a).localeCompare(sortKey(b)));
-    filteredSymbols = sorted.map(r => r.symbol);
+    const sortKey=r=>(r.scanType==='both'?'0':r.direction==='buy'?'1':r.direction==='sell'?'2':'3')+'_'+r.symbol;
+    const sorted=[...filtered].sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));
+    filteredSymbols=sorted.map(r=>r.symbol);
 
     container.style.display='block';
-
-    // Summary pills
     const nBuy=all.filter(r=>r.direction==='buy').length;
     const nSell=all.filter(r=>r.direction==='sell').length;
     const nSwing=all.filter(r=>r.scanType==='swing').length;
@@ -879,40 +971,37 @@ function updateTable() {
         <span class="s-pill sp-neutral">🟡 No signal: ${nNone}</span>
     `;
 
-    if (sorted.length===0) {
-        tbody.innerHTML=`<tr><td colspan="12" class="empty-state"><div class="empty-icon">🔍</div><div>No results for filter: ${currentFilter}</div></td></tr>`;
+    if(sorted.length===0){
+        tbody.innerHTML=`<tr><td colspan="13" class="empty-state"><div class="empty-icon">🔍</div><div>No results for filter: ${currentFilter}</div></td></tr>`;
         return;
     }
 
-    tbody.innerHTML = sorted.map((r, idx) => {
-        const pos = r.change>=0;
-        const dirBadge = r.direction==='buy'
-            ? `<span class="signal-badge signal-bullish">🟢 BUY</span>`
-            : r.direction==='sell'
-            ? `<span class="signal-badge signal-bearish">🔴 SELL</span>`
-            : `<span class="signal-badge signal-neutral">🟡 WATCH</span>`;
+    tbody.innerHTML=sorted.map(r=>{
+        const pos=r.change>=0;
+        const dirBadge=r.direction==='buy'
+            ?`<span class="signal-badge signal-bullish">🟢 BUY</span>`
+            :r.direction==='sell'
+            ?`<span class="signal-badge signal-bearish">🔴 SELL</span>`
+            :`<span class="signal-badge signal-neutral">🟡 WATCH</span>`;
+        const typeBadge=r.scanType==='both'
+            ?`<span class="scan-type st-both">⭐ BOTH</span>`
+            :r.scanType==='swing'
+            ?`<span class="scan-type st-swing">📈 SWING</span>`
+            :r.scanType==='channel'
+            ?`<span class="scan-type st-channel">📦 CHANNEL</span>`
+            :`<span style="color:#aaa;font-size:11px;">—</span>`;
+        const optBadge=r.optType==='CALL'
+            ?`<span class="opt-pill opt-call">CALL</span>`
+            :r.optType==='PUT'
+            ?`<span class="opt-pill opt-put">PUT</span>`
+            :`—`;
+        const srcTag=r.source==='av'
+            ?`<span class="src-tag st-av">AV</span>`
+            :`<span class="src-tag st-yf">YF</span>`;
 
-        const typeBadge = r.scanType==='both'
-            ? `<span class="scan-type st-both">⭐ BOTH</span>`
-            : r.scanType==='swing'
-            ? `<span class="scan-type st-swing">📈 SWING</span>`
-            : r.scanType==='channel'
-            ? `<span class="scan-type st-channel">📦 CHANNEL</span>`
-            : `<span style="color:#aaa;font-size:11px;">—</span>`;
-
-        const optBadge = r.optType==='CALL'
-            ? `<span class="opt-pill opt-call">CALL</span>`
-            : r.optType==='PUT'
-            ? `<span class="opt-pill opt-put">PUT</span>`
-            : `—`;
-
-        const srcTag = r.source==='av'
-            ? `<span class="src-tag st-av">AV</span>`
-            : `<span class="src-tag st-yf">YF</span>`;
-
-        // ── KEY FIX: pass symbol string, not array index ──
         return `<tr>
             <td class="sym">${r.symbol}</td>
+            <td class="c"><span class="tf-tag">${r.tfLabel}</span></td>
             <td class="r" style="font-weight:600;">${f2(r.price)}</td>
             <td class="r ${pos?'pos':'neg'}">
                 ${pos?'+':''}${r.change.toFixed(2)} (${pos?'+':''}${r.changePct.toFixed(2)}%)
@@ -931,28 +1020,26 @@ function updateTable() {
 }
 
 // ═══════════════════════════════════
-//  MODAL — looks up by symbol, never by index
+//  MODAL — keyed by symbol
 // ═══════════════════════════════════
-function showDetail(symbol) {
-    // Always fetch the freshest result from the map
-    const r = resultMap.get(symbol);
-    if (!r) { alert('No data for ' + symbol); return; }
+function showDetail(symbol){
+    const r=resultMap.get(symbol);
+    if(!r){alert('No data for '+symbol);return;}
+    const isBuy=r.direction==='buy',isSel=r.direction==='sell';
+    const sw=r.swing,ch=r.channel;
 
-    const isBuy=r.direction==='buy', isSel=r.direction==='sell';
-    const sw=r.swing, ch=r.channel;
-
-    document.getElementById('modalTitle').textContent = `${r.symbol} — Breakout Analysis`;
-    document.getElementById('modalSub').textContent   =
-        `${r.source==='av'?'Alpha Vantage':'Yahoo Finance'} · 5-min · ${r.barTime} · `
-      + (r.scanType==='both'?'⭐ Both signals':r.scanType==='swing'?'📈 Swing':r.scanType==='channel'?'📦 Channel':'No signal');
+    document.getElementById('modalTitle').textContent=`${r.symbol} — ${r.tfLabel} Breakout Analysis`;
+    document.getElementById('modalSub').textContent=
+        `${r.source==='av'?'Alpha Vantage':'Yahoo Finance'} · ${r.tfLabel} · ${r.barTime} · `
+        +(r.scanType==='both'?'⭐ Both signals':r.scanType==='swing'?'📈 Swing':r.scanType==='channel'?'📦 Channel':'No signal');
 
     let chanViz='';
-    if (ch.resistance!==null&&ch.support!==null) {
+    if(ch.resistance!==null&&ch.support!==null){
         const range=(ch.resistance-ch.support)||0.01;
         const pricePos=Math.min(Math.max((r.price-ch.support)/range*100,0),100);
         chanViz=`
         <div class="channel-viz">
-            <div class="channel-viz-title">📦 Channel Structure — width: ${ch.channelWidth?.toFixed(2)}% · ${ch.inChannel?'✅ Qualifies':'❌ Too wide'}</div>
+            <div class="channel-viz-title">📦 Channel — width: ${ch.channelWidth?.toFixed(2)}% · ${ch.inChannel?'✅ Qualifies':'❌ Too wide'}</div>
             <div class="channel-bar-wrap">
                 <div class="channel-bar-fill" style="left:0%;right:0%;"></div>
                 <div class="channel-price-marker" style="left:${pricePos.toFixed(1)}%;"></div>
@@ -965,7 +1052,7 @@ function showDetail(symbol) {
         </div>`;
     }
 
-    document.getElementById('modalBody').innerHTML = `
+    document.getElementById('modalBody').innerHTML=`
         <div class="analysis-grid">
             <div class="zone-box bullish">
                 <div class="zone-title">🟢 BUY ZONE — ATM CALL</div>
@@ -974,7 +1061,7 @@ function showDetail(symbol) {
                     ${sw.signal==='buy'?`<strong>📈 Swing trigger:</strong> Close above ${f2(sw.leftLowHigh)}<br>Swing low: ${f2(sw.swingLow)}<br>`:''}
                     ${ch.signal==='buy'?`<strong>📦 Channel trigger:</strong> Close above resistance ${f2(ch.resistance)}<br>Channel support: ${f2(ch.support)}<br>`:''}
                     <strong>ATM CALL strike:</strong> ${f2(r.strike)}<br>
-                    ${isBuy?'<strong style="color:#155724">✅ Signal active on last 5-min bar</strong>':'No buy signal on current bar'}
+                    ${isBuy?'<strong style="color:#155724">✅ Signal active</strong>':'No buy signal on current bar'}
                 </div>
             </div>
             <div class="zone-box bearish">
@@ -984,7 +1071,7 @@ function showDetail(symbol) {
                     ${sw.signal==='sell'?`<strong>📈 Swing trigger:</strong> Close below ${f2(sw.leftHighLow)}<br>Swing high: ${f2(sw.swingHigh)}<br>`:''}
                     ${ch.signal==='sell'?`<strong>📦 Channel trigger:</strong> Close below support ${f2(ch.support)}<br>Channel resistance: ${f2(ch.resistance)}<br>`:''}
                     <strong>ATM PUT strike:</strong> ${f2(r.strike)}<br>
-                    ${isSel?'<strong style="color:#721c24">✅ Signal active on last 5-min bar</strong>':'No sell signal on current bar'}
+                    ${isSel?'<strong style="color:#721c24">✅ Signal active</strong>':'No sell signal on current bar'}
                 </div>
             </div>
         </div>
@@ -992,10 +1079,10 @@ function showDetail(symbol) {
         ${chanViz}
 
         <div class="stats-section">
-            <div class="stats-title">📐 Signal Detail</div>
+            <div class="stats-title">📐 Signal Detail — ${r.tfLabel}</div>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-lbl">5-Min Close</div>
+                    <div class="stat-lbl">Close</div>
                     <div class="stat-val">${f2(r.price)}</div>
                     <div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:11px;">
                         ${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)
@@ -1013,7 +1100,7 @@ function showDetail(symbol) {
                     <div class="stat-val" style="font-size:14px;">
                         ${r.scanType==='both'?'⭐ BOTH':r.scanType==='swing'?'📈 SWING':r.scanType==='channel'?'📦 CHANNEL':'—'}
                     </div>
-                    <div class="stat-sub">${r.scanType==='both'?'Both confirm — strongest signal':''}</div>
+                    <div class="stat-sub">${r.scanType==='both'?'Both scanners agree':''}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-lbl">Option</div>
@@ -1026,30 +1113,30 @@ function showDetail(symbol) {
                     <div class="stat-sub">${isBuy?'Close below':isSel?'Close above':'—'} this level</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-lbl">Channel Width</div>
-                    <div class="stat-val" style="font-size:16px;">${ch.channelWidth?ch.channelWidth.toFixed(2)+'%':'—'}</div>
-                    <div class="stat-sub">${ch.inChannel?'In channel ✓':'Outside channel params'}</div>
+                    <div class="stat-lbl">Timeframe</div>
+                    <div class="stat-val" style="font-size:16px;">${r.tfLabel}</div>
+                    <div class="stat-sub">${r.source==='av'?'Alpha Vantage':'Yahoo Finance'}</div>
                 </div>
             </div>
         </div>
 
         <div class="chart-section">
-            <div class="chart-title">🕯️ 5-Min Candlestick Chart — ${r.symbol}</div>
-            <div class="chart-sub">Green/red candles · Dashed lines = swing &amp; channel levels</div>
+            <div class="chart-title">🕯️ ${r.symbol} — ${r.tfLabel} Candlestick Chart</div>
+            <div class="chart-sub">Green = up candle · Red = down candle · Dashed lines = swing &amp; channel levels</div>
             <canvas id="detailChart" style="max-height:340px;"></canvas>
         </div>
 
         <div class="recommendation">
             <div class="rec-title">
-                ${r.scanType==='both'&&isBuy  ?'⭐ STRONG BUY — Both Swing + Channel confirm · Buy ATM CALL'
-                :r.scanType==='both'&&isSel   ?'⭐ STRONG SELL — Both Swing + Channel confirm · Buy ATM PUT'
-                :isBuy                         ?'🟢 BUY SIGNAL — Buy ATM CALL Option'
-                :isSel                         ?'🔴 SELL SIGNAL — Buy ATM PUT Option'
-                :                               '🟡 NO SIGNAL — Monitor for breakout'}
+                ${r.scanType==='both'&&isBuy ?'⭐ STRONG BUY — Both signals confirm · Buy ATM CALL'
+                :r.scanType==='both'&&isSel  ?'⭐ STRONG SELL — Both signals confirm · Buy ATM PUT'
+                :isBuy                        ?'🟢 BUY SIGNAL — Buy ATM CALL Option'
+                :isSel                        ?'🔴 SELL SIGNAL — Buy ATM PUT Option'
+                :                              '🟡 NO SIGNAL — Monitor for breakout'}
             </div>
             <div class="rec-grid">
                 <div class="rec-item"><div class="rec-label">Symbol</div><div class="rec-value">${r.symbol}</div></div>
-                <div class="rec-item"><div class="rec-label">Price</div><div class="rec-value">${f2(r.price)}</div></div>
+                <div class="rec-item"><div class="rec-label">Timeframe</div><div class="rec-value">${r.tfLabel}</div></div>
                 <div class="rec-item"><div class="rec-label">Option</div><div class="rec-value">${r.optType??'—'}</div></div>
                 <div class="rec-item"><div class="rec-label">ATM Strike</div><div class="rec-value">${f2(r.strike)}</div></div>
                 <div class="rec-item"><div class="rec-label">Stop Loss</div><div class="rec-value">${f2(r.stopLevel)}</div></div>
@@ -1059,118 +1146,102 @@ function showDetail(symbol) {
     `;
 
     document.getElementById('modal').style.display='block';
-    setTimeout(()=>drawCandleChart(r), 120);
+    setTimeout(()=>drawCandleChart(r),120);
 }
 
 // ═══════════════════════════════════
 //  CANDLESTICK CHART
 // ═══════════════════════════════════
-function drawCandleChart(r) {
-    const ctx = document.getElementById('detailChart');
-    if (!ctx) return;
-    if (currentChart) { currentChart.destroy(); currentChart=null; }
+function drawCandleChart(r){
+    const ctx=document.getElementById('detailChart');
+    if(!ctx) return;
+    if(currentChart){currentChart.destroy();currentChart=null;}
 
-    const show = r.bars.slice(0, 60).reverse(); // oldest → newest
-    const len  = show.length;
+    const barsToShow = Math.min(r.bars.length, 80);
+    const show=r.bars.slice(0,barsToShow).reverse();
+    const len=show.length;
 
-    // Build OHLC data with timestamps for the financial plugin
-    // If we have real timestamps use them; otherwise synthesise from index
-    const now      = Date.now();
-    const interval = 5 * 60 * 1000; // 5 min in ms
+    // Determine chart time unit from tfLabel
+    const tfUnit = r.source==='av'
+        ? AV_TF[Object.keys(AV_TF).find(k=>AV_TF[k].label===r.tfLabel)]?.chartUnit || 'day'
+        : YF_TF[Object.keys(YF_TF).find(k=>YF_TF[k].label===r.tfLabel)]?.chartUnit || 'day';
 
-    const candleData = show.map((b, i) => {
-        const ts = b.timestamp ? b.timestamp : now - (len - 1 - i) * interval;
-        return { x: ts, o: b.open, h: b.high, l: b.low, c: b.close };
+    // Build OHLC with timestamps
+    const now=Date.now();
+    const tfMs={minute:5*60000,hour:60*60000,day:24*60*60000,week:7*24*60*60000,month:30*24*60*60000};
+    const step=tfMs[tfUnit]||86400000;
+
+    const candleData=show.map((b,i)=>{
+        const ts=b.timestamp||now-(len-1-i)*step;
+        return {x:ts,o:b.open,h:b.high,l:b.low,c:b.close};
     });
 
-    // Overlay lines use same timestamp axis
-    const firstTs = candleData[0].x;
-    const lastTs  = candleData[candleData.length-1].x;
+    const firstTs=candleData[0].x, lastTs=candleData[candleData.length-1].x;
 
-    function hline(val, label, color, dash) {
-        return {
-            label, type:'line',
-            data:[{x:firstTs, y:val},{x:lastTs, y:val}],
-            borderColor: color, borderWidth: 1.5,
-            borderDash: dash || [6,4],
-            pointRadius: 0, fill: false,
-            parsing: false
-        };
+    function hline(val,label,color,dash){
+        return {label,type:'line',
+            data:[{x:firstTs,y:val},{x:lastTs,y:val}],
+            borderColor:color,borderWidth:1.5,borderDash:dash||[6,4],
+            pointRadius:0,fill:false,parsing:false};
     }
 
-    const datasets = [{
-        label: r.symbol + ' (5-min)',
-        type: 'candlestick',
-        data: candleData,
-        parsing: false,
-        color: {
-            up:   '#00b894',
-            down: '#d63031',
-            unchanged: '#636e72'
-        },
-        borderColor: {
-            up:   '#00b894',
-            down: '#d63031',
-            unchanged: '#636e72'
-        }
+    const datasets=[{
+        label:r.symbol,type:'candlestick',data:candleData,parsing:false,
+        color:{up:'#00b894',down:'#d63031',unchanged:'#636e72'},
+        borderColor:{up:'#00b894',down:'#d63031',unchanged:'#636e72'}
     }];
 
-    if (r.swing.swingLow)    datasets.push(hline(r.swing.swingLow,    `Swing Low ${f2(r.swing.swingLow)}`,     '#00b894', [6,4]));
-    if (r.swing.swingHigh)   datasets.push(hline(r.swing.swingHigh,   `Swing High ${f2(r.swing.swingHigh)}`,   '#d63031', [6,4]));
-    if (r.swing.leftLowHigh) datasets.push(hline(r.swing.leftLowHigh, `Buy Trig ${f2(r.swing.leftLowHigh)}`,   '#00cec9', [2,5]));
-    if (r.swing.leftHighLow) datasets.push(hline(r.swing.leftHighLow, `Sell Trig ${f2(r.swing.leftHighLow)}`,  '#e17055', [2,5]));
-    if (r.channel.resistance) datasets.push(hline(r.channel.resistance,`Chan R ${f2(r.channel.resistance)}`,   '#6c5ce7', [8,3]));
-    if (r.channel.support)    datasets.push(hline(r.channel.support,   `Chan S ${f2(r.channel.support)}`,      '#a29bfe', [8,3]));
+    if(r.swing.swingLow)    datasets.push(hline(r.swing.swingLow,   `Swing Low ${f2(r.swing.swingLow)}`,      '#00b894',[6,4]));
+    if(r.swing.swingHigh)   datasets.push(hline(r.swing.swingHigh,  `Swing High ${f2(r.swing.swingHigh)}`,    '#d63031',[6,4]));
+    if(r.swing.leftLowHigh) datasets.push(hline(r.swing.leftLowHigh,`Buy Trig ${f2(r.swing.leftLowHigh)}`,   '#00cec9',[2,5]));
+    if(r.swing.leftHighLow) datasets.push(hline(r.swing.leftHighLow,`Sell Trig ${f2(r.swing.leftHighLow)}`,  '#e17055',[2,5]));
+    if(r.channel.resistance)datasets.push(hline(r.channel.resistance,`Chan R ${f2(r.channel.resistance)}`,   '#6c5ce7',[8,3]));
+    if(r.channel.support)   datasets.push(hline(r.channel.support,  `Chan S ${f2(r.channel.support)}`,       '#a29bfe',[8,3]));
 
-    currentChart = new Chart(ctx, {
-        type: 'candlestick',
-        data: { datasets },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode:'index', intersect:false },
-            plugins: {
-                legend: {
-                    display: true, position:'top',
-                    labels: { font:{size:10}, boxWidth:14,
-                        filter: item => item.datasetIndex > 0 // hide candle entry from legend
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => {
-                            if (ctx.dataset.type === 'candlestick') {
-                                const d = ctx.raw;
-                                return [`O: $${d.o?.toFixed(2)}  H: $${d.h?.toFixed(2)}`,
-                                        `L: $${d.l?.toFixed(2)}  C: $${d.c?.toFixed(2)}`];
-                            }
-                            return `${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2)}`;
+    // Choose time display format based on timeframe
+    const timeDisplayFormats={
+        minute:'HH:mm',hour:'MM/dd HH:mm',day:'MMM dd',week:'MMM dd yy',month:"MMM ''yy"
+    };
+
+    currentChart=new Chart(ctx,{
+        type:'candlestick',
+        data:{datasets},
+        options:{
+            responsive:true,maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                legend:{display:true,position:'top',
+                    labels:{font:{size:10},boxWidth:14,
+                        filter:item=>item.datasetIndex>0}},
+                tooltip:{callbacks:{
+                    label:ctx=>{
+                        if(ctx.dataset.type==='candlestick'){
+                            const d=ctx.raw;
+                            return[`O: $${d.o?.toFixed(2)}  H: $${d.h?.toFixed(2)}`,
+                                   `L: $${d.l?.toFixed(2)}  C: $${d.c?.toFixed(2)}`];
                         }
+                        return `${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2)}`;
                     }
-                }
+                }}
             },
-            scales: {
-                x: {
-                    type: 'timeseries',
-                    time: { unit:'minute', displayFormats:{ minute:'HH:mm' } },
-                    ticks: { font:{size:9}, maxTicksLimit:12, color:'#636e72' },
-                    grid: { color:'#ecf0f1' }
-                },
-                y: {
-                    ticks: { callback: v=>'$'+v.toFixed(2), color:'#636e72' },
-                    grid:  { color:'#ecf0f1' }
-                }
+            scales:{
+                x:{type:'timeseries',
+                    time:{unit:tfUnit,displayFormats:timeDisplayFormats},
+                    ticks:{font:{size:9},maxTicksLimit:12,color:'#636e72'},
+                    grid:{color:'#ecf0f1'}},
+                y:{ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72'},
+                    grid:{color:'#ecf0f1'}}
             }
         }
     });
 }
 
-function closeModal() {
+function closeModal(){
     document.getElementById('modal').style.display='none';
-    if (currentChart) { currentChart.destroy(); currentChart=null; }
+    if(currentChart){currentChart.destroy();currentChart=null;}
 }
 
-function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 </script>
 </body>
 </html>
