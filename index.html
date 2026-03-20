@@ -581,7 +581,111 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
+<script>
+// ── CUSTOM CANDLESTICK CONTROLLER for Chart.js 4 ──────────────────────────
+// Draws OHLC candles directly without requiring an external plugin.
+// Data format per point: { x: timestamp_ms, o, h, l, c }
+(function(){
+    const {DatasetController,defaults,registry,Element} = Chart;
+
+    class CandleElement extends Element {
+        draw(ctx){
+            const {x,open,high,low,close,width} = this;
+            const bull = close >= open;
+            const col  = bull ? 'rgba(0,184,148,1)' : 'rgba(214,48,49,1)';
+            const bCol = bull ? 'rgba(0,140,110,1)' : 'rgba(180,30,30,1)';
+            ctx.save();
+            // Wick
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, high);
+            ctx.lineTo(x, low);
+            ctx.stroke();
+            // Body
+            const top    = Math.min(open, close);
+            const bottom = Math.max(open, close);
+            const h      = Math.max(bottom - top, 1);
+            ctx.fillStyle   = col;
+            ctx.strokeStyle = bCol;
+            ctx.lineWidth   = 0.5;
+            ctx.fillRect(x - width/2, top, width, h);
+            ctx.strokeRect(x - width/2, top, width, h);
+            ctx.restore();
+        }
+        inRange(mx,my){ return Math.abs(mx - this.x) <= this.width/2 && my >= this.high && my <= this.low; }
+        getCenterPoint(){ return {x:this.x, y:(this.high+this.low)/2}; }
+        getProps(){ return ['x','open','high','low','close','width']; }
+    }
+    CandleElement.id = 'candle';
+    CandleElement.defaults = {};
+
+    class CandlestickController extends DatasetController {
+        parseObjectData(meta, data, start, count){
+            const xScale = this.chart.scales.x;
+            const yScale = this.chart.scales.y;
+            const parsed = [];
+            for(let i = start; i < start + count; i++){
+                const d = data[i];
+                parsed.push({
+                    x: xScale.parse(d.x, i),
+                    o: yScale.parse(d.o, i),
+                    h: yScale.parse(d.h, i),
+                    l: yScale.parse(d.l, i),
+                    c: yScale.parse(d.c, i),
+                });
+            }
+            return parsed;
+        }
+        updateElements(elements, start, count, mode){
+            const xScale = this.chart.scales.x;
+            const yScale = this.chart.scales.y;
+            const dataset = this.getDataset();
+            // Estimate candle width from bar spacing
+            const pts = xScale._ticksAsNumbers || xScale.ticks || [];
+            const ptsLen = pts.length;
+            let candleW = 8;
+            if(ptsLen > 1){
+                const span = xScale.getPixelForValue(xScale.max) - xScale.getPixelForValue(xScale.min);
+                candleW = Math.max(3, Math.min(20, span / (dataset.data.length || 1) * 0.6));
+            } else {
+                const dlen = dataset.data.length || 1;
+                const chartW = this.chart.chartArea?.width || 800;
+                candleW = Math.max(3, Math.min(20, chartW / dlen * 0.6));
+            }
+            for(let i = start; i < start + count; i++){
+                const el   = elements[i];
+                const d    = dataset.data[i];
+                const px   = xScale.getPixelForValue(d.x);
+                const pyo  = yScale.getPixelForValue(d.o);
+                const pyh  = yScale.getPixelForValue(d.h);
+                const pyl  = yScale.getPixelForValue(d.l);
+                const pyc  = yScale.getPixelForValue(d.c);
+                this.updateElement(el, i, {
+                    x: px, open: pyo, high: pyh, low: pyl, close: pyc,
+                    width: candleW,
+                    skip: isNaN(px) || isNaN(pyh)
+                }, mode);
+            }
+        }
+        draw(){
+            const elements = this._cachedMeta.data || [];
+            for(const el of elements) if(!el.skip) el.draw(this.chart.ctx);
+        }
+        getLabelAndValue(index){
+            const d = this.getDataset().data[index];
+            return { label: '', value: d ? `O:${d.o} H:${d.h} L:${d.l} C:${d.c}` : '' };
+        }
+    }
+    CandlestickController.id = 'candlestick';
+    CandlestickController.dataElementType = CandleElement.id;
+    CandlestickController.defaults = {};
+
+    registry.addControllers(CandlestickController);
+    registry.addElements(CandleElement);
+    Chart.register(CandlestickController, CandleElement);
+})();
+</script>
 
 <script>
 // ═══════════════════════════════════════════════
@@ -1298,16 +1402,28 @@ function renderAllPanels(r){
     const step=tfMs[tfUnit]||86400000;
     const now=Date.now();
 
-    const candleData=show.map((b,i)=>({x:b.timestamp||(now-(len-1-i)*step),o:b.open,h:b.high,l:b.low,c:b.close}));
+    const candleData=show.map((b,i)=>({
+        x: b.timestamp||(now-(len-1-i)*step),
+        o: b.open, h: b.high, l: b.low, c: b.close
+    }));
     const firstTs=candleData[0].x,lastTs=candleData[len-1].x;
     const closes_fwd=show.map(b=>b.close);
     const closes_all=bars.map(b=>b.close);
 
     const tdFmts={minute:'HH:mm',hour:'MM/dd HH:mm',day:'MMM dd',week:'MMM dd yy',month:"MMM ''yy"};
 
-    function makeTimeAxis(){return{type:'timeseries',time:{unit:tfUnit,displayFormats:tdFmts},ticks:{font:{size:9},maxTicksLimit:12,color:'#636e72'},grid:{color:'#ecf0f1'}};}
+    function makeTimeAxis(){return{type:'time',time:{unit:tfUnit,displayFormats:tdFmts},ticks:{font:{size:9},maxTicksLimit:12,color:'#636e72'},grid:{color:'#ecf0f1'}};}
     function makePriceAxis(label){return{ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:9}},grid:{color:'#ecf0f1'},title:{display:!!label,text:label||''}};}
-    function hline(val,lbl,color,dash){return{label:lbl,type:'line',data:[{x:firstTs,y:val},{x:lastTs,y:val}],borderColor:color,borderWidth:1.5,borderDash:dash||[6,4],pointRadius:0,fill:false,parsing:false};}
+    function hline(val,lbl,color,dash){
+        return{label:lbl,type:'line',
+            data:[{x:firstTs,y:val},{x:lastTs,y:val}],
+            borderColor:color,borderWidth:1.5,
+            borderDash:dash||[6,4],
+            pointRadius:0,fill:false,
+            parsing:false,
+            yAxisID:'y'
+        };
+    }
 
     // ──────────────────────────────────────────
     //  PANEL 1: Candle + Forecast + Hurst Arcs
@@ -1318,9 +1434,21 @@ function renderAllPanels(r){
     const fcastTs=Array.from({length:fcastBars},(_,i)=>lastTs+(i+1)*step);
 
     const ds1=[{
-        label:r.symbol,type:'candlestick',data:candleData,parsing:false,
-        color:{up:'#00b894',down:'#d63031',unchanged:'#636e72'},
-        borderColor:{up:'#00b894',down:'#d63031',unchanged:'#636e72'}
+        label:r.symbol,
+        type:'candlestick',
+        data:candleData,
+        parsing:false,
+        // chartjs-chart-financial v0.2.1 color API
+        color:{
+            up:   'rgba(0,184,148,1)',
+            down: 'rgba(214,48,49,1)',
+            unchanged: 'rgba(100,100,100,1)'
+        },
+        borderColor:{
+            up:   'rgba(0,150,120,1)',
+            down: 'rgba(180,30,30,1)',
+            unchanged: 'rgba(80,80,80,1)'
+        }
     }];
 
     // Swing/channel lines
@@ -1373,10 +1501,38 @@ function renderAllPanels(r){
 
     modalCharts.push(new Chart(document.getElementById('chartMain'),{
         type:'candlestick',data:{datasets:ds1},
-        options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
-            plugins:{legend:{display:true,position:'top',labels:{font:{size:9},boxWidth:12,filter:item=>item.datasetIndex>0&&item.datasetIndex<=8}},
-                tooltip:{callbacks:{label:ctx=>{if(ctx.dataset.type==='candlestick'){const d=ctx.raw;return[`O:$${d.o?.toFixed(2)} H:$${d.h?.toFixed(2)}`,`L:$${d.l?.toFixed(2)} C:$${d.c?.toFixed(2)}`];}return`${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2)}`;}}}},
-            scales:{x:makeTimeAxis(),y:makePriceAxis()}}
+        options:{responsive:true,maintainAspectRatio:false,
+            interaction:{mode:'index',intersect:false},
+            plugins:{
+                legend:{display:true,position:'top',
+                    labels:{font:{size:9},boxWidth:12,
+                        filter:item=>item.datasetIndex>0&&item.datasetIndex<=8}},
+                tooltip:{callbacks:{label:ctx=>{
+                    if(ctx.dataset.type==='candlestick'){
+                        const d=ctx.raw;
+                        if(!d) return '';
+                        return[`O:$${d.o?.toFixed(2)}  H:$${d.h?.toFixed(2)}`,
+                               `L:$${d.l?.toFixed(2)}  C:$${d.c?.toFixed(2)}`];
+                    }
+                    const y = ctx.parsed?.y ?? ctx.raw?.y;
+                    return y!=null ? `${ctx.dataset.label}: $${Number(y).toFixed(2)}` : ctx.dataset.label;
+                }}}
+            },
+            scales:{
+                x:{
+                    type:'time',
+                    time:{unit:tfUnit,displayFormats:tdFmts,tooltipFormat:'MMM dd, HH:mm'},
+                    ticks:{font:{size:9},maxTicksLimit:14,color:'#636e72',maxRotation:0},
+                    grid:{color:'#ecf0f1'},
+                    offset:true,
+                    adapters:{date:{locale:luxon.Settings.defaultLocale||'en'}}
+                },
+                y:{
+                    ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:9}},
+                    grid:{color:'#ecf0f1'}
+                }
+            }
+        }
     }));
 
     // ──────────────────────────────────────────
