@@ -181,7 +181,28 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
 <div class="hdr">
   <div>
     <h1>📊 Multi-Timeframe Breakout Scanner</h1>
-    <p>Yahoo Finance · Swing + Channel · Keltner Channel · Hurst Cycle · Market Structure · RSI Divergence · ATR Stop · VWAP · Volume Profile · Forecast</p>
+    <p>Yahoo Finance · Swing + Channel · Keltner · Hurst · Market Structure · RSI · ATR · VWAP · Volume Profile · Fibonacci · Gann · ADX · Z-Score · Forecast</p>
+  </div>
+  <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
+    <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
+    <div style="font-size:14px;font-weight:700;font-family:monospace">20260321.0324</div>
+    <div style="font-size:9px;opacity:0.6">▾ changelog</div>
+  </div>
+</div>
+
+<!-- Version Log Modal -->
+<div id="versionLog" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:99999;overflow-y:auto;padding:20px">
+  <div style="background:#1e1e2e;max-width:700px;margin:40px auto;border-radius:12px;overflow:hidden;border:1px solid #2d2d4a">
+    <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:#fff">📋 Version History</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.75);margin-top:2px">Multi-Timeframe Breakout Scanner</div>
+      </div>
+      <button onclick="document.getElementById('versionLog').style.display='none'" style="background:rgba(255,255,255,0.2);color:#fff;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;font-weight:700">✕ Close</button>
+    </div>
+    <div style="padding:20px">
+      <div id="versionEntries"></div>
+    </div>
   </div>
 </div>
 <div class="wrap">
@@ -1017,6 +1038,8 @@ function renderPanels(r){
   const highs = show.map(b=>b.high);
   const lows  = show.map(b=>b.low);
   const closes= show.map(b=>b.close);
+  // Canonical price line: x=0=oldest, x=N-1=newest (matches all sub-panels)
+  const priceLine = closes.map((v,i)=>({x:i,y:v}));
   const labels= show.map(b=>b.time||'');
 
   const pH = Math.max(...highs), pL = Math.min(...lows);
@@ -1064,7 +1087,8 @@ function renderPanels(r){
   function hLn(val,lbl,col,dash){return{label:lbl,data:[{x:0,y:val},{x:N-1+(fN||0),y:val}],borderColor:col,borderWidth:1.5,borderDash:dash||[6,4],pointRadius:0,fill:false,parsing:false};}
 
   const kN=Math.min(kelt.mid.length,N);
-  function kPts(arr){return arr.slice(0,kN).map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);}
+  // kelt data from compKeltner is newest-first; reverse to oldest-first for x alignment
+  function kPts(arr){return arr.slice(0,kN).reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);}
 
   let yMinMain=pL-pad, yMaxMain=pH+pad;
 
@@ -1189,7 +1213,8 @@ function renderPanels(r){
   mkChart('cMS','scatter',dsMS,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
 
   // ── PANEL 4: RSI ──────────────────────────────────────────────────────
-  const rsiVals=compRSI(closes.slice().reverse()).slice().reverse();
+  // RSI: closes is oldest-first, compRSI expects oldest-first → pass directly
+  const rsiVals=compRSI(closes);
   const divs=findDiv(closes,rsiVals);
   const curRSI=rsiVals[rsiVals.length-1];
   document.getElementById('rsiSub').textContent=`RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought⚠️':curRSI<30?'Oversold⚠️':'Neutral'} · ${divs.length} divergence(s)`;
@@ -1204,29 +1229,30 @@ function renderPanels(r){
   mkChart('cRSI','line',dsRSI,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:{min:0,max:100,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}});
 
   // ── PANEL 5: ATR Stop ─────────────────────────────────────────────────
-  const bR=[...show].reverse();
-  const atrV=compATR(r.bars.slice(0,60).reverse());
-  const chand=chandelier(bR,atrV.slice(0,60));
-  const curA=atrV[atrV.length-1],curSt=chand.long[chand.long.length-1];
-  document.getElementById('atrSub').textContent=`ATR(14):${curA?.toFixed(2)??'—'} · Long Stop:${curSt?.toFixed(2)??'—'} · Price:${f2(r.price)}`;
-  const pLine=closes.map((v,i)=>({x:i,y:v}));
-  const lsP=chand.long.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
-  const ssP=chand.short.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
+  // ATR/Chandelier: all oldest-first using 'show' (already oldest-first)
+  const atrOF=compATR(show);
+  const chandOF=chandelier(show,atrOF);
+  const curA=atrOF[atrOF.length-1],curSt=chandOF.long[chandOF.long.length-1];
+  document.getElementById('atrSub').textContent='ATR(14):'+f2(curA)+' · Long Stop:'+f2(curSt)+' · Price:'+f2(r.price);
+  const lsP=chandOF.long.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
+  const ssP=chandOF.short.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
   const dsATR=[
-    {label:'Price',     data:pLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'Price',     data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
     {label:'Long Stop', data:lsP,  borderColor:'#00b894',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     {label:'Short Stop',data:ssP,  borderColor:'#d63031',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
   ];
   mkChart('cATR','line',dsATR,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
 
   // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
-  const vwapV=compVWAP(bR).reverse();
-  const bds=vwapBands(bR,vwapV.slice().reverse());
-  const curVW=vwapV[vwapV.length-1];
+  // VWAP: compute on oldest-first 'show' for clean alignment
+  const vwapV = compVWAP(show);                     // oldest-first in/out
+  const bds   = vwapBands(show, vwapV);              // oldest-first in/out
+  const curVW = vwapV[vwapV.length-1];               // last=newest ✓
   document.getElementById('vwapSub').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
-  function vPts(arr){return arr.slice().reverse().map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
+  // vPts: data already oldest-first from compVWAP(show)
+  function vPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
   const dsVWAP=[
-    {label:'Price',data:pLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'Price',data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
     {label:'VWAP', data:vPts(vwapV),borderColor:'#0984e3',borderWidth:2,pointRadius:0,fill:false,parsing:false},
     {label:'+1σ',  data:vPts(bds.s1p),borderColor:'rgba(9,132,227,.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     {label:'-1σ',  data:vPts(bds.s1n),borderColor:'rgba(9,132,227,.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
@@ -1239,7 +1265,7 @@ function renderPanels(r){
   const vp=compVP(r.bars);
   document.getElementById('vpSub').textContent=`POC:${f2(vp.poc.price)} · VAH:${f2(vp.vaH)} · VAL:${f2(vp.vaL)}`;
   const dsVP=[
-    {label:'Price',          data:pLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'Price',          data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
     {label:`POC ${f2(vp.poc.price)}`,data:[{x:0,y:vp.poc.price},{x:N-1,y:vp.poc.price}],borderColor:'#fdcb6e',borderWidth:2,pointRadius:0,fill:false,parsing:false},
     {label:`VAH ${f2(vp.vaH)}`,      data:[{x:0,y:vp.vaH},{x:N-1,y:vp.vaH}],borderColor:'rgba(0,184,148,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
     {label:`VAL ${f2(vp.vaL)}`,      data:[{x:0,y:vp.vaL},{x:N-1,y:vp.vaL}],borderColor:'rgba(214,48,49,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
@@ -1259,11 +1285,12 @@ function renderPanels(r){
     const curMDI = adxData.mdi[adxData.mdi.length-1];
     document.getElementById('adxSub').textContent =
       'ADX: '+(curADX?.toFixed(1)??'—')+' ('+(curADX>=25?'Trending':'Ranging')+') · +DI: '+(curPDI?.toFixed(1)??'—')+' · -DI: '+(curMDI?.toFixed(1)??'—');
+    // compADX(barsOF) output is oldest-first — map directly, no reversal needed
     function adxPts(arr){ return arr.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)); }
     const dsADX = [
-      {label:'ADX', data:adxPts(adxData.adx.slice().reverse()), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
-      {label:'+DI', data:adxPts(adxData.pdi.slice().reverse()), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
-      {label:'-DI', data:adxPts(adxData.mdi.slice().reverse()), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'ADX', data:adxPts(adxData.adx), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
+      {label:'+DI', data:adxPts(adxData.pdi), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'-DI', data:adxPts(adxData.mdi), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
       {label:'25',  data:[{x:0,y:25},{x:N-1,y:25}], borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     ];
     mkChart('cADX','line',dsADX,{
@@ -1507,6 +1534,128 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 // Auto-test proxy on load
 testProxies();
+
+// ═══════ VERSION HISTORY ══════════════════════════════════════════════
+const VERSION_HISTORY = [
+  {
+    version: '20260321.0324',
+    date: 'Mar 21, 2026 03:24',
+    label: 'Current',
+    changes: [
+      'Fixed chart alignment — all studies now share identical x-axis (oldest-first)',
+      'Fixed Keltner Channel direction mismatch (reversed before mapping)',
+      'Fixed ATR/Chandelier direction mismatch (unified to oldest-first)',
+      'Fixed VWAP/Bands direction (computed on show[] directly)',
+      'Fixed RSI direction (oldest-first input to compRSI)',
+      'Fixed ADX direction (removed accidental double-reverse)',
+      'Added version badge with full changelog in header',
+    ]
+  },
+  {
+    version: '20250321.0300',
+    date: 'Mar 21, 2025 03:00',
+    label: '',
+    changes: [
+      'Added ADX +DI -DI indicator panel (Wilder smoothing)',
+      'Added Fibonacci retracement — both auto H/L and swing pivot methods',
+      'Added Gann Square of Nine — levels from close, swing high, swing low',
+      'Added Z-Score (20-period rolling) mean-reversion panel',
+      'Added forecast projection lines back to main price chart',
+      'Fixed Hurst cycle arcs — all 3 now render (clamped to visible bars)',
+      'Added pricePad alias for consistent y-axis padding across panels',
+    ]
+  },
+  {
+    version: '20250321.0200',
+    date: 'Mar 21, 2025 02:00',
+    label: '',
+    changes: [
+      'Removed Alpha Vantage — Yahoo Finance only (no API key, parallel scanning)',
+      'Added Keltner Channel (EMA20 ±1.5×ATR) on main price chart + dedicated panel',
+      'Added Hurst Cycle Arc sub-panel below price (½, full, 2× cycles as dotted sine arcs)',
+      'Rebuilt entire app from scratch to fix all JS corruption from prior patching',
+    ]
+  },
+  {
+    version: '20250321.0100',
+    date: 'Mar 21, 2025 01:00',
+    label: '',
+    changes: [
+      'Fixed all charts blank — removed broken CandlestickController that poisoned Chart.js',
+      'Switched to custom afterDatasetsDraw candle plugin on plain line chart',
+      'Switched x-axis from type:time to type:linear (index-based) — no Luxon dependency',
+      'Fixed y-axis auto-fitting from OHLC highs/lows',
+      'Added explicit pixel-height wrapper divs for all chart panels',
+    ]
+  },
+  {
+    version: '20250320.2300',
+    date: 'Mar 20, 2025 23:00',
+    label: '',
+    changes: [
+      'Added 🧠 Analysis Reasoning panel — plain-English signal interpretation',
+      'Scoring system: counts bullish/bearish/neutral signals, net score, verdict box',
+      'Added forecast engine explanation (pattern matching, cycle, momentum decay)',
+      'Added per-indicator narrative with price levels and context',
+    ]
+  },
+  {
+    version: '20250320.2200',
+    date: 'Mar 20, 2025 22:00',
+    label: '',
+    changes: [
+      'Added 6 indicator panels: Market Structure, RSI Divergence, ATR Stop, VWAP, Volume Profile, Hurst',
+      'Added Hurst cycle half/full/2× arcs on main chart',
+      'Added Volume Profile horizontal bar chart (POC, VAH, VAL)',
+      'Added toggleable panel visibility via indicator toggle bar',
+      'Added market structure trend column in results table',
+    ]
+  },
+  {
+    version: '20250320.2100',
+    date: 'Mar 20, 2025 21:00',
+    label: '',
+    changes: [
+      'Added multi-timeframe support: 5m, 15m, 1h, 2h, 4h, Daily, Weekly, Monthly',
+      'Added forecast engine: pattern matching + Hurst cycle + momentum decay blend',
+      'Forecast projects 5–20 bars forward with grey dotted confidence bands',
+      'Added forecast bias column in results table',
+    ]
+  },
+  {
+    version: '20250320.2000',
+    date: 'Mar 20, 2025 20:00',
+    label: '',
+    changes: [
+      'Initial build — Yahoo Finance + Alpha Vantage dual-source scanner',
+      'Swing breakout detector (left/right bars pivot logic)',
+      'Channel breakout detector (consolidation + breakout)',
+      'ATM option strike calculation (CALL on buy, PUT on sell)',
+      'Results table with filter tabs, confidence scoring, scan type badges',
+      'Candlestick modal chart with swing/channel overlay lines',
+    ]
+  },
+];
+
+function renderVersionLog() {
+  const el = document.getElementById('versionEntries');
+  if (!el) return;
+  el.innerHTML = VERSION_HISTORY.map((v, idx) => `
+    <div style="margin-bottom:18px;border-left:3px solid ${idx===0?'#667eea':'#2d2d4a'};padding-left:14px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-family:monospace;font-size:14px;font-weight:700;color:${idx===0?'#c4b5fd':'#6b6b9a'}">${v.version}</span>
+        ${v.label?`<span style="background:#667eea;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px">${v.label}</span>`:''}
+        <span style="font-size:10px;color:#4a4a6a;margin-left:auto">${v.date}</span>
+      </div>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:4px">
+        ${v.changes.map(ch=>`<li style="font-size:11px;color:#b0b0cc;display:flex;gap:7px"><span style="color:#667eea;flex-shrink:0">•</span>${ch}</li>`).join('')}
+      </ul>
+    </div>
+  `).join('<div style="height:1px;background:#2d2d4a;margin:0 0 18px"></div>');
+}
+
+// Render version log when opened
+document.getElementById('versionBadge').addEventListener('click', renderVersionLog);
 </script>
 </body>
 </html>
