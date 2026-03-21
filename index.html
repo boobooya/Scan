@@ -1,1883 +1,1232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Timeframe Breakout + Full Analysis Scanner</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; min-height: 100vh; }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; padding: 20px 24px;
-            display: flex; align-items: center; justify-content: space-between;
-            flex-wrap: wrap; gap: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.12);
-        }
-        .header h1 { font-size: 22px; margin-bottom: 4px; }
-        .header p  { opacity: 0.88; font-size: 12px; }
-
-        .source-toggle { display: flex; background: rgba(255,255,255,0.15); border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.25); }
-        .src-btn { padding: 8px 16px; border: none; background: transparent; color: rgba(255,255,255,0.75); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; white-space: nowrap; }
-        .src-btn.active { background: rgba(255,255,255,0.25); color: #fff; }
-        .src-dot { width: 7px; height: 7px; border-radius: 50%; }
-        .src-av { background: #fcd34d; } .src-yf { background: #6ee7b7; }
-        .spd-badge { font-size: 9px; padding: 2px 6px; border-radius: 8px; font-weight: 700; }
-        .spd-slow { background: rgba(252,211,77,0.25); color: #fcd34d; }
-        .spd-fast { background: rgba(110,231,183,0.25); color: #6ee7b7; }
-
-        .container { max-width: 1500px; margin: 0 auto; padding: 20px; }
-
-        .source-info { padding: 10px 18px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; display: flex; align-items: center; gap: 10px; }
-        .si-av { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
-        .si-yf { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
-
-        .proxy-status { display: none; padding: 8px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .proxy-status.visible { display: flex; }
-        .ps-testing { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
-        .ps-ok { background: #ecfdf5; border: 1px solid #6ee7b7; color: #065f46; }
-        .ps-fail { background: #fef2f2; border: 1px solid #fca5a5; color: #991b1b; }
-        .proxy-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .dot-ok { background: #22c55e; } .dot-fail { background: #ef4444; }
-        .dot-spin { background: #f59e0b; animation: pulse 1s linear infinite; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-        .controls { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
-        .av-panel { display: none; } .av-panel.visible { display: block; }
-        .yf-panel { display: none; } .yf-panel.visible { display: block; }
-
-        .mode-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; background: linear-gradient(90deg,#667eea15,#764ba215); border: 1px solid #667eea30; font-size: 12px; color: #4a5568; flex-wrap: wrap; }
-        .mode-tag { padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-        .mt-swing   { background: #e0e7ff; color: #3730a3; }
-        .mt-channel { background: #fef3c7; color: #92400e; }
-        .mt-forecast{ background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
-
-        .tf-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-        .tf-label { font-size: 12px; font-weight: 700; color: #636e72; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-        .tf-btns  { display: flex; gap: 6px; flex-wrap: wrap; }
-        .tf-btn { padding: 7px 14px; border: 2px solid #dfe6e9; border-radius: 7px; background: white; font-size: 12px; font-weight: 700; cursor: pointer; color: #636e72; transition: all 0.15s; white-space: nowrap; }
-        .tf-btn:hover { border-color: #667eea; color: #667eea; }
-        .tf-btn.active { background: #667eea; color: white; border-color: #667eea; }
-        .tf-info-bar { padding: 8px 14px; border-radius: 7px; background: #f0f4ff; border: 1px solid #c7d2fe; font-size: 11px; color: #4338ca; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-        .control-row { display: grid; gap: 14px; align-items: end; }
-        .cr-main { grid-template-columns: 1fr 120px 130px auto; }
-
-        .section-divider { display: flex; align-items: center; gap: 12px; margin: 16px 0 14px; }
-        .section-divider span { font-size: 12px; font-weight: 700; color: #636e72; white-space: nowrap; }
-        .section-divider::before,.section-divider::after { content:''; flex:1; height:1px; background:#dfe6e9; }
-
-        .settings-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 4px; }
-        .settings-card { background: #f8f9fa; border: 1px solid #dfe6e9; border-radius: 8px; padding: 14px; }
-        .settings-card-title { font-size: 12px; font-weight: 700; color: #2d3436; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
-        .settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 11px; color: #636e72; text-transform: uppercase; letter-spacing: 0.3px; }
-        input, select { width: 100%; padding: 9px 11px; border: 2px solid #dfe6e9; border-radius: 8px; font-size: 13px; color: #2d3436; outline: none; transition: border-color 0.15s; background: #fff; }
-        input:focus, select:focus { border-color: #667eea; }
-
-        .scan-btn { padding: 11px 26px; border: none; border-radius: 8px; color: white; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; transition: opacity 0.15s; }
-        .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-av { background: linear-gradient(135deg, #f59e0b, #d97706); }
-        .btn-yf { background: linear-gradient(135deg, #00b894, #00cec9); }
-
-        .test-btn { padding: 7px 14px; border: 1px solid #dfe6e9; border-radius: 7px; background: white; font-size: 12px; font-weight: 600; cursor: pointer; color: #2d3436; }
-        .test-btn:hover { border-color: #667eea; color: #667eea; }
-
-        .quick-btns { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
-        .quick-btn { padding: 5px 11px; background: #0984e3; color: white; border: none; border-radius: 6px; font-size: 11px; cursor: pointer; }
-        .quick-btn:hover { opacity: 0.85; }
-
-        .progress { background: #ecf0f1; height: 6px; border-radius: 3px; overflow: hidden; margin: 14px 0 5px; display: none; }
-        .progress-bar { height: 100%; transition: width 0.3s; }
-        .pb-av { background: linear-gradient(90deg,#f59e0b,#d97706); }
-        .pb-yf { background: linear-gradient(90deg,#00b894,#00cec9); }
-        .progress-text { font-size: 12px; color: #636e72; text-align: center; min-height: 16px; }
-
-        .batch-grid { display: none; grid-template-columns: repeat(auto-fill,minmax(72px,1fr)); gap: 5px; margin-top: 10px; max-height: 80px; overflow: hidden; }
-        .batch-grid.visible { display: grid; }
-        .bchip { font-size: 10px; font-weight: 700; padding: 3px 5px; border-radius: 4px; text-align: center; background: #f0f0f0; color: #999; border: 1px solid #e0e0e0; transition: all 0.18s; }
-        .bchip.loading   { background: #fffbeb; color: #b45309; border-color: #fde68a; }
-        .bchip.done-buy  { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
-        .bchip.done-sell { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-        .bchip.done-both { background: #ede9fe; color: #4c1d95; border-color: #c4b5fd; }
-        .bchip.done-none { background: #f3f4f6; color: #6b7280; border-color: #e5e7eb; }
-        .bchip.error     { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; font-style:italic; }
-
-        .debug-box { display: none; background: #1e1e1e; color: #a8ff78; font-family: monospace; font-size: 11px; padding: 12px; border-radius: 8px; margin-top: 12px; max-height: 100px; overflow-y: auto; line-height: 1.6; }
-        .debug-box.visible { display: block; }
-        .d-err { color: #ff6b6b; } .d-ok { color: #6ee7b7; } .d-inf { color: #fbbf24; }
-
-        /* RESULTS */
-        .results-container { background: white; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); overflow: hidden; display: none; margin-bottom: 20px; }
-        .results-header { padding: 14px 20px; border-bottom: 2px solid #ecf0f1; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-        .results-title { font-size: 17px; font-weight: 700; color: #2d3436; }
-        .results-count { font-size: 12px; color: #636e72; }
-
-        .summary-pills { display: flex; gap: 8px; padding: 10px 20px; border-bottom: 1px solid #ecf0f1; background: #f8f9fa; flex-wrap: wrap; align-items: center; }
-        .s-pill { padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-        .sp-buy { background: #d4edda; color: #155724; }
-        .sp-sell { background: #f8d7da; color: #721c24; }
-        .sp-swing { background: #e0e7ff; color: #3730a3; }
-        .sp-channel { background: #fef3c7; color: #92400e; }
-        .sp-both { background: #ede9fe; color: #4c1d95; }
-        .sp-neutral { background: #f3f4f6; color: #6b7280; }
-
-        .filter-tabs { display: flex; gap: 6px; padding: 10px 20px; border-bottom: 1px solid #ecf0f1; background: #f8f9fa; flex-wrap: wrap; }
-        .filter-tab { padding: 7px 15px; background: white; border: 1px solid #dfe6e9; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; color: #636e72; transition: all 0.12s; }
-        .filter-tab.active { background: #667eea; color: white; border-color: #667eea; }
-
-        .tbl-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; }
-        thead { background: #f8f9fa; position: sticky; top: 0; z-index: 10; }
-        th { padding: 11px 13px; text-align: left; font-size: 11px; font-weight: 700; color: #636e72; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 2px solid #dfe6e9; white-space: nowrap; }
-        th.r { text-align: right; } th.c { text-align: center; }
-        tbody tr { border-bottom: 1px solid #ecf0f1; transition: background 0.12s; }
-        tbody tr:hover { background: #f8f9fa; }
-        td { padding: 11px 13px; font-size: 13px; color: #2d3436; white-space: nowrap; }
-        .sym { font-weight: 700; font-size: 14px; }
-        .r { text-align: right; } .c { text-align: center; }
-        .pos { color: #00b894; font-weight: 600; }
-        .neg { color: #d63031; font-weight: 600; }
-        .muted { color: #636e72; font-size: 12px; }
-
-        .signal-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; }
-        .signal-bullish { background: #d4edda; color: #155724; }
-        .signal-bearish { background: #f8d7da; color: #721c24; }
-        .signal-neutral { background: #fff3cd; color: #856404; }
-
-        .scan-type { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
-        .st-swing   { background: #e0e7ff; color: #3730a3; }
-        .st-channel { background: #fef3c7; color: #92400e; }
-        .st-both    { background: #ede9fe; color: #4c1d95; border: 1px solid #c4b5fd; }
-
-        .opt-pill { display: inline-block; padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700; }
-        .opt-call { background: #d4edda; color: #155724; }
-        .opt-put  { background: #f8d7da; color: #721c24; }
-
-        .src-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
-        .st-av { background: #fef3c7; color: #92400e; }
-        .st-yf { background: #d1fae5; color: #065f46; }
-        .tf-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; background: #e0e7ff; color: #3730a3; }
-
-        .conf-high   { color: #00b894; font-weight: 700; }
-        .conf-medium { color: #fdcb6e; font-weight: 600; }
-        .conf-low    { color: #636e72; }
-
-        .view-btn { padding: 6px 13px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; }
-        .view-btn:hover { background: #5568d3; }
-
-        .empty-state { text-align: center; padding: 55px 20px; color: #636e72; }
-        .empty-icon  { font-size: 44px; margin-bottom: 12px; }
-
-        /* MODAL */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; overflow-y: auto; padding: 20px; }
-        .modal-content { background: white; max-width: 1200px; margin: 20px auto; border-radius: 14px; overflow: hidden; }
-        .modal-header { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; padding: 22px 28px; display: flex; justify-content: space-between; align-items: flex-start; }
-        .modal-title { font-size: 22px; font-weight: 700; }
-        .modal-sub   { font-size: 12px; opacity: 0.8; margin-top: 3px; }
-        .close-btn { background: rgba(255,255,255,0.2); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; flex-shrink: 0; }
-        .modal-body { padding: 28px; }
-
-        /* INDICATOR TOGGLE BAR */
-        .indicator-toggles {
-            display: flex; gap: 8px; flex-wrap: wrap;
-            padding: 12px 16px; background: #f8f9fa;
-            border-radius: 10px; margin-bottom: 18px;
-            border: 1px solid #dfe6e9;
-        }
-        .ind-toggle {
-            display: flex; align-items: center; gap: 6px;
-            padding: 5px 12px; border-radius: 20px;
-            border: 2px solid #dfe6e9; background: white;
-            font-size: 11px; font-weight: 700; cursor: pointer;
-            color: #636e72; transition: all 0.15s; user-select: none;
-        }
-        .ind-toggle.on { border-color: currentColor; background: currentColor; }
-        .ind-toggle.on span.itl { color: white; }
-        .ind-toggle input { display: none; }
-        .ind-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-
-        /* CHART / INDICATOR PANELS */
-        .chart-panel {
-            background: #f8f9fa; border: 1px solid #dfe6e9;
-            border-radius: 10px; padding: 16px; margin-bottom: 16px;
-        }
-        .panel-header {
-            display: flex; justify-content: space-between;
-            align-items: center; margin-bottom: 12px;
-        }
-        .panel-title { font-size: 14px; font-weight: 700; color: #2d3436; }
-        .panel-sub   { font-size: 11px; color: #636e72; }
-        .panel-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
-
-        /* Chart.js wrapper divs — MUST have explicit pixel height for maintainAspectRatio:false */
-        .cw-xl  { position: relative; width: 100%; height: 360px; }
-        .cw-lg  { position: relative; width: 100%; height: 260px; }
-        .cw-md  { position: relative; width: 100%; height: 220px; }
-        .cw-sm  { position: relative; width: 100%; height: 180px; }
-        .cw-vp  { position: relative; width: 100%; height: 280px;
-                  display: grid; grid-template-columns: 1fr 130px; gap: 0; }
-        .cw-vp-sub { position: relative; height: 280px; }
-
-        .analysis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
-        .zone-box { padding: 16px; border-radius: 10px; border-left: 4px solid; }
-        .zone-box.bullish { background: #d4edda; border-color: #00b894; }
-        .zone-box.bearish { background: #f8d7da; border-color: #d63031; }
-        .zone-title { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #2d3436; }
-        .zone-price { font-size: 24px; font-weight: 700; margin-bottom: 7px; }
-        .zone-box.bullish .zone-price { color: #00b894; }
-        .zone-box.bearish .zone-price { color: #d63031; }
-        .zone-desc { font-size: 12px; line-height: 1.7; color: #636e72; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; margin-bottom: 16px; }
-        .stat-card { background: white; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
-        .stat-lbl  { font-size: 10px; color: #636e72; margin-bottom: 4px; }
-        .stat-val  { font-size: 19px; font-weight: 700; color: #2d3436; }
-        .stat-sub  { font-size: 10px; color: #636e72; margin-top: 2px; }
-
-        .recommendation { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin-top: 16px; }
-        .rec-title { font-size: 15px; font-weight: 700; margin-bottom: 12px; }
-        .rec-grid  { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 10px; }
-        .rec-item  { background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px; }
-        .rec-label { font-size: 10px; opacity: 0.85; margin-bottom: 4px; }
-        .rec-value { font-size: 15px; font-weight: 700; }
-
-        /* Volume Profile */
-        .vp-wrap { display: flex; gap: 0; }
-        .vp-chart { flex: 1; }
-        .vp-profile { width: 110px; }
-
-        /* Hurst label */
-        .hurst-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
-        .hurst-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #636e72; }
-        .hurst-swatch { width: 24px; height: 3px; border-radius: 2px; }
-
-        /* REASONING PANEL */
-        .reasoning-panel {
-            background: #1e1e2e;
-            border: 1px solid #2d2d4a;
-            border-radius: 10px;
-            padding: 20px;
-            margin-bottom: 16px;
-            color: #e0e0f0;
-        }
-        .reasoning-header {
-            display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        .reasoning-title {
-            font-size: 15px; font-weight: 700; color: #c4b5fd;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .reasoning-subtitle { font-size: 11px; color: #6b6b9a; margin-top: 2px; }
-
-        .verdict-box {
-            padding: 14px 18px; border-radius: 8px;
-            margin-bottom: 16px; border-left: 4px solid;
-            font-size: 13px; line-height: 1.6;
-        }
-        .verdict-bull { background: rgba(0,184,148,0.1); border-color: #00b894; }
-        .verdict-bear { background: rgba(214,48,49,0.1);  border-color: #d63031; }
-        .verdict-neut { background: rgba(253,203,110,0.1);border-color: #fdcb6e; }
-        .verdict-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
-        .verdict-bull .verdict-title { color: #00b894; }
-        .verdict-bear .verdict-title { color: #f87171; }
-        .verdict-neut .verdict-title { color: #fdcb6e; }
-
-        .signal-score-bar {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 16px; flex-wrap: wrap;
-        }
-        .score-label { font-size: 11px; color: #6b6b9a; white-space: nowrap; }
-        .score-track {
-            flex: 1; height: 8px; background: #2d2d4a;
-            border-radius: 4px; overflow: hidden; min-width: 100px;
-        }
-        .score-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
-
-        .reasoning-sections {
-            display: grid; grid-template-columns: 1fr 1fr;
-            gap: 12px; margin-bottom: 14px;
-        }
-        .rsec {
-            background: #252540; border: 1px solid #2d2d4a;
-            border-radius: 8px; padding: 13px;
-        }
-        .rsec-title {
-            font-size: 11px; font-weight: 700; text-transform: uppercase;
-            letter-spacing: 0.5px; margin-bottom: 8px;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .rsec-dot { width: 7px; height: 7px; border-radius: 50%; }
-        .rsec-body { font-size: 12px; line-height: 1.7; color: #b0b0cc; }
-        .rsec-body strong { color: #e0e0f0; }
-        .rsec-body .bull { color: #00b894; font-weight: 700; }
-        .rsec-body .bear { color: #f87171; font-weight: 700; }
-        .rsec-body .warn { color: #fdcb6e; font-weight: 700; }
-        .rsec-body .neut { color: #9ca3af; }
-
-        .reasoning-conclusion {
-            background: #252540; border: 1px solid #2d2d4a;
-            border-radius: 8px; padding: 14px;
-            font-size: 12px; line-height: 1.8; color: #b0b0cc;
-        }
-        .reasoning-conclusion strong { color: #c4b5fd; }
-
-        .risk-disclaimer {
-            font-size: 10px; color: #4a4a6a; margin-top: 12px;
-            padding-top: 10px; border-top: 1px solid #2d2d4a;
-            line-height: 1.6;
-        }
-
-        @media (max-width: 900px) {
-            .cr-main,.settings-row { grid-template-columns: 1fr 1fr !important; }
-            .settings-grid,.analysis-grid { grid-template-columns: 1fr; }
-            th,td { padding: 8px 9px; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Breakout Scanner + Full Analysis</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6fa;min-height:100vh}
+.hdr{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:18px 24px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+.hdr h1{font-size:20px;margin-bottom:3px}
+.hdr p{opacity:.85;font-size:11px}
+.wrap{max-width:1500px;margin:0 auto;padding:16px 20px}
+/* proxy */
+.proxy{display:none;padding:7px 13px;border-radius:7px;margin-bottom:12px;font-size:12px;align-items:center;gap:8px;flex-wrap:wrap}
+.proxy.vis{display:flex}
+.proxy.ok{background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46}
+.proxy.fail{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+.proxy.test{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dok{background:#22c55e}.dfail{background:#ef4444}
+.dspin{background:#f59e0b;animation:spin 1s linear infinite}
+@keyframes spin{0%,100%{opacity:1}50%{opacity:.3}}
+/* controls */
+.card{background:#fff;padding:18px 20px;border-radius:10px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.banner{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:7px;margin-bottom:13px;background:linear-gradient(90deg,#667eea18,#764ba218);border:1px solid #667eea28;font-size:12px;color:#4a5568;flex-wrap:wrap}
+.tag{padding:3px 8px;border-radius:9px;font-size:11px;font-weight:700}
+.t1{background:#e0e7ff;color:#3730a3}.t2{background:#fef3c7;color:#92400e}.t3{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.tf-row{display:flex;align-items:center;gap:9px;margin-bottom:13px;flex-wrap:wrap}
+.tf-lbl{font-size:11px;font-weight:700;color:#636e72;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.tf-btns{display:flex;gap:5px;flex-wrap:wrap}
+.tf-btn{padding:6px 12px;border:2px solid #dfe6e9;border-radius:6px;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#636e72;transition:all .15s}
+.tf-btn:hover{border-color:#667eea;color:#667eea}
+.tf-btn.on{background:#667eea;color:#fff;border-color:#667eea}
+.tf-info{padding:7px 12px;border-radius:6px;background:#f0f4ff;border:1px solid #c7d2fe;font-size:11px;color:#4338ca;margin-bottom:12px}
+.ctrl{display:grid;gap:12px;align-items:end;grid-template-columns:1fr 105px 105px auto}
+label{display:block;font-weight:600;margin-bottom:5px;font-size:10px;color:#636e72;text-transform:uppercase;letter-spacing:.3px}
+input,select{width:100%;padding:8px 10px;border:2px solid #dfe6e9;border-radius:7px;font-size:12px;color:#2d3436;outline:none;transition:border-color .15s;background:#fff}
+input:focus,select:focus{border-color:#667eea}
+.scan-btn{padding:10px 22px;border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#00b894,#00cec9)}
+.scan-btn:disabled{opacity:.5;cursor:not-allowed}
+.rbtn{padding:5px 12px;border:1px solid #dfe6e9;border-radius:6px;background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:#2d3436}
+.rbtn:hover{border-color:#667eea;color:#667eea}
+.qbtns{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.qbtn{padding:4px 9px;background:#0984e3;color:#fff;border:none;border-radius:5px;font-size:10px;cursor:pointer}
+.sdiv{display:flex;align-items:center;gap:11px;margin:13px 0 11px}
+.sdiv span{font-size:11px;font-weight:700;color:#636e72;white-space:nowrap}
+.sdiv::before,.sdiv::after{content:'';flex:1;height:1px;background:#dfe6e9}
+.sgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.scard{background:#f8f9fa;border:1px solid #dfe6e9;border-radius:7px;padding:12px}
+.scard-ttl{font-size:11px;font-weight:700;color:#2d3436;margin-bottom:9px;display:flex;align-items:center;gap:6px}
+.srow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prog{background:#ecf0f1;height:5px;border-radius:3px;overflow:hidden;margin:11px 0 3px;display:none}
+.prog-bar{height:100%;background:linear-gradient(90deg,#00b894,#00cec9);transition:width .3s}
+.prog-txt{font-size:11px;color:#636e72;text-align:center;min-height:14px}
+.bgrid{display:none;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:4px;margin-top:8px;max-height:72px;overflow:hidden}
+.bgrid.vis{display:grid}
+.bc{font-size:10px;font-weight:700;padding:3px 4px;border-radius:4px;text-align:center;background:#f0f0f0;color:#999;border:1px solid #e0e0e0;transition:all .18s}
+.bc.ld{background:#fffbeb;color:#b45309;border-color:#fde68a}
+.bc.bu{background:#d1fae5;color:#065f46;border-color:#6ee7b7}
+.bc.se{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.bc.bo{background:#ede9fe;color:#4c1d95;border-color:#c4b5fd}
+.bc.nn{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+.bc.er{background:#fee2e2;color:#b91c1c;border-color:#fca5a5}
+.dbg{display:none;background:#1e1e1e;color:#a8ff78;font-family:monospace;font-size:10px;padding:9px;border-radius:7px;margin-top:9px;max-height:85px;overflow-y:auto;line-height:1.6}
+.dbg.vis{display:block}
+.derr{color:#ff6b6b}.dok2{color:#6ee7b7}.dinf{color:#fbbf24}
+/* results */
+.res{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden;display:none;margin-bottom:16px}
+.res-hdr{padding:12px 17px;border-bottom:2px solid #ecf0f1;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:7px}
+.res-ttl{font-size:15px;font-weight:700;color:#2d3436}
+.res-cnt{font-size:11px;color:#636e72}
+.pills{display:flex;gap:6px;padding:8px 17px;border-bottom:1px solid #ecf0f1;background:#f8f9fa;flex-wrap:wrap;align-items:center}
+.pill{padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700}
+.pb{background:#d4edda;color:#155724}.ps{background:#f8d7da;color:#721c24}
+.psw{background:#e0e7ff;color:#3730a3}.pch{background:#fef3c7;color:#92400e}
+.pbo{background:#ede9fe;color:#4c1d95}.pn{background:#f3f4f6;color:#6b7280}
+.ftabs{display:flex;gap:5px;padding:8px 17px;border-bottom:1px solid #ecf0f1;background:#f8f9fa;flex-wrap:wrap}
+.ftab{padding:5px 12px;background:#fff;border:1px solid #dfe6e9;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer;color:#636e72;transition:all .12s}
+.ftab.on{background:#667eea;color:#fff;border-color:#667eea}
+.twrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead{background:#f8f9fa;position:sticky;top:0;z-index:10}
+th{padding:9px 11px;text-align:left;font-size:10px;font-weight:700;color:#636e72;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid #dfe6e9;white-space:nowrap}
+th.r{text-align:right}th.c{text-align:center}
+tbody tr{border-bottom:1px solid #ecf0f1;transition:background .12s}
+tbody tr:hover{background:#f8f9fa}
+td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
+.sym{font-weight:700;font-size:13px}.r{text-align:right}.c{text-align:center}
+.up{color:#00b894;font-weight:600}.dn{color:#d63031;font-weight:600}.mu{color:#636e72;font-size:11px}
+.sbadge{display:inline-block;padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.sbull{background:#d4edda;color:#155724}.sbear{background:#f8d7da;color:#721c24}.sneut{background:#fff3cd;color:#856404}
+.stbadge{display:inline-flex;align-items:center;gap:2px;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700}
+.stswing{background:#e0e7ff;color:#3730a3}.stch{background:#fef3c7;color:#92400e}.stbo{background:#ede9fe;color:#4c1d95;border:1px solid #c4b5fd}
+.opill{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700}
+.ocall{background:#d4edda;color:#155724}.oput{background:#f8d7da;color:#721c24}
+.tftag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:#e0e7ff;color:#3730a3}
+.ch{color:#00b894;font-weight:700}.cm{color:#fdcb6e;font-weight:600}.cl{color:#636e72}
+.vbtn{padding:5px 11px;background:#667eea;color:#fff;border:none;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer}
+.vbtn:hover{background:#5568d3}
+.est{text-align:center;padding:45px 17px;color:#636e72}
+.ei{font-size:38px;margin-bottom:9px}
+/* modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;overflow-y:auto;padding:16px}
+.mc{background:#fff;max-width:1200px;margin:16px auto;border-radius:12px;overflow:hidden}
+.mh{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:18px 24px;display:flex;justify-content:space-between;align-items:flex-start}
+.mt{font-size:19px;font-weight:700}.ms{font-size:11px;opacity:.8;margin-top:2px}
+.cbtn{background:rgba(255,255,255,.2);color:#fff;border:none;padding:6px 13px;border-radius:5px;cursor:pointer;font-weight:600;flex-shrink:0}
+.mb{padding:22px}
+/* indicator toggles */
+.itbar{display:flex;gap:6px;flex-wrap:wrap;padding:10px 13px;background:#f8f9fa;border-radius:8px;margin-bottom:14px;border:1px solid #dfe6e9}
+.itog{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:16px;border:2px solid #dfe6e9;background:#fff;font-size:10px;font-weight:700;cursor:pointer;color:#636e72;transition:all .15s;user-select:none}
+.itog.on{border-color:currentColor;background:currentColor}
+.itog.on .il{color:#fff}
+.idot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+/* chart panels */
+.cpanel{background:#f8f9fa;border:1px solid #dfe6e9;border-radius:9px;padding:13px;margin-bottom:13px}
+.phdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.pttl{font-size:13px;font-weight:700;color:#2d3436}
+.psub{font-size:10px;color:#636e72}
+/* chart wrapper heights */
+.cxl{position:relative;width:100%;height:360px}
+.clg{position:relative;width:100%;height:250px}
+.cmd{position:relative;width:100%;height:210px}
+.csm{position:relative;width:100%;height:160px}
+.ccy{position:relative;width:100%;height:150px}
+.cvp{position:relative;width:100%;height:260px;display:grid;grid-template-columns:1fr 115px;gap:0}
+.cvp-sub{position:relative;height:260px}
+/* zone boxes */
+.agrid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px}
+.zbox{padding:14px;border-radius:8px;border-left:4px solid}
+.zbull{background:#d4edda;border-color:#00b894}.zbear{background:#f8d7da;border-color:#d63031}
+.ztl{font-size:13px;font-weight:700;margin-bottom:7px;color:#2d3436}
+.zpr{font-size:22px;font-weight:700;margin-bottom:6px}
+.zbull .zpr{color:#00b894}.zbear .zpr{color:#d63031}
+.zds{font-size:11px;line-height:1.7;color:#636e72}
+/* stats */
+.sgr2{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:13px}
+.sc{background:#fff;padding:11px;border-radius:7px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.sl{font-size:9px;color:#636e72;margin-bottom:3px}
+.sv{font-size:17px;font-weight:700;color:#2d3436}
+.ss{font-size:9px;color:#636e72;margin-top:2px}
+/* recommendation */
+.rec{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:16px;border-radius:8px;margin-top:13px}
+.rttl{font-size:13px;font-weight:700;margin-bottom:10px}
+.rgr{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.ri{background:rgba(255,255,255,.15);padding:10px;border-radius:6px}
+.rl{font-size:9px;opacity:.85;margin-bottom:3px}.rv{font-size:14px;font-weight:700}
+/* hurst */
+.hl{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.hi{display:flex;align-items:center;gap:4px;font-size:10px;color:#636e72}
+.hs{width:20px;height:3px;border-radius:2px}
+/* reasoning */
+.rpanel{background:#1e1e2e;border:1px solid #2d2d4a;border-radius:8px;padding:16px;margin-bottom:13px;color:#e0e0f0}
+.rttl2{font-size:13px;font-weight:700;color:#c4b5fd;margin-bottom:3px}
+.rsub{font-size:10px;color:#6b6b9a;margin-bottom:13px}
+.verd{padding:12px 14px;border-radius:6px;margin-bottom:12px;border-left:4px solid;font-size:11px;line-height:1.6}
+.vbull{background:rgba(0,184,148,.1);border-color:#00b894}.vbear{background:rgba(214,48,49,.1);border-color:#d63031}.vneut{background:rgba(253,203,110,.1);border-color:#fdcb6e}
+.vtl{font-size:12px;font-weight:700;margin-bottom:4px}
+.vbull .vtl{color:#00b894}.vbear .vtl{color:#f87171}.vneut .vtl{color:#fdcb6e}
+.sbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.slbl{font-size:10px;color:#6b6b9a;white-space:nowrap}
+.strk{flex:1;height:6px;background:#2d2d4a;border-radius:3px;overflow:hidden;min-width:70px}
+.sfil{height:100%;border-radius:3px;transition:width .5s}
+.rsecs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:11px}
+.rsec{background:#252540;border:1px solid #2d2d4a;border-radius:6px;padding:11px}
+.rsec-t{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;align-items:center;gap:4px}
+.rdt{width:6px;height:6px;border-radius:50%}
+.rsec-b{font-size:10px;line-height:1.7;color:#b0b0cc}
+.rsec-b strong{color:#e0e0f0}.rbull{color:#00b894;font-weight:700}.rbear{color:#f87171;font-weight:700}.rwarn{color:#fdcb6e;font-weight:700}.rneut{color:#9ca3af}
+.rconc{background:#252540;border:1px solid #2d2d4a;border-radius:6px;padding:12px;font-size:10px;line-height:1.8;color:#b0b0cc}
+.rconc strong{color:#c4b5fd}
+.rdis{font-size:9px;color:#4a4a6a;margin-top:10px;padding-top:8px;border-top:1px solid #2d2d4a;line-height:1.6}
+@media(max-width:900px){
+  .ctrl,.srow{grid-template-columns:1fr 1fr!important}
+  .sgrid,.agrid,.rsecs{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
+<div class="hdr">
+  <div>
+    <h1>📊 Multi-Timeframe Breakout Scanner</h1>
+    <p>Yahoo Finance · Swing + Channel · Keltner Channel · Hurst Cycle · Market Structure · RSI Divergence · ATR Stop · VWAP · Volume Profile · Forecast</p>
+  </div>
+</div>
+<div class="wrap">
+  <div class="proxy" id="proxyDiv">
+    <span class="pdot" id="pdot"></span>
+    <span id="pmsg">Checking Yahoo Finance proxy…</span>
+    <button class="rbtn" onclick="testProxies()" style="margin-left:auto">🔄 Re-test</button>
+  </div>
 
-<div class="header">
-    <div>
-        <h1>📊 Multi-Timeframe Breakout + Full Analysis Scanner</h1>
-        <p>Swing + Channel · Hurst Cycle · Half-circle · Market Structure · RSI Divergence · ATR Stop · VWAP · Volume Profile · Forecast</p>
+  <div class="card" id="yfPanel">
+    <div class="banner">
+      <span class="tag t1">📈 Swing</span>+
+      <span class="tag t2">📦 Channel</span>+
+      <span class="tag t3">🔮 Forecast + Full Analysis</span>
+      on every symbol
     </div>
-    <div class="source-toggle">
-        <button class="src-btn active" id="btnAV" onclick="switchSource('av')">
-            <span class="src-dot src-av"></span>Alpha Vantage
-            <span class="spd-badge spd-slow">sequential</span>
-        </button>
-        <button class="src-btn" id="btnYF" onclick="switchSource('yf')">
-            <span class="src-dot src-yf"></span>Yahoo Finance
-            <span class="spd-badge spd-fast">parallel ⚡</span>
-        </button>
+    <div class="tf-row">
+      <span class="tf-lbl">⏱ Timeframe:</span>
+      <div class="tf-btns" id="tfBtns">
+        <button class="tf-btn on"  onclick="setTF('5m',this)">5 Min</button>
+        <button class="tf-btn"     onclick="setTF('15m',this)">15 Min</button>
+        <button class="tf-btn"     onclick="setTF('1h',this)">1 Hour</button>
+        <button class="tf-btn"     onclick="setTF('2h',this)">2 Hours</button>
+        <button class="tf-btn"     onclick="setTF('4h',this)">4 Hours</button>
+        <button class="tf-btn"     onclick="setTF('1d',this)">Daily</button>
+        <button class="tf-btn"     onclick="setTF('1wk',this)">Weekly</button>
+        <button class="tf-btn"     onclick="setTF('1mo',this)">Monthly</button>
+      </div>
     </div>
+    <div class="tf-info" id="tfInfo">ℹ️ <strong>5 Min:</strong> range=1d · ~78 bars · Day trading</div>
+    <div class="ctrl">
+      <div>
+        <label>Symbols</label>
+        <input type="text" id="syms" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
+        <div class="qbtns">
+          <button class="qbtn" onclick="preset('etfs')">📈 ETFs</button>
+          <button class="qbtn" onclick="preset('tech')">💻 Tech</button>
+          <button class="qbtn" onclick="preset('fin')">🏦 Finance</button>
+          <button class="qbtn" onclick="preset('energy')">⚡ Energy</button>
+          <button class="qbtn" onclick="preset('all')">⭐ All</button>
+        </div>
+      </div>
+      <div><label>Batch</label>
+        <select id="batchSz"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
+      <div><label>Delay</label>
+        <select id="batchDl"><option value="800">0.8s</option><option value="1200" selected>1.2s</option><option value="2000">2s</option></select></div>
+      <button class="scan-btn" id="scanBtn" onclick="startScan()">⚡ Scan</button>
+    </div>
+    <div class="sdiv"><span>Settings</span></div>
+    <div class="sgrid">
+      <div class="scard">
+        <div class="scard-ttl"><span class="tag t1">📈 Swing</span></div>
+        <div class="srow">
+          <div><label>Left Bars</label>
+            <select id="swingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
+          <div><label>Right Bars</label>
+            <select id="swingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
+        </div>
+      </div>
+      <div class="scard">
+        <div class="scard-ttl"><span class="tag t2">📦 Channel</span></div>
+        <div class="srow">
+          <div><label>Bars</label>
+            <select id="chanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select></div>
+          <div><label>Max Width %</label>
+            <select id="chanW"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5">5%</option><option value="7">7%</option></select></div>
+        </div>
+      </div>
+      <div class="scard">
+        <div class="scard-ttl"><span class="tag t3">🔮 Forecast</span></div>
+        <div class="srow">
+          <div><label>Bars Fwd</label>
+            <select id="fcastN"><option value="5">5</option><option value="10" selected>10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option></select></div>
+          <div><label>Lookback</label>
+            <select id="fcastLB"><option value="50">50</option><option value="100" selected>100</option><option value="150">150</option><option value="200">200</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="prog" id="prog"><div class="prog-bar" id="pbar"></div></div>
+    <div class="prog-txt" id="ptxt"></div>
+    <div class="bgrid" id="bgrid"></div>
+    <div class="dbg"   id="dbg"></div>
+  </div>
+
+  <!-- results -->
+  <div class="res" id="resDiv">
+    <div class="res-hdr"><span class="res-ttl">Scan Results</span><span class="res-cnt" id="resCnt">—</span></div>
+    <div class="pills" id="sumPills"></div>
+    <div class="ftabs">
+      <button class="ftab on"  onclick="filt('all',event)">All</button>
+      <button class="ftab"     onclick="filt('buy',event)">🟢 Buy</button>
+      <button class="ftab"     onclick="filt('sell',event)">🔴 Sell</button>
+      <button class="ftab"     onclick="filt('swing',event)">📈 Swing</button>
+      <button class="ftab"     onclick="filt('channel',event)">📦 Channel</button>
+      <button class="ftab"     onclick="filt('both',event)">⭐ Both</button>
+      <button class="ftab"     onclick="filt('neutral',event)">🟡 No Signal</button>
+    </div>
+    <div class="twrap">
+      <table>
+        <thead><tr>
+          <th>Symbol</th><th class="c">TF</th><th class="r">Price</th><th class="r">Chg%</th>
+          <th class="c">Signal</th><th class="c">Type</th><th class="c">Option</th>
+          <th class="r">Strike</th><th class="r">Stop</th><th class="c">Forecast</th>
+          <th class="c">Structure</th><th class="c">Conf</th><th class="c">Action</th>
+        </tr></thead>
+        <tbody id="tBody"><tr><td colspan="13" class="est"><div class="ei">📊</div><div>Choose a timeframe and click Scan</div></td></tr></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
-<div class="container">
-    <div class="source-info si-av" id="sourceInfo">
-        📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential
-    </div>
-    <div class="proxy-status" id="proxyStatus">
-        <span class="proxy-dot" id="proxyDot"></span>
-        <span id="proxyMsg">Checking proxy…</span>
-        <button class="test-btn" onclick="testProxies()" style="margin-left:auto;">🔄 Re-test Proxies</button>
-    </div>
-
-    <!-- AV PANEL -->
-    <div class="controls av-panel visible" id="avPanel">
-        <div class="mode-banner">
-            <span class="mode-tag mt-swing">📈 Swing</span> +
-            <span class="mode-tag mt-channel">📦 Channel</span> +
-            <span class="mode-tag mt-forecast">🔮 Forecast + Full Analysis</span>
-            on every symbol
-        </div>
-        <div class="tf-row">
-            <span class="tf-label">⏱ Timeframe:</span>
-            <div class="tf-btns" id="avTfBtns">
-                <button class="tf-btn active" onclick="setTF('av','5min',this)">5 Min</button>
-                <button class="tf-btn" onclick="setTF('av','15min',this)">15 Min</button>
-                <button class="tf-btn" onclick="setTF('av','60min',this)">1 Hour</button>
-                <button class="tf-btn" onclick="setTF('av','daily',this)">Daily</button>
-                <button class="tf-btn" onclick="setTF('av','weekly',this)">Weekly</button>
-                <button class="tf-btn" onclick="setTF('av','monthly',this)">Monthly</button>
-            </div>
-        </div>
-        <div class="tf-info-bar" id="avTfInfo">ℹ️ <strong>5-Min:</strong> TIME_SERIES_INTRADAY · Full ~390 bars</div>
-        <div class="control-row cr-main">
-            <div>
-                <label>Symbols to Scan</label>
-                <input type="text" id="avSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
-                <div class="quick-btns">
-                    <button class="quick-btn" onclick="preset('av','etfs')">📈 ETFs</button>
-                    <button class="quick-btn" onclick="preset('av','tech')">💻 Tech</button>
-                    <button class="quick-btn" onclick="preset('av','finance')">🏦 Finance</button>
-                    <button class="quick-btn" onclick="preset('av','energy')">⚡ Energy</button>
-                    <button class="quick-btn" onclick="preset('av','all')">⭐ All</button>
-                </div>
-            </div>
-            <div><label>Output Size</label>
-                <select id="avOut"><option value="compact">Compact</option><option value="full" selected>Full</option></select>
-            </div>
-            <div><label>Speed</label>
-                <select id="avDelay">
-                    <option value="13">⚡ 13s</option><option value="16" selected>✅ 16s</option>
-                    <option value="22">🐢 22s</option><option value="30">🐌 30s</option>
-                </select>
-            </div>
-            <button class="scan-btn btn-av" id="avBtn" onclick="startScan('av')">🔍 Start Scan</button>
-        </div>
-        <div class="section-divider"><span>Settings</span></div>
-        <div class="settings-grid">
-            <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span></div>
-                <div class="settings-row">
-                    <div><label>Left Bars</label>
-                        <select id="avSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
-                    <div><label>Right Bars</label>
-                        <select id="avSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
-                </div>
-            </div>
-            <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span></div>
-                <div class="settings-row">
-                    <div><label>Channel Bars</label>
-                        <select id="avChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select></div>
-                    <div><label>Max Width %</label>
-                        <select id="avChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select></div>
-                </div>
-            </div>
-            <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-forecast">🔮 Forecast</span></div>
-                <div class="settings-row">
-                    <div><label>Bars Forward</label>
-                        <select id="avFcastBars"><option value="5">5</option><option value="10" selected>10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option></select></div>
-                    <div><label>Lookback</label>
-                        <select id="avFcastLB"><option value="50">50</option><option value="100" selected>100</option><option value="150">150</option><option value="200">200</option></select></div>
-                </div>
-            </div>
-        </div>
-        <div class="progress" id="avProg"><div class="progress-bar pb-av" id="avBar"></div></div>
-        <div class="progress-text" id="avTxt"></div>
-    </div>
-
-    <!-- YF PANEL -->
-    <div class="controls yf-panel" id="yfPanel">
-        <div class="mode-banner">
-            <span class="mode-tag mt-swing">📈 Swing</span> +
-            <span class="mode-tag mt-channel">📦 Channel</span> +
-            <span class="mode-tag mt-forecast">🔮 Forecast + Full Analysis</span>
-            on every symbol
-        </div>
-        <div class="tf-row">
-            <span class="tf-label">⏱ Timeframe:</span>
-            <div class="tf-btns" id="yfTfBtns">
-                <button class="tf-btn active" onclick="setTF('yf','5m',this)">5 Min</button>
-                <button class="tf-btn" onclick="setTF('yf','15m',this)">15 Min</button>
-                <button class="tf-btn" onclick="setTF('yf','1h',this)">1 Hour</button>
-                <button class="tf-btn" onclick="setTF('yf','2h',this)">2 Hours</button>
-                <button class="tf-btn" onclick="setTF('yf','4h',this)">4 Hours</button>
-                <button class="tf-btn" onclick="setTF('yf','1d',this)">Daily</button>
-                <button class="tf-btn" onclick="setTF('yf','1wk',this)">Weekly</button>
-                <button class="tf-btn" onclick="setTF('yf','1mo',this)">Monthly</button>
-            </div>
-        </div>
-        <div class="tf-info-bar" id="yfTfInfo">ℹ️ <strong>5 Min:</strong> range=1d · ~78 bars</div>
-        <div class="control-row cr-main">
-            <div>
-                <label>Symbols to Scan</label>
-                <input type="text" id="yfSymbols" value="SPY,QQQ,AAPL,TSLA,NVDA,AMD,META,AMZN,MSFT,GOOGL">
-                <div class="quick-btns">
-                    <button class="quick-btn" onclick="preset('yf','etfs')">📈 ETFs</button>
-                    <button class="quick-btn" onclick="preset('yf','tech')">💻 Tech</button>
-                    <button class="quick-btn" onclick="preset('yf','finance')">🏦 Finance</button>
-                    <button class="quick-btn" onclick="preset('yf','energy')">⚡ Energy</button>
-                    <button class="quick-btn" onclick="preset('yf','all')">⭐ All</button>
-                </div>
-            </div>
-            <div><label>Batch Size</label>
-                <select id="yfBatch"><option value="5">5</option><option value="10" selected>10</option><option value="15">15</option><option value="20">20</option></select></div>
-            <div><label>Batch Delay</label>
-                <select id="yfDelay"><option value="800">0.8s</option><option value="1200" selected>1.2s</option><option value="2000">2s</option></select></div>
-            <button class="scan-btn btn-yf" id="yfBtn" onclick="startScan('yf')">⚡ Fast Scan</button>
-        </div>
-        <div class="section-divider"><span>Settings</span></div>
-        <div class="settings-grid">
-            <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-swing">📈 Swing</span></div>
-                <div class="settings-row">
-                    <div><label>Left Bars</label>
-                        <select id="yfSwingL"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
-                    <div><label>Right Bars</label>
-                        <select id="yfSwingR"><option value="3">3</option><option value="5" selected>5</option><option value="8">8</option><option value="10">10</option></select></div>
-                </div>
-            </div>
-            <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-channel">📦 Channel</span></div>
-                <div class="settings-row">
-                    <div><label>Channel Bars</label>
-                        <select id="yfChanBars"><option value="10">10</option><option value="20" selected>20</option><option value="30">30</option><option value="40">40</option></select></div>
-                    <div><label>Max Width %</label>
-                        <select id="yfChanWidth"><option value="1.5">1.5%</option><option value="2.5">2.5%</option><option value="3.5" selected>3.5%</option><option value="5.0">5.0%</option><option value="7.0">7.0%</option></select></div>
-                </div>
-            </div>
-            <div class="settings-card">
-                <div class="settings-card-title"><span class="mode-tag mt-forecast">🔮 Forecast</span></div>
-                <div class="settings-row">
-                    <div><label>Bars Forward</label>
-                        <select id="yfFcastBars"><option value="5">5</option><option value="10" selected>10</option><option value="12">12</option><option value="15">15</option><option value="20">20</option></select></div>
-                    <div><label>Lookback</label>
-                        <select id="yfFcastLB"><option value="50">50</option><option value="100" selected>100</option><option value="150">150</option><option value="200">200</option></select></div>
-                </div>
-            </div>
-        </div>
-        <div class="progress" id="yfProg"><div class="progress-bar pb-yf" id="yfBar"></div></div>
-        <div class="progress-text" id="yfTxt"></div>
-        <div class="batch-grid" id="batchGrid"></div>
-        <div class="debug-box"  id="debugBox"></div>
-    </div>
-
-    <!-- RESULTS TABLE -->
-    <div class="results-container" id="resultsContainer">
-        <div class="results-header">
-            <div class="results-title">Scan Results</div>
-            <div class="results-count" id="resultsCount">—</div>
-        </div>
-        <div class="summary-pills" id="summaryPills"></div>
-        <div class="filter-tabs">
-            <button class="filter-tab active" onclick="filterResults('all',event)">All</button>
-            <button class="filter-tab" onclick="filterResults('buy',event)">🟢 Buy (CALL)</button>
-            <button class="filter-tab" onclick="filterResults('sell',event)">🔴 Sell (PUT)</button>
-            <button class="filter-tab" onclick="filterResults('swing',event)">📈 Swing Only</button>
-            <button class="filter-tab" onclick="filterResults('channel',event)">📦 Channel Only</button>
-            <button class="filter-tab" onclick="filterResults('both',event)">⭐ Both Signals</button>
-            <button class="filter-tab" onclick="filterResults('neutral',event)">🟡 No Signal</button>
-        </div>
-        <div class="tbl-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Symbol</th>
-                        <th class="c">TF</th>
-                        <th class="r">Price</th>
-                        <th class="r">Change</th>
-                        <th class="c">Direction</th>
-                        <th class="c">Scan Type</th>
-                        <th class="c">Option</th>
-                        <th class="r">ATM Strike</th>
-                        <th class="r">Stop Loss</th>
-                        <th class="c">Forecast</th>
-                        <th class="c">Structure</th>
-                        <th class="c">Conf</th>
-                        <th class="c">Src</th>
-                        <th class="c">Action</th>
-                    </tr>
-                </thead>
-                <tbody id="resultsBody">
-                    <tr><td colspan="14" class="empty-state"><div class="empty-icon">📊</div><div>Select timeframe and click Scan</div></td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL -->
+<!-- modal -->
 <div class="modal" id="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <div>
-                <div class="modal-title" id="modalTitle">Analysis</div>
-                <div class="modal-sub"   id="modalSub"></div>
-            </div>
-            <button class="close-btn" onclick="closeModal()">✕ Close</button>
-        </div>
-        <div class="modal-body" id="modalBody"></div>
-    </div>
+<div class="mc">
+  <div class="mh">
+    <div><div class="mt" id="mTitle">Analysis</div><div class="ms" id="mSub"></div></div>
+    <button class="cbtn" onclick="closeModal()">✕ Close</button>
+  </div>
+  <div class="mb" id="mBody"></div>
+</div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
-
 <script>
-// ═══════════════════════════════════════════════
-//  TIMEFRAME CONFIG
-// ═══════════════════════════════════════════════
-const AV_TF = {
-    '5min':  {fn:'TIME_SERIES_INTRADAY',interval:'5min', outputsize:'full',label:'5 Min',  chartUnit:'minute',infoMsg:'5min intraday · Full ~390 bars'},
-    '15min': {fn:'TIME_SERIES_INTRADAY',interval:'15min',outputsize:'full',label:'15 Min', chartUnit:'minute',infoMsg:'15min intraday · Full ~390 bars'},
-    '60min': {fn:'TIME_SERIES_INTRADAY',interval:'60min',outputsize:'full',label:'1 Hour', chartUnit:'hour',  infoMsg:'60min intraday · Full ~390 bars'},
-    'daily': {fn:'TIME_SERIES_DAILY',   interval:null,   outputsize:'full',label:'Daily',  chartUnit:'day',   infoMsg:'Daily · Full ~500 bars'},
-    'weekly':{fn:'TIME_SERIES_WEEKLY',  interval:null,   outputsize:null,  label:'Weekly', chartUnit:'week',  infoMsg:'Weekly · Multi-year'},
-    'monthly':{fn:'TIME_SERIES_MONTHLY',interval:null,   outputsize:null,  label:'Monthly',chartUnit:'month', infoMsg:'Monthly · Multi-year'},
+// ═══════ TIMEFRAME CONFIG ════════════════════════════════════════════════
+const YF_TF={
+  '5m': {interval:'5m', range:'1d', label:'5 Min',  unit:'minute', info:'range=1d · ~78 bars'},
+  '15m':{interval:'15m',range:'5d', label:'15 Min', unit:'minute', info:'range=5d · ~130 bars'},
+  '1h': {interval:'1h', range:'1mo',label:'1 Hour', unit:'hour',   info:'range=1mo · ~160 bars'},
+  '2h': {interval:'2h', range:'3mo',label:'2 Hours',unit:'hour',   info:'range=3mo · ~90 bars'},
+  '4h': {interval:'4h', range:'6mo',label:'4 Hours',unit:'hour',   info:'range=6mo · ~90 bars'},
+  '1d': {interval:'1d', range:'2y', label:'Daily',  unit:'day',    info:'range=2y · ~500 bars'},
+  '1wk':{interval:'1wk',range:'5y', label:'Weekly', unit:'week',   info:'range=5y · ~260 bars'},
+  '1mo':{interval:'1mo',range:'10y',label:'Monthly',unit:'month',  info:'range=10y · ~120 bars'},
 };
-
-const YF_TF = {
-    '5m': {interval:'5m', range:'1d', label:'5 Min',  chartUnit:'minute',infoMsg:'range=1d · ~78 bars'},
-    '15m':{interval:'15m',range:'5d', label:'15 Min', chartUnit:'minute',infoMsg:'range=5d · ~130 bars'},
-    '1h': {interval:'1h', range:'1mo',label:'1 Hour', chartUnit:'hour',  infoMsg:'range=1mo · ~160 bars'},
-    '2h': {interval:'2h', range:'3mo',label:'2 Hours',chartUnit:'hour',  infoMsg:'range=3mo · ~90 bars'},
-    '4h': {interval:'4h', range:'6mo',label:'4 Hours',chartUnit:'hour',  infoMsg:'range=6mo · ~90 bars'},
-    '1d': {interval:'1d', range:'2y', label:'Daily',  chartUnit:'day',   infoMsg:'range=2y · ~500 bars'},
-    '1wk':{interval:'1wk',range:'5y', label:'Weekly', chartUnit:'week',  infoMsg:'range=5y · ~260 bars'},
-    '1mo':{interval:'1mo',range:'10y',label:'Monthly',chartUnit:'month', infoMsg:'range=10y · ~120 bars'},
-};
-
-let activeTF={av:'5min',yf:'5m'};
-
-function setTF(src,tf,btn){
-    activeTF[src]=tf;
-    document.getElementById(src==='av'?'avTfBtns':'yfTfBtns').querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const cfg=src==='av'?AV_TF[tf]:YF_TF[tf];
-    document.getElementById(src==='av'?'avTfInfo':'yfTfInfo').innerHTML=`ℹ️ <strong>${cfg.label}:</strong> ${cfg.infoMsg}`;
-}
-
-// ═══════════════════════════════════════════════
-//  CONFIG
-// ═══════════════════════════════════════════════
-const AV_KEY='7UOSK3Z2XFXU992W';
-
-function yfUrl(sym,tfKey){
-    const tf=YF_TF[tfKey];
-    return`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${tf.interval}&range=${tf.range}&includePrePost=false`;
-}
-
-const PROXIES=[
-    {name:'corsproxy.io',  url:(s,tf)=>`https://corsproxy.io/?${encodeURIComponent(yfUrl(s,tf))}`},
-    {name:'allorigins.win',url:(s,tf)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(s,tf))}`},
-    {name:'cors.sh',       url:(s,tf)=>`https://cors.sh/${yfUrl(s,tf)}`},
-    {name:'thingproxy',    url:(s,tf)=>`https://thingproxy.freeboard.io/fetch/${yfUrl(s,tf)}`},
-];
-let activeProxy=null;
 
 const PRESETS={
-    etfs:'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,GLD,SLV,GDX,TLT,HYG,USO,SQQQ,TQQQ,SPXL',
-    tech:'AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,MU,SNOW,NOW,DDOG,NET,ZS,CRWD,PANW,FTNT,PLTR',
-    finance:'JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,V,MA,PYPL,SQ,COIN',
-    energy:'XLE,XOP,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,OXY,EOG,GLD,SLV,GDX,USO',
-    all:'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,PANW,FTNT,DKNG,ROKU,ARKK'
+  etfs:'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,SMH,IBB,GLD,SLV,GDX,TLT,HYG,USO,SQQQ,TQQQ,SPXL',
+  tech:'AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,MU,SNOW,NOW,DDOG,NET,ZS,CRWD,PANW,FTNT,PLTR',
+  fin:'JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,V,MA,PYPL,SQ,COIN',
+  energy:'XLE,XOP,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,OXY,EOG,GLD,SLV,GDX,USO',
+  all:'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,AAPL,MSFT,GOOGL,AMZN,META,NVDA,TSLA,NFLX,AMD,INTC,CRM,ORCL,ADBE,CSCO,AVGO,QCOM,TXN,MU,AMAT,LRCX,SNOW,NOW,DDOG,NET,ZS,CRWD,WDAY,JPM,BAC,WFC,C,GS,MS,BLK,SCHW,AXP,USB,PNC,TFC,COF,SOFI,WMT,HD,TGT,COST,NKE,SBUX,MCD,DIS,CMCSA,BKNG,ABNB,UBER,ETSY,SHOP,EBAY,LOW,JNJ,UNH,PFE,ABBV,TMO,ABT,MRK,LLY,AMGN,GILD,BMY,CVS,REGN,VRTX,ISRG,OXY,CVX,XOM,COP,SLB,HAL,MPC,PSX,VLO,EOG,GLD,SLV,GDX,NEM,FCX,BA,CAT,GE,MMM,HON,UPS,RTX,LMT,NOC,GD,DE,FDX,DAL,UAL,LUV,AAL,TSM,MCHP,NXPI,F,GM,RIVN,NIO,PLUG,T,VZ,TMUS,SNAP,PINS,RBLX,PYPL,SQ,V,MA,COIN,PLTR,SPG,PLD,AMT,CCI,EQIX,PSA,BABA,JD,PDD,NEE,DUK,SO,PG,KO,PEP,CCL,RCL,MAR,HLT,SQQQ,TQQQ,SPXL,TLT,HYG,JNK,USO,MARA,RIOT,ZM,DKNG,ROKU,ARKK'
 };
 
-// ═══════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════
+// ═══════ PROXY ═══════════════════════════════════════════════════════════
+const PROXIES=[
+  {name:'corsproxy.io',  url:(s,tf)=>`https://corsproxy.io/?${encodeURIComponent(yfUrl(s,tf))}`},
+  {name:'allorigins',    url:(s,tf)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(s,tf))}`},
+  {name:'cors.sh',       url:(s,tf)=>`https://cors.sh/${yfUrl(s,tf)}`},
+  {name:'thingproxy',    url:(s,tf)=>`https://thingproxy.freeboard.io/fetch/${yfUrl(s,tf)}`},
+];
+let proxy=null;
+
+function yfUrl(sym,tfKey){
+  const tf=YF_TF[tfKey];
+  return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${tf.interval}&range=${tf.range}&includePrePost=false`;
+}
+
+async function testProxies(){
+  const d=document.getElementById('proxyDiv');
+  const dot=document.getElementById('pdot');
+  const msg=document.getElementById('pmsg');
+  d.className='proxy vis test'; dot.className='pdot dspin'; msg.textContent='Testing proxies…';
+  proxy=null;
+  for(const p of PROXIES){
+    try{
+      const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),6000);
+      const res=await fetch(p.url('SPY','5m'),{signal:ctrl.signal});
+      clearTimeout(t);
+      if(!res.ok) continue;
+      let json; try{json=JSON.parse(await res.text());}catch(e){continue;}
+      if(!json?.chart?.result?.[0]?.timestamp) continue;
+      proxy=p; break;
+    }catch(e){}
+  }
+  if(proxy){d.className='proxy vis ok';dot.className='pdot dok';msg.textContent='✅ '+proxy.name+' — Yahoo Finance ready';}
+  else{d.className='proxy vis fail';dot.className='pdot dfail';msg.textContent='❌ All proxies failed';}
+}
+
+// ═══════ STATE ══════════════════════════════════════════════════════════
+let activeTF='5m';
 let resultMap=new Map();
-let filteredSymbols=[];
-let currentFilter='all';
+let curFilter='all';
 let modalCharts=[];
 
-// ═══════════════════════════════════════════════
-//  ── MATH HELPERS ──
-// ═══════════════════════════════════════════════
-function normalize(arr){const mn=Math.min(...arr),mx=Math.max(...arr),r=mx-mn||1;return arr.map(v=>(v-mn)/r);}
-function pearsonCorr(a,b){const n=Math.min(a.length,b.length),ma=a.slice(0,n).reduce((s,v)=>s+v,0)/n,mb=b.slice(0,n).reduce((s,v)=>s+v,0)/n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ai=a[i]-ma,bi=b[i]-mb;num+=ai*bi;da+=ai*ai;db+=bi*bi;}return(da*db)===0?0:num/Math.sqrt(da*db);}
-function autocorr(arr,lag){const n=arr.length,mean=arr.reduce((s,v)=>s+v,0)/n;let num=0,den=0;for(let i=0;i<n-lag;i++)num+=(arr[i]-mean)*(arr[i+lag]-mean);for(let i=0;i<n;i++)den+=(arr[i]-mean)*(arr[i]-mean);return den===0?0:num/den;}
-function stdDev(arr){const n=arr.length,m=arr.reduce((s,v)=>s+v,0)/n;return Math.sqrt(arr.reduce((s,v)=>s+(v-m)*(v-m),0)/n)||0.001;}
-function linearSlope(arr){const n=arr.length;if(n<2)return 0;let sx=0,sy=0,sxy=0,sxx=0;for(let i=0;i<n;i++){sx+=i;sy+=arr[i];sxy+=i*arr[i];sxx+=i*i;}return(n*sxy-sx*sy)/(n*sxx-sx*sx)||0;}
+// ═══════ MATH HELPERS ═══════════════════════════════════════════════════
 function ema(arr,p){const k=2/(p+1);let e=arr[0];const out=[e];for(let i=1;i<arr.length;i++){e=arr[i]*k+e*(1-k);out.push(e);}return out;}
 function sma(arr,p){return arr.map((_,i)=>i<p-1?null:arr.slice(i-p+1,i+1).reduce((s,v)=>s+v,0)/p);}
+function stdDev(arr){const n=arr.length,m=arr.reduce((s,v)=>s+v,0)/n;return Math.sqrt(arr.reduce((s,v)=>s+(v-m)*(v-m),0)/n)||0.001;}
+function normalize(arr){const mn=Math.min(...arr),mx=Math.max(...arr),r=mx-mn||1;return arr.map(v=>(v-mn)/r);}
+function pearson(a,b){const n=Math.min(a.length,b.length),ma=a.slice(0,n).reduce((s,v)=>s+v,0)/n,mb=b.slice(0,n).reduce((s,v)=>s+v,0)/n;let num=0,da=0,db=0;for(let i=0;i<n;i++){const ai=a[i]-ma,bi=b[i]-mb;num+=ai*bi;da+=ai*ai;db+=bi*bi;}return(da*db)===0?0:num/Math.sqrt(da*db);}
+function autocorr(arr,lag){const n=arr.length,mean=arr.reduce((s,v)=>s+v,0)/n;let num=0,den=0;for(let i=0;i<n-lag;i++)num+=(arr[i]-mean)*(arr[i+lag]-mean);for(let i=0;i<n;i++)den+=(arr[i]-mean)*(arr[i]-mean);return den===0?0:num/den;}
+function linSlope(arr){const n=arr.length;if(n<2)return 0;let sx=0,sy=0,sxy=0,sxx=0;for(let i=0;i<n;i++){sx+=i;sy+=arr[i];sxy+=i*arr[i];sxx+=i*i;}return(n*sxy-sx*sy)/(n*sxx-sx*sx)||0;}
 
-// ═══════════════════════════════════════════════
-//  ── INDICATOR ENGINES ──
-// ═══════════════════════════════════════════════
-
-// RSI
-function computeRSI(closes, period=14){
-    const rsi=[...Array(period).fill(null)];
-    let avgGain=0,avgLoss=0;
-    for(let i=1;i<=period;i++){const d=closes[i]-closes[i-1];d>0?avgGain+=d/period:avgLoss+=Math.abs(d)/period;}
-    rsi.push(avgLoss===0?100:100-100/(1+avgGain/avgLoss));
-    for(let i=period+1;i<closes.length;i++){const d=closes[i]-closes[i-1];avgGain=(avgGain*(period-1)+(d>0?d:0))/period;avgLoss=(avgLoss*(period-1)+(d<0?Math.abs(d):0))/period;rsi.push(avgLoss===0?100:100-100/(1+avgGain/avgLoss));}
-    return rsi;
+// ═══════ INDICATORS ═════════════════════════════════════════════════════
+function compRSI(closes,p=14){
+  const rsi=[...Array(p).fill(null)];
+  let ag=0,al=0;
+  for(let i=1;i<=p;i++){const d=closes[i]-closes[i-1];d>0?ag+=d/p:al+=Math.abs(d)/p;}
+  rsi.push(al===0?100:100-100/(1+ag/al));
+  for(let i=p+1;i<closes.length;i++){const d=closes[i]-closes[i-1];ag=(ag*(p-1)+(d>0?d:0))/p;al=(al*(p-1)+(d<0?Math.abs(d):0))/p;rsi.push(al===0?100:100-100/(1+ag/al));}
+  return rsi;
 }
 
-// RSI Divergence
-function findDivergence(prices, rsiValues, lb=5){
-    const divs=[];
-    for(let i=lb;i<prices.length-lb;i++){
-        const pSlice=prices.slice(i-lb,i+lb+1);
-        const rSlice=rsiValues.slice(i-lb,i+lb+1);
-        const isLow=prices[i]===Math.min(...pSlice)&&rsiValues[i]!==null;
-        const isHigh=prices[i]===Math.max(...pSlice)&&rsiValues[i]!==null;
-        if(isLow){
-            for(let j=i+lb+2;j<Math.min(i+30,prices.length-lb);j++){
-                const p2=prices.slice(j-lb,j+lb+1);const r2=rsiValues.slice(j-lb,j+lb+1);
-                if(prices[j]===Math.min(...p2)&&rsiValues[j]!==null&&prices[j]<prices[i]&&rsiValues[j]>rsiValues[i]){
-                    divs.push({type:'bullish',bar1:i,bar2:j,price1:prices[i],price2:prices[j],rsi1:rsiValues[i],rsi2:rsiValues[j]});break;
-                }
-            }
-        }
-        if(isHigh){
-            for(let j=i+lb+2;j<Math.min(i+30,prices.length-lb);j++){
-                const p2=prices.slice(j-lb,j+lb+1);const r2=rsiValues.slice(j-lb,j+lb+1);
-                if(prices[j]===Math.max(...p2)&&rsiValues[j]!==null&&prices[j]>prices[i]&&rsiValues[j]<rsiValues[i]){
-                    divs.push({type:'bearish',bar1:i,bar2:j,price1:prices[i],price2:prices[j],rsi1:rsiValues[i],rsi2:rsiValues[j]});break;
-                }
-            }
-        }
-    }
-    return divs.slice(0,4);
+function findDiv(prices,rsi,lb=5){
+  const divs=[];
+  for(let i=lb;i<prices.length-lb;i++){
+    const pSlice=prices.slice(i-lb,i+lb+1),rSlice=rsi.slice(i-lb,i+lb+1);
+    const isLow=prices[i]===Math.min(...pSlice)&&rsi[i]!=null;
+    const isHigh=prices[i]===Math.max(...pSlice)&&rsi[i]!=null;
+    if(isLow){for(let j=i+lb+2;j<Math.min(i+30,prices.length-lb);j++){const p2=prices.slice(j-lb,j+lb+1);if(prices[j]===Math.min(...p2)&&rsi[j]!=null&&prices[j]<prices[i]&&rsi[j]>rsi[i]){divs.push({type:'bullish',b1:i,b2:j,p1:prices[i],p2:prices[j],r1:rsi[i],r2:rsi[j]});break;}}}
+    if(isHigh){for(let j=i+lb+2;j<Math.min(i+30,prices.length-lb);j++){const p2=prices.slice(j-lb,j+lb+1);if(prices[j]===Math.max(...p2)&&rsi[j]!=null&&prices[j]>prices[i]&&rsi[j]<rsi[i]){divs.push({type:'bearish',b1:i,b2:j,p1:prices[i],p2:prices[j],r1:rsi[i],r2:rsi[j]});break;}}}
+  }
+  return divs.slice(0,4);
 }
 
-// ATR
-function computeATR(bars,period=14){
-    const tr=[],atr=[];
-    for(let i=1;i<bars.length;i++){const h=bars[i].high,l=bars[i].low,pc=bars[i-1].close;tr.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));}
-    let avg=tr.slice(0,period).reduce((s,v)=>s+v,0)/period;
-    atr.push(...Array(period).fill(null),avg);
-    for(let i=period;i<tr.length;i++){avg=(avg*(period-1)+tr[i])/period;atr.push(avg);}
-    return atr;
+function compATR(bars,p=14){
+  const tr=[],atr=[];
+  for(let i=1;i<bars.length;i++){const h=bars[i].high,l=bars[i].low,pc=bars[i-1].close;tr.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc)));}
+  let avg=tr.slice(0,p).reduce((s,v)=>s+v,0)/p;
+  atr.push(...Array(p).fill(null),avg);
+  for(let i=p;i<tr.length;i++){avg=(avg*(p-1)+tr[i])/p;atr.push(avg);}
+  return atr;
 }
 
-// Chandelier Exit (ATR trailing stop)
-function chandelierExit(bars,atr,mult=2){
-    const long=[],short_=[];
-    for(let i=0;i<bars.length;i++){
-        if(atr[i]===null){long.push(null);short_.push(null);continue;}
-        const highestHigh=Math.max(...bars.slice(Math.max(0,i-21),i+1).map(b=>b.high));
-        const lowestLow=Math.min(...bars.slice(Math.max(0,i-21),i+1).map(b=>b.low));
-        long.push(highestHigh-atr[i]*mult);
-        short_.push(lowestLow+atr[i]*mult);
-    }
-    return{long,short:short_};
+function chandelier(bars,atr,mult=2){
+  const long=[],short_=[];
+  for(let i=0;i<bars.length;i++){
+    if(atr[i]===null){long.push(null);short_.push(null);continue;}
+    const hh=Math.max(...bars.slice(Math.max(0,i-21),i+1).map(b=>b.high));
+    const ll=Math.min(...bars.slice(Math.max(0,i-21),i+1).map(b=>b.low));
+    long.push(hh-atr[i]*mult); short_.push(ll+atr[i]*mult);
+  }
+  return{long,short:short_};
 }
 
-// VWAP
-function computeVWAP(bars){
-    let cumPV=0,cumVol=0;
-    return bars.map(b=>{const tp=(b.high+b.low+b.close)/3;cumPV+=tp*b.vol;cumVol+=b.vol;return cumVol>0?cumPV/cumVol:tp;});
+function compVWAP(bars){
+  let cpv=0,cv=0;
+  return bars.map(b=>{const tp=(b.high+b.low+b.close)/3;cpv+=tp*(b.vol||1);cv+=(b.vol||1);return cv>0?cpv/cv:tp;});
 }
 
-// VWAP Std Dev bands
 function vwapBands(bars,vwap){
-    const devs=bars.map((b,i)=>{const tp=(b.high+b.low+b.close)/3;const diff=tp-vwap[i];return diff*diff*b.vol;});
-    let cumDev2=0,cumVol=0;
-    const sigma=bars.map((b,i)=>{cumDev2+=devs[i];cumVol+=b.vol;return cumVol>0?Math.sqrt(cumDev2/cumVol):0;});
-    return{s1p:vwap.map((v,i)=>v+sigma[i]),s1n:vwap.map((v,i)=>v-sigma[i]),s2p:vwap.map((v,i)=>v+2*sigma[i]),s2n:vwap.map((v,i)=>v-2*sigma[i])};
+  const devs=bars.map((b,i)=>{const tp=(b.high+b.low+b.close)/3,d=tp-vwap[i];return d*d*(b.vol||1);});
+  let cd2=0,cv=0;
+  const sigma=bars.map((b,i)=>{cd2+=devs[i];cv+=(b.vol||1);return cv>0?Math.sqrt(cd2/cv):0;});
+  return{s1p:vwap.map((v,i)=>v+sigma[i]),s1n:vwap.map((v,i)=>v-sigma[i]),s2p:vwap.map((v,i)=>v+2*sigma[i]),s2n:vwap.map((v,i)=>v-2*sigma[i])};
 }
 
-// Market Structure
-function computeMarketStructure(bars,lb=5){
-    const pivots=[];
-    const closes=bars.map(b=>b.close);
-    const highs=bars.map(b=>b.high);
-    const lows=bars.map(b=>b.low);
-    for(let i=lb;i<bars.length-lb;i++){
-        const hSlice=highs.slice(i-lb,i+lb+1);
-        const lSlice=lows.slice(i-lb,i+lb+1);
-        if(highs[i]===Math.max(...hSlice)) pivots.push({i,type:'high',price:highs[i]});
-        else if(lows[i]===Math.min(...lSlice)) pivots.push({i,type:'low',price:lows[i]});
-    }
-    // Label HH/HL/LH/LL
-    const labeled=[];
-    for(let p=1;p<pivots.length;p++){
-        const prev=pivots[p-1],curr=pivots[p];
-        if(curr.type==='high'){
-            labeled.push({...curr,label:curr.price>prev.price?'HH':'LH',color:curr.price>prev.price?'#00b894':'#d63031'});
-        } else {
-            labeled.push({...curr,label:curr.price>prev.price?'HL':'LL',color:curr.price>prev.price?'#00b894':'#d63031'});
-        }
-    }
-    // Trend from last 4 pivots
-    const last4=labeled.slice(-4);
-    let trend='ranging';
-    if(last4.length>=2){
-        const upCount=last4.filter(p=>p.label==='HH'||p.label==='HL').length;
-        const downCount=last4.filter(p=>p.label==='LH'||p.label==='LL').length;
-        if(upCount>=3) trend='uptrend';
-        else if(downCount>=3) trend='downtrend';
-    }
-    return{pivots:labeled,trend};
+function compKeltner(bars,emaPer=20,atrPer=14,mult=1.5){
+  // bars = newest-first; work oldest-first internally
+  const rev=[...bars].reverse();
+  const closes=rev.map(b=>b.close);
+  const emVals=ema(closes,emaPer);
+  const atrVals=compATR(rev,atrPer); // oldest-first ATR
+  // build aligned arrays (oldest-first), then reverse to newest-first
+  const upper=[],lower=[],mid=[];
+  for(let i=0;i<closes.length;i++){
+    if(emVals[i]==null||atrVals[i+1]==null){upper.push(null);lower.push(null);mid.push(null);}
+    else{mid.push(emVals[i]);upper.push(emVals[i]+mult*atrVals[i+1]);lower.push(emVals[i]-mult*atrVals[i+1]);}
+  }
+  return{upper:upper.reverse(),lower:lower.reverse(),mid:mid.reverse()};
 }
 
-// Volume Profile
-function computeVolumeProfile(bars,buckets=20){
-    const barsSlice=bars.slice(0,Math.min(bars.length,60));
-    const allH=barsSlice.map(b=>b.high),allL=barsSlice.map(b=>b.low);
-    const priceHigh=Math.max(...allH),priceLow=Math.min(...allL);
-    const range=priceHigh-priceLow||1;
-    const bucketSize=range/buckets;
-    const profile=Array(buckets).fill(0).map((_,i)=>({price:priceLow+i*bucketSize+bucketSize/2,vol:0}));
-    barsSlice.forEach(b=>{const bi=Math.min(buckets-1,Math.floor((((b.high+b.low)/2)-priceLow)/bucketSize));if(bi>=0)profile[bi].vol+=b.vol||1;});
-    const maxVol=Math.max(...profile.map(p=>p.vol));
-    const poc=profile.reduce((best,p)=>p.vol>best.vol?p:best,profile[0]);
-    const sorted=[...profile].sort((a,b)=>b.vol-a.vol);
-    const vaTot=sorted.reduce((s,p)=>s+p.vol,0)*0.7;
-    let acc=0,vaProfiles=[];
-    for(const p of sorted){acc+=p.vol;vaProfiles.push(p);if(acc>=vaTot)break;}
-    const vaH=Math.max(...vaProfiles.map(p=>p.price));
-    const vaL=Math.min(...vaProfiles.map(p=>p.price));
-    return{profile,poc,vaH,vaL,maxVol,priceHigh,priceLow};
+function compMS(bars,lb=5){
+  const pivots=[];
+  for(let i=lb;i<bars.length-lb;i++){
+    const hSlice=bars.slice(i-lb,i+lb+1).map(b=>b.high);
+    const lSlice=bars.slice(i-lb,i+lb+1).map(b=>b.low);
+    if(bars[i].high===Math.max(...hSlice)) pivots.push({i,type:'high',price:bars[i].high});
+    else if(bars[i].low===Math.min(...lSlice)) pivots.push({i,type:'low', price:bars[i].low});
+  }
+  const labeled=[];
+  for(let p=1;p<pivots.length;p++){
+    const prev=pivots[p-1],curr=pivots[p];
+    const lbl=curr.type==='high'?(curr.price>prev.price?'HH':'LH'):(curr.price>prev.price?'HL':'LL');
+    labeled.push({...curr,label:lbl});
+  }
+  const last4=labeled.slice(-4);
+  let trend='ranging';
+  if(last4.length>=2){
+    const up=last4.filter(p=>p.label==='HH'||p.label==='HL').length;
+    const dn=last4.filter(p=>p.label==='LH'||p.label==='LL').length;
+    if(up>=3)trend='uptrend'; else if(dn>=3)trend='downtrend';
+  }
+  return{pivots:labeled,trend};
 }
 
-// Hurst Cycle Detection
-function computeHurst(bars,minCycle=8,maxCycle=40){
-    const closes=bars.map(b=>b.close).slice(0,Math.min(bars.length,200));
-    const returns=[];
-    for(let i=0;i<closes.length-1;i++) returns.push((closes[i]-closes[i+1])/closes[i+1]);
-    // Find dominant cycle via autocorrelation
-    let bestAC=-Infinity,dominantCycle=20;
-    for(let lag=minCycle;lag<=Math.min(maxCycle,Math.floor(returns.length/3));lag++){
-        const ac=autocorr(returns,lag);
-        if(ac>bestAC){bestAC=ac;dominantCycle=lag;}
-    }
-    // Hurst nested cycles: half, full, 2×, 4×
-    const halfCycle=Math.round(dominantCycle/2);
-    const fullCycle=dominantCycle;
-    const doubleCycle=dominantCycle*2;
-    // Current phase in the dominant cycle
-    const phase=((bars.length)%fullCycle)/fullCycle;
-    // Half-circle positions: find recent trough/peak
-    const recentBars=bars.slice(0,fullCycle*2);
-    const recentLow=Math.min(...recentBars.map(b=>b.low));
-    const recentHigh=Math.max(...recentBars.map(b=>b.high));
-    return{dominantCycle,halfCycle,doubleCycle,phase,recentLow,recentHigh,autocorrStrength:bestAC.toFixed(3)};
+function compVP(bars,buckets=22){
+  const sl=bars.slice(0,Math.min(bars.length,60));
+  const pH=Math.max(...sl.map(b=>b.high)),pL=Math.min(...sl.map(b=>b.low));
+  const rng=pH-pL||1,bs=rng/buckets;
+  const prof=Array(buckets).fill(0).map((_,i)=>({price:pL+i*bs+bs/2,vol:0}));
+  sl.forEach(b=>{const bi=Math.min(buckets-1,Math.floor(((b.high+b.low)/2-pL)/bs));if(bi>=0)prof[bi].vol+=b.vol||1;});
+  const poc=prof.reduce((best,p)=>p.vol>best.vol?p:best,prof[0]);
+  const sorted=[...prof].sort((a,b)=>b.vol-a.vol);
+  const tot=sorted.reduce((s,p)=>s+p.vol,0)*0.7;
+  let acc=0,va=[];for(const p of sorted){acc+=p.vol;va.push(p);if(acc>=tot)break;}
+  const vaH=Math.max(...va.map(p=>p.price)),vaL=Math.min(...va.map(p=>p.price));
+  return{prof,poc,vaH,vaL,pH,pL};
 }
 
-// ── FORECAST ENGINE ──
-function computeForecast(bars,nForward,lookback){
-    const closes=bars.map(b=>b.close).slice(0,Math.max(lookback+50,100));
-    if(closes.length<30) return null;
-    const windowSize=Math.min(20,Math.floor(closes.length/4));
-    const queryNorm=normalize(closes.slice(0,windowSize));
-    let bestCorr=-Infinity,bestOffset=windowSize*2;
-    for(let start=windowSize+5;start<closes.length-windowSize-nForward;start++){
-        const corr=pearsonCorr(queryNorm,normalize(closes.slice(start,start+windowSize)));
-        if(corr>bestCorr){bestCorr=corr;bestOffset=start;}
-    }
-    const anchorClose=closes[0],matchStart=closes[bestOffset];
-    const matchedFollow=closes.slice(bestOffset-nForward,bestOffset).reverse();
-    const patternFwd=matchedFollow.map(v=>anchorClose+(v-matchStart));
-    const returns=[];
-    for(let i=0;i<Math.min(closes.length-1,lookback);i++) returns.push((closes[i]-closes[i+1])/closes[i+1]);
-    let cycleLen=10,bestAC=-Infinity;
-    for(let lag=4;lag<=Math.min(40,Math.floor(returns.length/3));lag++){const ac=autocorr(returns,lag);if(ac>bestAC){bestAC=ac;cycleLen=lag;}}
-    const phase=(closes.length%cycleLen)/cycleLen*2*Math.PI;
-    const amp=stdDev(closes.slice(0,cycleLen*2))*0.4;
-    const cycleFwd=Array.from({length:nForward},(_,i)=>anchorClose+amp*Math.sin(phase+(i+1)/cycleLen*2*Math.PI));
-    const lrBars=Math.min(10,closes.length-1);
-    const slope=linearSlope(closes.slice(0,lrBars).reverse());
-    const momentumFwd=Array.from({length:nForward},(_,i)=>anchorClose+slope*(i+1)*Math.exp(-0.12*(i+1)));
-    const volBase=stdDev(returns.slice(0,20))*anchorClose;
-    const center=[],upper=[],lower=[];
-    for(let i=0;i<nForward;i++){
-        const pv=patternFwd[i]??anchorClose+slope*(i+1)*0.5;
-        const cv=cycleFwd[i]??anchorClose;
-        const mv=momentumFwd[i]??anchorClose;
-        const c=0.4*pv+0.3*cv+0.3*mv;
-        const band=volBase*1.5*Math.sqrt(i+1);
-        center.push(c);upper.push(c+band);lower.push(c-band);
-    }
-    return{center,upper,lower,bias:center[nForward-1]>anchorClose?'bullish':'bearish',
-           biasPct:((center[nForward-1]-anchorClose)/anchorClose*100).toFixed(2),
-           cycleLen,bestCorr:bestCorr.toFixed(3),patternTarget:center[nForward-1]?.toFixed(2),
-           volatility:volBase.toFixed(2),slope:(slope*10).toFixed(4)};
+function compHurst(bars,mn=8,mx=40){
+  const closes=bars.map(b=>b.close).slice(0,200);
+  const rets=[];
+  for(let i=0;i<closes.length-1;i++)rets.push((closes[i]-closes[i+1])/closes[i+1]);
+  let bestAC=-Infinity,dom=20;
+  for(let lag=mn;lag<=Math.min(mx,Math.floor(rets.length/3));lag++){
+    const ac=autocorr(rets,lag);if(ac>bestAC){bestAC=ac;dom=lag;}
+  }
+  const phase=((bars.length)%dom)/dom;
+  return{dom,half:Math.round(dom/2),dbl:dom*2,phase,ac:bestAC.toFixed(3)};
 }
 
-// ── SWING / CHANNEL DETECTORS ──
-function detectSwing(bars,lb,rb){
-    const len=bars.length;
-    if(len<lb+rb+3) return{signal:'neutral',swingLow:null,swingHigh:null,leftLowHigh:null,leftHighLow:null,stopLevel:null};
-    const h=bars.map(b=>b.high),l=bars.map(b=>b.low),c=bars.map(b=>b.close);
-    let swingLow=null,llh=null;
-    for(let i=rb;i<len-lb-1;i++){const v=l[i];let ok=true;for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(l[j]<=v){ok=false;break;}}if(ok){swingLow=v;llh=h[i+1];break;}}
-    let swingHigh=null,lhl=null;
-    for(let i=rb;i<len-lb-1;i++){const v=h[i];let ok=true;for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(h[j]>=v){ok=false;break;}}if(ok){swingHigh=v;lhl=l[i+1];break;}}
-    const cur=c[0],prev=c[1];let signal='neutral',stopLevel=null;
-    if(llh!==null&&swingLow!==null&&cur>llh&&prev<=llh&&cur>swingLow){signal='buy';stopLevel=swingLow;}
-    else if(lhl!==null&&swingHigh!==null&&cur<lhl&&prev>=lhl&&cur<swingHigh){signal='sell';stopLevel=swingHigh;}
-    return{signal,swingLow,swingHigh,leftLowHigh:llh,leftHighLow:lhl,stopLevel};
+function compForecast(bars,nFwd,lb){
+  const closes=bars.map(b=>b.close).slice(0,Math.max(lb+50,100));
+  if(closes.length<30)return null;
+  const wsz=Math.min(20,Math.floor(closes.length/4));
+  const qNorm=normalize(closes.slice(0,wsz));
+  let bestC=-Infinity,bestOff=wsz*2;
+  for(let st=wsz+5;st<closes.length-wsz-nFwd;st++){
+    const c=pearson(qNorm,normalize(closes.slice(st,st+wsz)));if(c>bestC){bestC=c;bestOff=st;}
+  }
+  const anch=closes[0],ms=closes[bestOff];
+  const pFwd=closes.slice(bestOff-nFwd,bestOff).reverse().map(v=>anch+(v-ms));
+  const rets=[];for(let i=0;i<Math.min(closes.length-1,lb);i++)rets.push((closes[i]-closes[i+1])/closes[i+1]);
+  let cLen=10,bAC=-Infinity;
+  for(let lag=4;lag<=Math.min(40,Math.floor(rets.length/3));lag++){const ac=autocorr(rets,lag);if(ac>bAC){bAC=ac;cLen=lag;}}
+  const ph=(closes.length%cLen)/cLen*2*Math.PI;
+  const amp=stdDev(closes.slice(0,cLen*2))*0.4;
+  const cyFwd=Array.from({length:nFwd},(_,i)=>anch+amp*Math.sin(ph+(i+1)/cLen*2*Math.PI));
+  const slope=linSlope(closes.slice(0,Math.min(10,closes.length-1)).reverse());
+  const mFwd=Array.from({length:nFwd},(_,i)=>anch+slope*(i+1)*Math.exp(-0.12*(i+1)));
+  const vol=stdDev(rets.slice(0,20))*anch;
+  const center=[],upper=[],lower=[];
+  for(let i=0;i<nFwd;i++){
+    const c=0.4*(pFwd[i]??anch+slope*(i+1)*0.5)+0.3*(cyFwd[i]??anch)+0.3*(mFwd[i]??anch);
+    const band=vol*1.5*Math.sqrt(i+1);
+    center.push(c);upper.push(c+band);lower.push(c-band);
+  }
+  return{center,upper,lower,bias:center[nFwd-1]>anch?'bullish':'bearish',
+    biasPct:((center[nFwd-1]-anch)/anch*100).toFixed(2),
+    target:center[nFwd-1]?.toFixed(2),vol:vol.toFixed(2),
+    cLen,corr:bestC.toFixed(3),slope:(slope*10).toFixed(4)};
 }
 
-function detectChannel(bars,chanBars,maxWidthPct){
-    const len=bars.length;
-    if(len<chanBars+2) return{signal:'neutral',inChannel:false,resistance:null,support:null,channelWidth:null,stopLevel:null};
-    const window=bars.slice(1,chanBars+1);
-    const resistance=Math.max(...window.map(b=>b.high));
-    const support=Math.min(...window.map(b=>b.low));
-    const mid=(resistance+support)/2;
-    const widthPct=(resistance-support)/mid*100;
-    const inChannel=widthPct<=maxWidthPct;
-    if(!inChannel) return{signal:'neutral',inChannel:false,resistance,support,channelWidth:widthPct,stopLevel:null};
-    const cur=bars[0].close,prev=bars[1].close;
-    let signal='neutral',stopLevel=null;
-    if(cur>resistance&&prev<=resistance){signal='buy';stopLevel=support;}
-    else if(cur<support&&prev>=support){signal='sell';stopLevel=resistance;}
-    return{signal,inChannel:true,resistance,support,channelWidth:widthPct,stopLevel};
+// ═══════ DETECTORS ══════════════════════════════════════════════════════
+function detSwing(bars,lb,rb){
+  const len=bars.length;
+  if(len<lb+rb+3)return{signal:'neutral',swingLow:null,swingHigh:null,llh:null,lhl:null,stop:null};
+  const h=bars.map(b=>b.high),l=bars.map(b=>b.low),c=bars.map(b=>b.close);
+  let swingLow=null,llh=null;
+  for(let i=rb;i<len-lb-1;i++){const v=l[i];let ok=true;for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(l[j]<=v){ok=false;break;}}if(ok){swingLow=v;llh=h[i+1];break;}}
+  let swingHigh=null,lhl=null;
+  for(let i=rb;i<len-lb-1;i++){const v=h[i];let ok=true;for(let j=i-rb;j<=i+lb;j++){if(j<0||j>=len||j===i)continue;if(h[j]>=v){ok=false;break;}}if(ok){swingHigh=v;lhl=l[i+1];break;}}
+  const cur=c[0],prev=c[1];let signal='neutral',stop=null;
+  if(llh!==null&&swingLow!==null&&cur>llh&&prev<=llh&&cur>swingLow){signal='buy';stop=swingLow;}
+  else if(lhl!==null&&swingHigh!==null&&cur<lhl&&prev>=lhl&&cur<swingHigh){signal='sell';stop=swingHigh;}
+  return{signal,swingLow,swingHigh,llh,lhl,stop};
+}
+
+function detChannel(bars,chanBars,maxW){
+  const len=bars.length;
+  if(len<chanBars+2)return{signal:'neutral',inCh:false,res:null,sup:null,width:null,stop:null};
+  const win=bars.slice(1,chanBars+1);
+  const res=Math.max(...win.map(b=>b.high)),sup=Math.min(...win.map(b=>b.low));
+  const mid=(res+sup)/2,width=(res-sup)/mid*100;
+  const inCh=width<=maxW;
+  if(!inCh)return{signal:'neutral',inCh:false,res,sup,width,stop:null};
+  const cur=bars[0].close,prev=bars[1].close;
+  let signal='neutral',stop=null;
+  if(cur>res&&prev<=res){signal='buy';stop=sup;}
+  else if(cur<sup&&prev>=sup){signal='sell';stop=res;}
+  return{signal,inCh:true,res,sup,width,stop};
 }
 
 function calcATM(price){const iv=price<25?0.5:price<200?1:5;return Math.round(price/iv)*iv;}
 
-// ── BUILD RESULT ──
-function buildResult(symbol,bars,cfg,source,tfLabel){
-    const cur=bars[0],prev=bars[1];
-    const price=cur.close,change=price-prev.close,changePct=change/prev.close*100;
-    const sw=detectSwing(bars,cfg.swingL,cfg.swingR);
-    const ch=detectChannel(bars,cfg.chanBars,cfg.chanWidth);
-    const forecast=computeForecast(bars,cfg.fcastBars,cfg.fcastLB);
-    const ms=computeMarketStructure(bars);
-    let direction='neutral',scanTypes=[],stopLevel=null;
-    if(sw.signal!=='neutral'){scanTypes.push('swing');direction=sw.signal;stopLevel=sw.stopLevel;}
-    if(ch.signal!=='neutral'){scanTypes.push('channel');if(direction==='neutral'){direction=ch.signal;stopLevel=ch.stopLevel;}}
-    const scanType=scanTypes.length===2?'both':scanTypes.length===1?scanTypes[0]:'none';
-    const strike=calcATM(price);
-    const optType=direction==='buy'?'CALL':direction==='sell'?'PUT':null;
-    let confidence='low';
-    if(scanType==='both'&&sw.signal===ch.signal){confidence='high';}
-    else if(direction!=='neutral'){
-        const trig=direction==='buy'?(sw.signal==='buy'?sw.leftLowHigh:ch.resistance):(sw.signal==='sell'?sw.leftHighLow:ch.support);
-        if(trig){const brk=Math.abs(price-trig)/trig*100;if(brk>=0.4)confidence='high';else if(brk>=0.15)confidence='medium';}
+function buildResult(sym,bars,cfg,tfLabel){
+  const cur=bars[0],prev=bars[1];
+  const price=cur.close,change=price-prev.close,chgPct=change/prev.close*100;
+  const sw=detSwing(bars,cfg.swingL,cfg.swingR);
+  const ch=detChannel(bars,cfg.chanBars,cfg.chanW);
+  const fcast=compForecast(bars,cfg.fcastN,cfg.fcastLB);
+  const ms=compMS(bars);
+  let dir='neutral',types=[],stop=null;
+  if(sw.signal!=='neutral'){types.push('swing');dir=sw.signal;stop=sw.stop;}
+  if(ch.signal!=='neutral'){types.push('channel');if(dir==='neutral'){dir=ch.signal;stop=ch.stop;}}
+  const stype=types.length===2?'both':types.length===1?types[0]:'none';
+  const strike=calcATM(price);
+  const opt=dir==='buy'?'CALL':dir==='sell'?'PUT':null;
+  let conf='low';
+  if(stype==='both'&&sw.signal===ch.signal){conf='high';}
+  else if(dir!=='neutral'){
+    const trig=dir==='buy'?(sw.signal==='buy'?sw.llh:ch.res):(sw.signal==='sell'?sw.lhl:ch.sup);
+    if(trig){const brk=Math.abs(price-trig)/trig*100;if(brk>=0.4)conf='high';else if(brk>=0.15)conf='medium';}
+  }
+  return{sym,price,change,chgPct,time:cur.time,tfLabel,dir,stype,opt,strike,conf,stop,sw,ch,fcast,ms,bars,fcastN:cfg.fcastN,fcastLB:cfg.fcastLB};
+}
+
+// ═══════ FETCH ═══════════════════════════════════════════════════════════
+async function fetchYF(sym,tfKey){
+  const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const res=await fetch(proxy.url(sym,tfKey),{signal:ctrl.signal});
+    clearTimeout(t);if(!res.ok)throw new Error('HTTP '+res.status);
+    const json=await res.json();
+    const result=json?.chart?.result?.[0];
+    if(!result)return null;
+    const ts=result.timestamp,q=result.indicators?.quote?.[0];
+    if(!ts||!q)return null;
+    const bars=[];
+    for(let i=ts.length-1;i>=0;i--){
+      if(q.close[i]==null||isNaN(q.close[i]))continue;
+      const d=new Date(ts[i]*1000);
+      const intra=['5m','15m','1h','2h','4h'].includes(tfKey);
+      const tl=intra?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
+               :tfKey==='1d'?d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})
+               :d.toLocaleDateString('en-US',{year:'numeric',month:'short'});
+      bars.push({time:tl,timestamp:ts[i]*1000,open:q.open[i]??q.close[i],high:q.high[i]??q.close[i],low:q.low[i]??q.close[i],close:q.close[i],vol:q.volume[i]??0});
     }
-    const levelStr=ch.inChannel?`R:${ch.resistance?.toFixed(2)} / S:${ch.support?.toFixed(2)}`:`SH:${sw.swingHigh?.toFixed(2)??'—'} / SL:${sw.swingLow?.toFixed(2)??'—'}`;
-    return{symbol,source,price,change,changePct,barTime:cur.time,tfLabel,
-           direction,scanType,optType,strike,confidence,stopLevel,levelStr,
-           swing:sw,channel:ch,forecast,ms,bars,fcastBars:cfg.fcastBars,fcastLB:cfg.fcastLB};
+    return bars.length>=5?bars:null;
+  }catch(e){clearTimeout(t);throw e;}
 }
 
-// ═══════════════════════════════════════════════
-//  PROXY TEST
-// ═══════════════════════════════════════════════
-async function testProxies(){
-    const statusEl=document.getElementById('proxyStatus');
-    const dotEl=document.getElementById('proxyDot');
-    const msgEl=document.getElementById('proxyMsg');
-    statusEl.className='proxy-status visible ps-testing';
-    dotEl.className='proxy-dot dot-spin';
-    msgEl.textContent='Testing proxies…';
-    activeProxy=null;
-    for(const proxy of PROXIES){
-        try{
-            const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),6000);
-            const res=await fetch(proxy.url('SPY','5m'),{signal:ctrl.signal});
-            clearTimeout(tid);
-            if(!res.ok) continue;
-            let json;try{json=JSON.parse(await res.text());}catch(e){continue;}
-            activeProxy=proxy;break;
-        }catch(e){}
-    }
-    if(activeProxy){statusEl.className='proxy-status visible ps-ok';dotEl.className='proxy-dot dot-ok';msgEl.textContent='✅ Proxy: '+activeProxy.name+' — Yahoo Finance ready';}
-    else{statusEl.className='proxy-status visible ps-fail';dotEl.className='proxy-dot dot-fail';msgEl.textContent='❌ All proxies failed — try Alpha Vantage';}
+// ═══════ SCAN ════════════════════════════════════════════════════════════
+function setTF(tf,btn){
+  activeTF=tf;
+  document.getElementById('tfBtns').querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  const cfg=YF_TF[tf];
+  document.getElementById('tfInfo').innerHTML=`ℹ️ <strong>${cfg.label}:</strong> ${cfg.info}`;
 }
 
-function dbg(msg,type='inf'){const box=document.getElementById('debugBox');if(!box)return;box.classList.add('visible');const el=document.createElement('div');el.className=type==='err'?'d-err':type==='ok'?'d-ok':'d-inf';el.textContent='['+new Date().toLocaleTimeString()+'] '+msg;box.appendChild(el);box.scrollTop=box.scrollHeight;}
+function preset(key){document.getElementById('syms').value=PRESETS[key];}
 
-// ═══════════════════════════════════════════════
-//  SOURCE / TF SWITCHER
-// ═══════════════════════════════════════════════
-function switchSource(src){
-    document.getElementById('btnAV').classList.toggle('active',src==='av');
-    document.getElementById('btnYF').classList.toggle('active',src==='yf');
-    document.getElementById('avPanel').classList.toggle('visible',src==='av');
-    document.getElementById('yfPanel').classList.toggle('visible',src==='yf');
-    document.getElementById('proxyStatus').classList.toggle('visible',src==='yf');
-    const info=document.getElementById('sourceInfo');
-    if(src==='av'){info.className='source-info si-av';info.innerHTML='📡 <strong>Alpha Vantage</strong> — Free tier · 5 calls/min · sequential · 2h/4h not available';}
-    else{info.className='source-info si-yf';info.innerHTML='⚡ <strong>Yahoo Finance</strong> — No API key · Parallel · All timeframes';if(!activeProxy)testProxies();}
+function dbg(msg,t='i'){
+  const b=document.getElementById('dbg');b.classList.add('vis');
+  const el=document.createElement('div');
+  el.className=t==='e'?'derr':t==='o'?'dok2':'dinf';
+  el.textContent='['+new Date().toLocaleTimeString()+'] '+msg;
+  b.appendChild(el);b.scrollTop=b.scrollHeight;
 }
 
-function preset(src,key){document.getElementById(src==='av'?'avSymbols':'yfSymbols').value=PRESETS[key];}
-
-// ═══════════════════════════════════════════════
-//  FETCHERS
-// ═══════════════════════════════════════════════
-async function fetchAV(symbol,tfKey,outputSize){
-    const tf=AV_TF[tfKey];
-    let url;
-    if(tf.fn==='TIME_SERIES_INTRADAY') url=`https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&interval=${tf.interval}&outputsize=${outputSize}&apikey=${AV_KEY}`;
-    else if(tf.fn==='TIME_SERIES_DAILY') url=`https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&outputsize=${outputSize}&apikey=${AV_KEY}`;
-    else url=`https://www.alphavantage.co/query?function=${tf.fn}&symbol=${encodeURIComponent(symbol)}&apikey=${AV_KEY}`;
-    const json=await(await fetch(url)).json();
-    const seriesKey=Object.keys(json).find(k=>k.startsWith('Time Series')||k.startsWith('Weekly')||k.startsWith('Monthly'));
-    if(!seriesKey) return null;
-    const series=json[seriesKey];
-    const times=Object.keys(series).sort().reverse();
-    if(times.length<20) return null;
-    return times.map(t=>({time:t,timestamp:new Date(t).getTime(),open:parseFloat(series[t]['1. open']),high:parseFloat(series[t]['2. high']),low:parseFloat(series[t]['3. low']),close:parseFloat(series[t]['4. close']),vol:parseInt(series[t]['5. volume']||series[t]['6. volume']||0)}));
+async function startScan(){
+  if(!proxy){alert('No proxy — click Re-test.');return;}
+  const tfKey=activeTF,tfLabel=YF_TF[tfKey].label;
+  const btn=document.getElementById('scanBtn');
+  const syms=document.getElementById('syms').value.trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+  const cfg={
+    swingL:+document.getElementById('swingL').value,
+    swingR:+document.getElementById('swingR').value,
+    chanBars:+document.getElementById('chanBars').value,
+    chanW:+document.getElementById('chanW').value,
+    fcastN:+document.getElementById('fcastN').value,
+    fcastLB:+document.getElementById('fcastLB').value,
+    batchSize:+document.getElementById('batchSz').value,
+    batchDelay:+document.getElementById('batchDl').value,
+  };
+  if(!syms.length)return;
+  btn.disabled=true;btn.textContent='⚡ Scanning…';
+  const prog=document.getElementById('prog');
+  const bar=document.getElementById('pbar');
+  const txt=document.getElementById('ptxt');
+  prog.style.display='block';bar.style.width='0%';
+  resultMap.clear();updateTable();
+  document.getElementById('dbg').innerHTML='';
+  const grid=document.getElementById('bgrid');
+  grid.innerHTML='';grid.classList.add('vis');
+  dbg(`YF · ${syms.length} symbols · ${tfLabel} · ${proxy.name}`);
+  const chips={};
+  syms.forEach(s=>{const el=document.createElement('div');el.className='bc';el.id='c_'+s;el.textContent=s;grid.appendChild(el);chips[s]=el;});
+  const batches=[];for(let i=0;i<syms.length;i+=cfg.batchSize)batches.push(syms.slice(i,i+cfg.batchSize));
+  let done=0;
+  for(let bi=0;bi<batches.length;bi++){
+    const batch=batches[bi];
+    batch.forEach(s=>chips[s].className='bc ld');
+    await Promise.all(batch.map(async s=>{
+      try{
+        const bars=await fetchYF(s,tfKey);
+        if(bars&&bars.length>=10){
+          const r=buildResult(s,bars,cfg,tfLabel);
+          resultMap.set(s,r);
+          chips[s].className='bc '+(r.stype==='both'?'bo':r.dir==='buy'?'bu':r.dir==='sell'?'se':'nn');
+          dbg(s+' · '+bars.length+'b · '+r.dir,'o');
+          updateTable();
+        }else{chips[s].className='bc er';}
+      }catch(e){chips[s].className='bc er';dbg(s+' · '+e.message,'e');}
+      finally{done++;}
+    }));
+    const pct=Math.round(done/syms.length*100);
+    bar.style.width=pct+'%';
+    const all=[...resultMap.values()];
+    txt.textContent=`[${tfLabel}] ${done}/${syms.length} · BUY:${all.filter(r=>r.dir==='buy').length} SELL:${all.filter(r=>r.dir==='sell').length}`;
+    if(bi<batches.length-1)await sleep(cfg.batchDelay);
+  }
+  btn.disabled=false;btn.textContent='⚡ Scan';
+  const all=[...resultMap.values()];
+  txt.textContent=`✅ [${tfLabel}] ${all.length} scanned · BUY:${all.filter(r=>r.dir==='buy').length} SELL:${all.filter(r=>r.dir==='sell').length} Both:${all.filter(r=>r.stype==='both').length}`;
 }
 
-async function fetchYF(symbol,tfKey){
-    const ctrl=new AbortController(),tid=setTimeout(()=>ctrl.abort(),8000);
-    try{
-        const res=await fetch(activeProxy.url(symbol,tfKey),{signal:ctrl.signal});
-        clearTimeout(tid);if(!res.ok) throw new Error('HTTP '+res.status);
-        const json=await res.json();
-        const result=json?.chart?.result?.[0];
-        if(!result) return null;
-        const ts=result.timestamp,q=result.indicators?.quote?.[0];
-        if(!ts||!q) return null;
-        const bars=[];
-        for(let i=ts.length-1;i>=0;i--){
-            if(q.close[i]==null||isNaN(q.close[i])) continue;
-            const d=new Date(ts[i]*1000);
-            const intra=['5m','15m','1h','2h','4h'].includes(tfKey);
-            const tl=intra?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}):tfKey==='1d'?d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}):d.toLocaleDateString('en-US',{year:'numeric',month:'short'});
-            bars.push({time:tl,timestamp:ts[i]*1000,open:q.open[i]??q.close[i],high:q.high[i]??q.close[i],low:q.low[i]??q.close[i],close:q.close[i],vol:q.volume[i]??0});
-        }
-        return bars.length>=5?bars:null;
-    }catch(e){clearTimeout(tid);throw e;}
-}
-
-// ═══════════════════════════════════════════════
-//  SCAN DISPATCHER
-// ═══════════════════════════════════════════════
-async function startScan(src){
-    if(src==='yf'&&!activeProxy){alert('No working proxy. Re-test or use Alpha Vantage.');return;}
-    const isAV=src==='av';
-    const tfKey=activeTF[src],tfLabel=isAV?AV_TF[tfKey].label:YF_TF[tfKey].label;
-    const btn=document.getElementById(isAV?'avBtn':'yfBtn');
-    const syms=document.getElementById(isAV?'avSymbols':'yfSymbols').value.trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-    const prog=document.getElementById(isAV?'avProg':'yfProg');
-    const bar=document.getElementById(isAV?'avBar':'yfBar');
-    const txt=document.getElementById(isAV?'avTxt':'yfTxt');
-    const cfg=isAV?{swingL:+document.getElementById('avSwingL').value,swingR:+document.getElementById('avSwingR').value,chanBars:+document.getElementById('avChanBars').value,chanWidth:+document.getElementById('avChanWidth').value,fcastBars:+document.getElementById('avFcastBars').value,fcastLB:+document.getElementById('avFcastLB').value,outSize:document.getElementById('avOut').value,delay:+document.getElementById('avDelay').value*1000,tfKey,tfLabel}:{swingL:+document.getElementById('yfSwingL').value,swingR:+document.getElementById('yfSwingR').value,chanBars:+document.getElementById('yfChanBars').value,chanWidth:+document.getElementById('yfChanWidth').value,fcastBars:+document.getElementById('yfFcastBars').value,fcastLB:+document.getElementById('yfFcastLB').value,batchSize:+document.getElementById('yfBatch').value,batchDelay:+document.getElementById('yfDelay').value,tfKey,tfLabel};
-    if(!syms.length) return;
-    btn.disabled=true;btn.textContent=isAV?'🔄 Scanning…':'⚡ Scanning…';
-    prog.style.display='block';bar.style.width='0%';
-    resultMap.clear();updateTable();
-    if(isAV){
-        for(let i=0;i<syms.length;i++){
-            try{const bars=await fetchAV(syms[i],cfg.tfKey,cfg.outSize);if(bars){resultMap.set(syms[i],buildResult(syms[i],bars,cfg,'av',cfg.tfLabel));updateTable();}}catch(e){console.warn(syms[i],e.message);}
-            const pct=Math.round(((i+1)/syms.length)*100);bar.style.width=pct+'%';txt.textContent=progressMsg(i+1,syms.length,pct,cfg.tfLabel);
-            if(i<syms.length-1) await sleep(cfg.delay);
-        }
-        btn.disabled=false;btn.textContent='🔍 Start Scan';txt.textContent=doneMsg(cfg.tfLabel);
-    }else{
-        const grid=document.getElementById('batchGrid');const dbgEl=document.getElementById('debugBox');
-        dbgEl.innerHTML='';grid.innerHTML='';grid.classList.add('visible');
-        dbg('YF scan · '+syms.length+' symbols · '+tfLabel+' · proxy: '+activeProxy.name);
-        const chips={};
-        syms.forEach(sym=>{const el=document.createElement('div');el.className='bchip';el.id='chip-'+sym;el.textContent=sym;grid.appendChild(el);chips[sym]=el;});
-        const batches=[];for(let i=0;i<syms.length;i+=cfg.batchSize) batches.push(syms.slice(i,i+cfg.batchSize));
-        let done=0;
-        for(let bi=0;bi<batches.length;bi++){
-            const batch=batches[bi];batch.forEach(sym=>chips[sym].className='bchip loading');
-            await Promise.all(batch.map(async sym=>{
-                try{const bars=await fetchYF(sym,cfg.tfKey);if(bars&&bars.length>=10){const r=buildResult(sym,bars,cfg,'yf',cfg.tfLabel);resultMap.set(sym,r);chips[sym].className='bchip '+chipClass(r);dbg(sym+' · '+bars.length+' bars · '+r.direction,'ok');updateTable();}else{chips[sym].className='bchip error';}}
-                catch(e){chips[sym].className='bchip error';dbg(sym+' · '+e.message,'err');}finally{done++;}
-            }));
-            const pct=Math.round((done/syms.length)*100);bar.style.width=pct+'%';txt.textContent=progressMsg(done,syms.length,pct,cfg.tfLabel);
-            if(bi<batches.length-1) await sleep(cfg.batchDelay);
-        }
-        btn.disabled=false;btn.textContent='⚡ Fast Scan';txt.textContent=doneMsg(cfg.tfLabel);
-    }
-}
-
-function chipClass(r){if(r.scanType==='both')return'done-both';if(r.direction==='buy')return'done-buy';if(r.direction==='sell')return'done-sell';return'done-none';}
-function allArr(){return[...resultMap.values()];}
-function progressMsg(done,total,pct,tf){const all=allArr();return`[${tf}] ${done}/${total} (${pct}%) · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length}`;}
-function doneMsg(tf){const all=allArr();return`✅ [${tf}] ${all.length} scanned · BUY: ${all.filter(r=>r.direction==='buy').length} · SELL: ${all.filter(r=>r.direction==='sell').length} · Both: ${all.filter(r=>r.scanType==='both').length}`;}
-
-// ═══════════════════════════════════════════════
-//  TABLE
-// ═══════════════════════════════════════════════
-function filterResults(f,e){currentFilter=f;document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));if(e)e.target.classList.add('active');updateTable();}
-function f2(v){return v!==null&&v!==undefined?'$'+Number(v).toFixed(2):'—';}
+// ═══════ TABLE ════════════════════════════════════════════════════════════
+function filt(f,e){curFilter=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));if(e)e.target.classList.add('on');updateTable();}
+function f2(v){return v!=null?'$'+Number(v).toFixed(2):'—';}
 
 function updateTable(){
-    const container=document.getElementById('resultsContainer');
-    const tbody=document.getElementById('resultsBody');
-    const countEl=document.getElementById('resultsCount');
-    const pillsEl=document.getElementById('summaryPills');
-    const all=allArr();
-    if(all.length===0){container.style.display='none';return;}
-    const filtered=currentFilter==='all'?all:currentFilter==='buy'?all.filter(r=>r.direction==='buy'):currentFilter==='sell'?all.filter(r=>r.direction==='sell'):currentFilter==='swing'?all.filter(r=>r.scanType==='swing'):currentFilter==='channel'?all.filter(r=>r.scanType==='channel'):currentFilter==='both'?all.filter(r=>r.scanType==='both'):currentFilter==='neutral'?all.filter(r=>r.direction==='neutral'):all;
-    const sorted=[...filtered].sort((a,b)=>{const o={both:0,buy:1,sell:2,neutral:3};return(o[a.scanType==='both'?'both':a.direction]||3)-(o[b.scanType==='both'?'both':b.direction]||3)||a.symbol.localeCompare(b.symbol);});
-    filteredSymbols=sorted.map(r=>r.symbol);
-    container.style.display='block';
-    const nBuy=all.filter(r=>r.direction==='buy').length,nSell=all.filter(r=>r.direction==='sell').length;
-    const nSwing=all.filter(r=>r.scanType==='swing').length,nChan=all.filter(r=>r.scanType==='channel').length;
-    const nBoth=all.filter(r=>r.scanType==='both').length,nNone=all.filter(r=>r.direction==='neutral').length;
-    countEl.textContent=`${all.length} scanned · showing ${sorted.length}`;
-    pillsEl.innerHTML=`<span class="s-pill sp-buy">🟢 Buy: ${nBuy}</span><span class="s-pill sp-sell">🔴 Sell: ${nSell}</span><span style="color:#dfe6e9;margin:0 4px">|</span><span class="s-pill sp-swing">📈 Swing: ${nSwing}</span><span class="s-pill sp-channel">📦 Channel: ${nChan}</span><span class="s-pill sp-both">⭐ Both: ${nBoth}</span><span class="s-pill sp-neutral">🟡 No signal: ${nNone}</span>`;
-    if(sorted.length===0){tbody.innerHTML=`<tr><td colspan="14" class="empty-state"><div class="empty-icon">🔍</div><div>No results for: ${currentFilter}</div></td></tr>`;return;}
-    tbody.innerHTML=sorted.map(r=>{
-        const pos=r.change>=0;
-        const fcast=r.forecast;
-        const fcastBadge=fcast?(fcast.bias==='bullish'?`<span style="background:#d4edda;color:#155724;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;">▲ +${fcast.biasPct}%</span>`:`<span style="background:#f8d7da;color:#721c24;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;">▼ ${fcast.biasPct}%</span>`):`<span style="color:#aaa;font-size:11px;">—</span>`;
-        const msBadge=r.ms.trend==='uptrend'?`<span style="background:#d4edda;color:#155724;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;">↑ Up</span>`:r.ms.trend==='downtrend'?`<span style="background:#f8d7da;color:#721c24;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;">↓ Down</span>`:r.ms.trend==='ranging'?`<span style="background:#fff3cd;color:#856404;padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700;">↔ Range</span>`:`—`;
-        return`<tr>
-            <td class="sym">${r.symbol}</td>
-            <td class="c"><span class="tf-tag">${r.tfLabel}</span></td>
-            <td class="r" style="font-weight:600;">${f2(r.price)}</td>
-            <td class="r ${pos?'pos':'neg'}">${pos?'+':''}${r.change.toFixed(2)} (${pos?'+':''}${r.changePct.toFixed(2)}%)</td>
-            <td class="c">${r.direction==='buy'?'<span class="signal-badge signal-bullish">🟢 BUY</span>':r.direction==='sell'?'<span class="signal-badge signal-bearish">🔴 SELL</span>':'<span class="signal-badge signal-neutral">🟡 WATCH</span>'}</td>
-            <td class="c">${r.scanType==='both'?'<span class="scan-type st-both">⭐ BOTH</span>':r.scanType==='swing'?'<span class="scan-type st-swing">📈 SWING</span>':r.scanType==='channel'?'<span class="scan-type st-channel">📦 CHANNEL</span>':'<span style="color:#aaa;font-size:11px;">—</span>'}</td>
-            <td class="c">${r.optType==='CALL'?'<span class="opt-pill opt-call">CALL</span>':r.optType==='PUT'?'<span class="opt-pill opt-put">PUT</span>':'—'}</td>
-            <td class="r" style="font-weight:700;">${f2(r.strike)}</td>
-            <td class="r muted">${f2(r.stopLevel)}</td>
-            <td class="c">${fcastBadge}</td>
-            <td class="c">${msBadge}</td>
-            <td class="c"><span class="conf-${r.confidence}">${r.confidence.toUpperCase()}</span></td>
-            <td class="c">${r.source==='av'?'<span class="src-tag st-av">AV</span>':'<span class="src-tag st-yf">YF</span>'}</td>
-            <td class="c"><button class="view-btn" onclick="showDetail('${r.symbol}')">📊 Analyze</button></td>
-        </tr>`;
-    }).join('');
+  const rc=document.getElementById('resDiv'),tbody=document.getElementById('tBody');
+  const cntEl=document.getElementById('resCnt'),pillsEl=document.getElementById('sumPills');
+  const all=[...resultMap.values()];
+  if(!all.length){rc.style.display='none';return;}
+  const fmap={all:()=>true,buy:r=>r.dir==='buy',sell:r=>r.dir==='sell',swing:r=>r.stype==='swing',channel:r=>r.stype==='channel',both:r=>r.stype==='both',neutral:r=>r.dir==='neutral'};
+  const filtered=all.filter(fmap[curFilter]||fmap.all);
+  const sorted=[...filtered].sort((a,b)=>{const o={both:0,buy:1,sell:2,neutral:3};return(o[a.stype==='both'?'both':a.dir]||3)-(o[b.stype==='both'?'both':b.dir]||3)||a.sym.localeCompare(b.sym);});
+  rc.style.display='block';
+  const nB=all.filter(r=>r.dir==='buy').length,nS=all.filter(r=>r.dir==='sell').length;
+  const nSw=all.filter(r=>r.stype==='swing').length,nCh=all.filter(r=>r.stype==='channel').length;
+  const nBo=all.filter(r=>r.stype==='both').length,nN=all.filter(r=>r.dir==='neutral').length;
+  cntEl.textContent=`${all.length} scanned · ${sorted.length} shown`;
+  pillsEl.innerHTML=`<span class="pill pb">🟢 Buy:${nB}</span><span class="pill ps">🔴 Sell:${nS}</span><span style="color:#dfe6e9;margin:0 4px">|</span><span class="pill psw">📈 Swing:${nSw}</span><span class="pill pch">📦 Chan:${nCh}</span><span class="pill pbo">⭐ Both:${nBo}</span><span class="pill pn">🟡 None:${nN}</span>`;
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="13" class="est"><div class="ei">🔍</div><div>No results</div></td></tr>';return;}
+  tbody.innerHTML=sorted.map(r=>{
+    const pos=r.change>=0;
+    const fb=r.fcast?(r.fcast.bias==='bullish'?`<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">▲+${r.fcast.biasPct}%</span>`:`<span style="background:#f8d7da;color:#721c24;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">▼${r.fcast.biasPct}%</span>`):'—';
+    const mb=r.ms.trend==='uptrend'?'<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">↑Up</span>':r.ms.trend==='downtrend'?'<span style="background:#f8d7da;color:#721c24;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">↓Dn</span>':'<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">↔Rng</span>';
+    return`<tr>
+      <td class="sym">${r.sym}</td>
+      <td class="c"><span class="tftag">${r.tfLabel}</span></td>
+      <td class="r" style="font-weight:600">${f2(r.price)}</td>
+      <td class="r ${pos?'up':'dn'}">${pos?'+':''}${r.chgPct.toFixed(2)}%</td>
+      <td class="c">${r.dir==='buy'?'<span class="sbadge sbull">🟢 BUY</span>':r.dir==='sell'?'<span class="sbadge sbear">🔴 SELL</span>':'<span class="sbadge sneut">🟡 WATCH</span>'}</td>
+      <td class="c">${r.stype==='both'?'<span class="stbadge stbo">⭐BOTH</span>':r.stype==='swing'?'<span class="stbadge stswing">📈SWG</span>':r.stype==='channel'?'<span class="stbadge stch">📦CH</span>':'<span style="color:#aaa;font-size:10px">—</span>'}</td>
+      <td class="c">${r.opt==='CALL'?'<span class="opill ocall">CALL</span>':r.opt==='PUT'?'<span class="opill oput">PUT</span>':'—'}</td>
+      <td class="r" style="font-weight:700">${f2(r.strike)}</td>
+      <td class="r mu">${f2(r.stop)}</td>
+      <td class="c">${fb}</td>
+      <td class="c">${mb}</td>
+      <td class="c"><span class="c${r.conf[0]}">${r.conf.toUpperCase()}</span></td>
+      <td class="c"><button class="vbtn" onclick="showDetail('${r.sym}')">📊 Analyze</button></td>
+    </tr>`;
+  }).join('');
 }
 
-// ═══════════════════════════════════════════════
-//  MODAL
-// ═══════════════════════════════════════════════
-function showDetail(symbol){
-    const r=resultMap.get(symbol);
-    if(!r){alert('No data for '+symbol);return;}
-    document.getElementById('modalTitle').textContent=`${symbol} — ${r.tfLabel} Full Analysis`;
-    document.getElementById('modalSub').textContent=`${r.source==='av'?'Alpha Vantage':'Yahoo Finance'} · ${r.tfLabel} · ${r.barTime}`;
-
-    const isBuy=r.direction==='buy',isSel=r.direction==='sell';
-    const sw=r.swing,ch=r.channel,fcast=r.forecast;
-
-    document.getElementById('modalBody').innerHTML=`
-        <!-- Signal Summary -->
-        <div class="analysis-grid" style="margin-bottom:16px;">
-            <div class="zone-box bullish">
-                <div class="zone-title">🟢 BUY ZONE — ATM CALL</div>
-                <div class="zone-price">${isBuy?f2(r.price):'—'}</div>
-                <div class="zone-desc">
-                    ${sw.signal==='buy'?`<strong>📈 Swing:</strong> Close above ${f2(sw.leftLowHigh)}<br>Swing low: ${f2(sw.swingLow)}<br>`:''}
-                    ${ch.signal==='buy'?`<strong>📦 Channel:</strong> Close above ${f2(ch.resistance)}<br>Support: ${f2(ch.support)}<br>`:''}
-                    ATM CALL strike: <strong>${f2(r.strike)}</strong><br>
-                    ${isBuy?'<strong style="color:#155724">✅ Signal active</strong>':'No buy signal'}
-                </div>
-            </div>
-            <div class="zone-box bearish">
-                <div class="zone-title">🔴 SELL ZONE — ATM PUT</div>
-                <div class="zone-price">${isSel?f2(r.price):'—'}</div>
-                <div class="zone-desc">
-                    ${sw.signal==='sell'?`<strong>📈 Swing:</strong> Close below ${f2(sw.leftHighLow)}<br>Swing high: ${f2(sw.swingHigh)}<br>`:''}
-                    ${ch.signal==='sell'?`<strong>📦 Channel:</strong> Close below ${f2(ch.support)}<br>Resistance: ${f2(ch.resistance)}<br>`:''}
-                    ATM PUT strike: <strong>${f2(r.strike)}</strong><br>
-                    ${isSel?'<strong style="color:#721c24">✅ Signal active</strong>':'No sell signal'}
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick stats -->
-        <div class="stats-grid" style="margin-bottom:16px;">
-            <div class="stat-card"><div class="stat-lbl">Price</div><div class="stat-val">${f2(r.price)}</div><div class="stat-sub ${r.change>=0?'pos':'neg'}" style="font-size:10px;">${r.change>=0?'+':''}${r.change.toFixed(2)} (${r.changePct.toFixed(2)}%)</div></div>
-            <div class="stat-card"><div class="stat-lbl">Signal</div><div class="stat-val" style="font-size:16px;color:${isBuy?'#00b894':isSel?'#d63031':'#fdcb6e'}">${isBuy?'BUY':isSel?'SELL':'WATCH'}</div><div class="stat-sub">Conf: ${r.confidence.toUpperCase()}</div></div>
-            <div class="stat-card"><div class="stat-lbl">Forecast</div><div class="stat-val" style="font-size:16px;color:${fcast?.bias==='bullish'?'#00b894':'#d63031'}">${fcast?fcast.bias.toUpperCase():'—'}</div><div class="stat-sub">${fcast?fcast.biasPct+'% / '+r.fcastBars+' bars':'—'}</div></div>
-            <div class="stat-card"><div class="stat-lbl">Structure</div><div class="stat-val" style="font-size:16px;color:${r.ms.trend==='uptrend'?'#00b894':r.ms.trend==='downtrend'?'#d63031':'#fdcb6e'}">${r.ms.trend.toUpperCase()}</div><div class="stat-sub">Market structure</div></div>
-            <div class="stat-card"><div class="stat-lbl">ATM Strike</div><div class="stat-val">${f2(r.strike)}</div><div class="stat-sub">${r.optType??'No signal'}</div></div>
-            <div class="stat-card"><div class="stat-lbl">Stop Loss</div><div class="stat-val" style="color:#fdcb6e;">${f2(r.stopLevel)}</div><div class="stat-sub">${isBuy?'Below swing low':isSel?'Above swing high':'—'}</div></div>
-        </div>
-
-        <!-- Indicator Toggle Bar -->
-        <div class="indicator-toggles">
-            <span style="font-size:11px;font-weight:700;color:#636e72;margin-right:4px;">Show panels:</span>
-            <label class="ind-toggle on" style="color:#6c5ce7;" onclick="togglePanel('panelMain')">
-                <span class="ind-dot" style="background:#6c5ce7;"></span>
-                <span class="itl">🕯️ Chart + Forecast + Hurst</span>
-            </label>
-            <label class="ind-toggle on" style="color:#2d3436;" onclick="togglePanel('panelMS')">
-                <span class="ind-dot" style="background:#2d3436;"></span>
-                <span class="itl">📐 Market Structure</span>
-            </label>
-            <label class="ind-toggle on" style="color:#e84393;" onclick="togglePanel('panelRSI')">
-                <span class="ind-dot" style="background:#e84393;"></span>
-                <span class="itl">📉 RSI Divergence</span>
-            </label>
-            <label class="ind-toggle on" style="color:#f59e0b;" onclick="togglePanel('panelATR')">
-                <span class="ind-dot" style="background:#f59e0b;"></span>
-                <span class="itl">🛡 ATR Stop</span>
-            </label>
-            <label class="ind-toggle on" style="color:#0984e3;" onclick="togglePanel('panelVWAP')">
-                <span class="ind-dot" style="background:#0984e3;"></span>
-                <span class="itl">📊 VWAP Bands</span>
-            </label>
-            <label class="ind-toggle on" style="color:#00b894;" onclick="togglePanel('panelVP')">
-                <span class="ind-dot" style="background:#00b894;"></span>
-                <span class="itl">📦 Volume Profile</span>
-            </label>
-            <label class="ind-toggle on" style="color:#c4b5fd;" onclick="togglePanel('panelReasoning')">
-                <span class="ind-dot" style="background:#c4b5fd;"></span>
-                <span class="itl">🧠 Analysis Reasoning</span>
-            </label>
-        </div>
-
-        <!-- PANEL 1: Main candle + Forecast + Hurst half-circle -->
-        <div class="chart-panel" id="panelMain">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-title">🕯️ Candlestick · Forecast · Hurst Cycle</div>
-                    <div class="panel-sub">Historical candles → grey dotted forecast · Upper/lower 1.5σ bands · Hurst nested arcs</div>
-                </div>
-            </div>
-            <div class="hurst-legend" id="hurstLegend"></div>
-            <div class="cw-xl"><canvas id="chartMain"></canvas></div>
-        </div>
-
-        <!-- PANEL 2: Market Structure -->
-        <div class="chart-panel" id="panelMS">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-title">📐 Market Structure — HH / HL / LH / LL</div>
-                    <div class="panel-sub" id="msTrend">Trend: —</div>
-                </div>
-            </div>
-            <div class="cw-md"><canvas id="chartMS"></canvas></div>
-        </div>
-
-        <!-- PANEL 3: RSI + Divergence -->
-        <div class="chart-panel" id="panelRSI">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-title">📉 RSI (14) + Divergence Detection</div>
-                    <div class="panel-sub" id="rsiStatus">RSI: —</div>
-                </div>
-            </div>
-            <div class="cw-sm"><canvas id="chartRSI"></canvas></div>
-        </div>
-
-        <!-- PANEL 4: ATR Chandelier Stop -->
-        <div class="chart-panel" id="panelATR">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-title">🛡 ATR Dynamic Stop (Chandelier Exit, 2×ATR)</div>
-                    <div class="panel-sub" id="atrStatus">ATR Stop: —</div>
-                </div>
-            </div>
-            <div class="cw-md"><canvas id="chartATR"></canvas></div>
-        </div>
-
-        <!-- PANEL 5: VWAP + Bands -->
-        <div class="chart-panel" id="panelVWAP">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-title">📊 VWAP + Standard Deviation Bands (±1σ, ±2σ)</div>
-                    <div class="panel-sub" id="vwapStatus">VWAP: —</div>
-                </div>
-            </div>
-            <div class="cw-md"><canvas id="chartVWAP"></canvas></div>
-        </div>
-
-        <!-- PANEL 6: Volume Profile -->
-        <div class="chart-panel" id="panelVP">
-            <div class="panel-header">
-                <div>
-                    <div class="panel-title">📦 Volume Profile — Point of Control + Value Area</div>
-                    <div class="panel-sub" id="vpStatus">POC: —</div>
-                </div>
-            </div>
-            <div class="cw-vp"><div class="cw-vp-sub"><canvas id="chartVP"></canvas></div><div class="cw-vp-sub"><canvas id="chartVPProfile"></canvas></div></div>
-        </div>
-
-        <!-- PANEL 7: Analysis Reasoning -->
-        <div id="panelReasoning" class="reasoning-panel">
-            <div class="reasoning-header">
-                <div>
-                    <div class="reasoning-title">🧠 Analysis Logic &amp; Forecast Reasoning</div>
-                    <div class="reasoning-subtitle">Plain-English interpretation of every signal, indicator, and forecast for ${symbol}</div>
-                </div>
-            </div>
-            <div id="reasoningContent">Computing…</div>
-        </div>
-
-        <!-- Recommendation -->
-        <div class="recommendation">
-            <div class="rec-title">${r.scanType==='both'&&isBuy?'⭐ STRONG BUY — Both signals + Forecast confirm · ATM CALL':r.scanType==='both'&&isSel?'⭐ STRONG SELL — Both signals + Forecast confirm · ATM PUT':isBuy?'🟢 BUY SIGNAL — ATM CALL Option':isSel?'🔴 SELL SIGNAL — ATM PUT Option':'🟡 NO SIGNAL — Monitor for breakout'}</div>
-            <div class="rec-grid">
-                <div class="rec-item"><div class="rec-label">Symbol</div><div class="rec-value">${symbol}</div></div>
-                <div class="rec-item"><div class="rec-label">Timeframe</div><div class="rec-value">${r.tfLabel}</div></div>
-                <div class="rec-item"><div class="rec-label">Option</div><div class="rec-value">${r.optType??'—'}</div></div>
-                <div class="rec-item"><div class="rec-label">ATM Strike</div><div class="rec-value">${f2(r.strike)}</div></div>
-                <div class="rec-item"><div class="rec-label">Stop Loss</div><div class="rec-value">${f2(r.stopLevel)}</div></div>
-                <div class="rec-item"><div class="rec-label">DTE Pref</div><div class="rec-value">≤ 7 days</div></div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('modal').style.display='block';
-    setTimeout(()=>renderAllPanels(r),120);
+// ═══════ MODAL ═══════════════════════════════════════════════════════════
+function showDetail(sym){
+  const r=resultMap.get(sym);if(!r)return;
+  const isBuy=r.dir==='buy',isSel=r.dir==='sell';
+  document.getElementById('mTitle').textContent=`${sym} — ${r.tfLabel} Full Analysis`;
+  document.getElementById('mSub').textContent=`Yahoo Finance · ${r.tfLabel} · ${r.time}`;
+  document.getElementById('mBody').innerHTML=buildModalHTML(r,sym,isBuy,isSel);
+  document.getElementById('modal').style.display='block';
+  setTimeout(()=>renderPanels(r),100);
 }
 
-function togglePanel(id){
-    const el=document.getElementById(id);
-    if(el) el.style.display=el.style.display==='none'?'':'none';
+function buildModalHTML(r,sym,isBuy,isSel){
+  return `
+  <div class="agrid">
+    <div class="zbox zbull">
+      <div class="ztl">🟢 BUY ZONE — ATM CALL</div>
+      <div class="zpr">${isBuy?f2(r.price):'—'}</div>
+      <div class="zds">
+        ${r.sw.signal==='buy'?`<b>📈 Swing:</b> Above ${f2(r.sw.llh)} · Low: ${f2(r.sw.swingLow)}<br>`:''}
+        ${r.ch.signal==='buy'?`<b>📦 Channel:</b> Above ${f2(r.ch.res)} · Sup: ${f2(r.ch.sup)}<br>`:''}
+        ATM CALL: <b>${f2(r.strike)}</b> · ${isBuy?'<b style="color:#155724">✅ Active</b>':'No buy signal'}
+      </div>
+    </div>
+    <div class="zbox zbear">
+      <div class="ztl">🔴 SELL ZONE — ATM PUT</div>
+      <div class="zpr">${isSel?f2(r.price):'—'}</div>
+      <div class="zds">
+        ${r.sw.signal==='sell'?`<b>📈 Swing:</b> Below ${f2(r.sw.lhl)} · High: ${f2(r.sw.swingHigh)}<br>`:''}
+        ${r.ch.signal==='sell'?`<b>📦 Channel:</b> Below ${f2(r.ch.sup)} · Res: ${f2(r.ch.res)}<br>`:''}
+        ATM PUT: <b>${f2(r.strike)}</b> · ${isSel?'<b style="color:#721c24">✅ Active</b>':'No sell signal'}
+      </div>
+    </div>
+  </div>
+  <div class="sgr2">
+    <div class="sc"><div class="sl">Price</div><div class="sv">${f2(r.price)}</div><div class="ss ${r.change>=0?'up':'dn'}">${r.change>=0?'+':''}${r.chgPct.toFixed(2)}%</div></div>
+    <div class="sc"><div class="sl">Signal</div><div class="sv" style="font-size:14px;color:${isBuy?'#00b894':isSel?'#d63031':'#fdcb6e'}">${isBuy?'BUY':isSel?'SELL':'WATCH'}</div><div class="ss">Conf: ${r.conf.toUpperCase()}</div></div>
+    <div class="sc"><div class="sl">Forecast</div><div class="sv" style="font-size:14px;color:${r.fcast?.bias==='bullish'?'#00b894':'#d63031'}">${r.fcast?r.fcast.bias.toUpperCase():'—'}</div><div class="ss">${r.fcast?r.fcast.biasPct+'% / '+r.fcastN+'b':'—'}</div></div>
+    <div class="sc"><div class="sl">Structure</div><div class="sv" style="font-size:14px;color:${r.ms.trend==='uptrend'?'#00b894':r.ms.trend==='downtrend'?'#d63031':'#fdcb6e'}">${r.ms.trend.toUpperCase()}</div><div class="ss">Market structure</div></div>
+    <div class="sc"><div class="sl">ATM Strike</div><div class="sv">${f2(r.strike)}</div><div class="ss">${r.opt??'No signal'}</div></div>
+    <div class="sc"><div class="sl">Stop Loss</div><div class="sv" style="color:#fdcb6e">${f2(r.stop)}</div><div class="ss">${isBuy?'Below swing low':isSel?'Above swing high':'—'}</div></div>
+  </div>
+  <div class="itbar">
+    <span style="font-size:10px;font-weight:700;color:#636e72;margin-right:3px">Panels:</span>
+    <label class="itog on" style="color:#6c5ce7" onclick="togP('pMain')"><span class="idot" style="background:#6c5ce7"></span><span class="il">🕯️ Price + Keltner + Forecast</span></label>
+    <label class="itog on" style="color:#6366f1" onclick="togP('pCycles')"><span class="idot" style="background:#6366f1"></span><span class="il">🔄 Hurst Cycle Arcs</span></label>
+    <label class="itog on" style="color:#2d3436" onclick="togP('pMS')"><span class="idot" style="background:#2d3436"></span><span class="il">📐 Market Structure</span></label>
+    <label class="itog on" style="color:#e84393" onclick="togP('pRSI')"><span class="idot" style="background:#e84393"></span><span class="il">📉 RSI Divergence</span></label>
+    <label class="itog on" style="color:#f59e0b" onclick="togP('pATR')"><span class="idot" style="background:#f59e0b"></span><span class="il">🛡 ATR Stop</span></label>
+    <label class="itog on" style="color:#0984e3" onclick="togP('pVWAP')"><span class="idot" style="background:#0984e3"></span><span class="il">📊 VWAP</span></label>
+    <label class="itog on" style="color:#00b894" onclick="togP('pVP')"><span class="idot" style="background:#00b894"></span><span class="il">📦 Volume Profile</span></label>
+    <label class="itog on" style="color:#c4b5fd" onclick="togP('pReason')"><span class="idot" style="background:#c4b5fd"></span><span class="il">🧠 Reasoning</span></label>
+  </div>
+
+  <!-- P1: Price + Keltner Channel + Forecast + Hurst overlay -->
+  <div class="cpanel" id="pMain">
+    <div class="phdr"><div><div class="pttl">🕯️ Price · Keltner Channel · Forecast</div>
+    <div class="psub">Candles · KC EMA20 ±1.5×ATR (orange) · Grey dotted forecast bands · Swing/Channel levels</div></div></div>
+    <div class="hl" id="hurstLeg"></div>
+    <div class="cxl"><canvas id="cMain"></canvas></div>
+  </div>
+
+  <!-- P2: Hurst Cycle Arcs — dedicated sub-chart BELOW price -->
+  <div class="cpanel" id="pCycles">
+    <div class="phdr"><div><div class="pttl">🔄 Hurst Cycle Arcs — dotted below price</div>
+    <div class="psub" id="cycSub">Sine arcs: ½ cycle · full cycle · 2× cycle · phase extension into forecast</div></div></div>
+    <div class="ccy"><canvas id="cCycles"></canvas></div>
+  </div>
+
+  <!-- P3: Market Structure -->
+  <div class="cpanel" id="pMS">
+    <div class="phdr"><div><div class="pttl">📐 Market Structure — HH / HL / LH / LL</div>
+    <div class="psub" id="msSub">Trend: —</div></div></div>
+    <div class="cmd"><canvas id="cMS"></canvas></div>
+  </div>
+
+  <!-- P4: RSI -->
+  <div class="cpanel" id="pRSI">
+    <div class="phdr"><div><div class="pttl">📉 RSI (14) + Divergence</div>
+    <div class="psub" id="rsiSub">RSI: —</div></div></div>
+    <div class="csm"><canvas id="cRSI"></canvas></div>
+  </div>
+
+  <!-- P5: ATR Stop -->
+  <div class="cpanel" id="pATR">
+    <div class="phdr"><div><div class="pttl">🛡 ATR Dynamic Stop (Chandelier 2×ATR)</div>
+    <div class="psub" id="atrSub">ATR: —</div></div></div>
+    <div class="cmd"><canvas id="cATR"></canvas></div>
+  </div>
+
+  <!-- P6: VWAP -->
+  <div class="cpanel" id="pVWAP">
+    <div class="phdr"><div><div class="pttl">📊 VWAP + Standard Deviation Bands (±1σ, ±2σ)</div>
+    <div class="psub" id="vwapSub">VWAP: —</div></div></div>
+    <div class="cmd"><canvas id="cVWAP"></canvas></div>
+  </div>
+
+  <!-- P7: Volume Profile -->
+  <div class="cpanel" id="pVP">
+    <div class="phdr"><div><div class="pttl">📦 Volume Profile — POC + Value Area</div>
+    <div class="psub" id="vpSub">POC: —</div></div></div>
+    <div class="cvp"><div class="cvp-sub"><canvas id="cVP"></canvas></div><div class="cvp-sub"><canvas id="cVPp"></canvas></div></div>
+  </div>
+
+  <!-- P8: Reasoning -->
+  <div class="rpanel" id="pReason">
+    <div class="rttl2">🧠 Analysis Logic &amp; Forecast Reasoning</div>
+    <div class="rsub">Plain-English interpretation of every signal and indicator for ${sym}</div>
+    <div id="reasonContent">Computing…</div>
+  </div>
+
+  <div class="rec">
+    <div class="rttl">${r.stype==='both'&&isBuy?'⭐ STRONG BUY — Both signals + Forecast · ATM CALL':r.stype==='both'&&isSel?'⭐ STRONG SELL — Both signals · ATM PUT':isBuy?'🟢 BUY — ATM CALL':isSel?'🔴 SELL — ATM PUT':'🟡 NO SIGNAL — Monitor'}</div>
+    <div class="rgr">
+      <div class="ri"><div class="rl">Symbol</div><div class="rv">${sym}</div></div>
+      <div class="ri"><div class="rl">Timeframe</div><div class="rv">${r.tfLabel}</div></div>
+      <div class="ri"><div class="rl">Option</div><div class="rv">${r.opt??'—'}</div></div>
+      <div class="ri"><div class="rl">ATM Strike</div><div class="rv">${f2(r.strike)}</div></div>
+      <div class="ri"><div class="rl">Stop Loss</div><div class="rv">${f2(r.stop)}</div></div>
+      <div class="ri"><div class="rl">DTE Pref</div><div class="rv">≤ 7 days</div></div>
+    </div>
+  </div>`;
 }
 
-// ═══════════════════════════════════════════════
-//  RENDER ALL INDICATOR PANELS
-// ═══════════════════════════════════════════════
-function renderAllPanels(r){
-    // Destroy any existing charts
-    modalCharts.forEach(c=>{ try{c.destroy();}catch(e){} });
-    modalCharts = [];
+function togP(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'':'none';}
 
-    const bars = r.bars;
-    const N    = Math.min(bars.length, 60);
-    // show = oldest first (index 0 = oldest)
-    const show = bars.slice(0, N).reverse();
+// ═══════ RENDER PANELS ════════════════════════════════════════════════════
+function renderPanels(r){
+  modalCharts.forEach(c=>{try{c.destroy();}catch(e){}});
+  modalCharts=[];
 
-    // ── Timestamps ──
-    // Use index-based x-axis (linear) — avoids all time-adapter issues
-    const xs     = show.map((_, i) => i);           // 0,1,2,...,N-1
-    const labels = show.map(b => b.time || '');      // string labels for x ticks
+  const N   = Math.min(r.bars.length, 60);
+  const show= r.bars.slice(0, N).reverse(); // oldest first
+  const opens = show.map(b=>b.open);
+  const highs = show.map(b=>b.high);
+  const lows  = show.map(b=>b.low);
+  const closes= show.map(b=>b.close);
+  const labels= show.map(b=>b.time||'');
 
-    // Price arrays
-    const opens  = show.map(b => b.open);
-    const highs  = show.map(b => b.high);
-    const lows   = show.map(b => b.low);
-    const closes = show.map(b => b.close);
+  const pH = Math.max(...highs), pL = Math.min(...lows);
+  const pad= Math.max((pH-pL)*0.05, pH*0.001);
 
-    const priceHigh = Math.max(...highs);
-    const priceLow  = Math.min(...lows);
-    const pricePad  = Math.max((priceHigh - priceLow) * 0.06, priceHigh * 0.001);
+  function xAx(){return{type:'linear',min:0,max:N-1,ticks:{callback:(v,i)=>{if(i%Math.max(1,Math.floor(N/8))!==0)return'';return labels[v]||'';},font:{size:8},color:'#636e72',maxRotation:0},grid:{color:'#ecf0f1'}};}
+  function yAx(mn,mx){const p=(mx-mn)*0.04||0.5;return{min:mn-p,max:mx+p,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}};}
+  function mkChart(id,type,datasets,opts){
+    const ctx=document.getElementById(id);if(!ctx)return null;
+    const ch=new Chart(ctx,{type,data:{datasets},options:{responsive:true,maintainAspectRatio:false,animation:false,...opts}});
+    modalCharts.push(ch);return ch;
+  }
 
-    // For forecast/hurst we need timestamps
-    const step     = r.bars[0].timestamp && r.bars[1].timestamp
-                   ? Math.abs(r.bars[0].timestamp - r.bars[1].timestamp)
-                   : 300000;
-    const lastTs   = r.bars[0].timestamp || Date.now();
-    const firstTs  = lastTs - (N - 1) * step;
-
-    // x-tick callback: show label every ~8 bars
-    function xTick(val, idx) {
-        if (idx % Math.max(1, Math.floor(N / 8)) !== 0) return '';
-        return labels[idx] || '';
+  // ── Candle plugin ──────────────────────────────────────────────────────
+  const candlePlugin={id:'cp',afterDatasetsDraw(chart){
+    const xs=chart.scales.x,ys=chart.scales.y;
+    if(!xs||!ys)return;
+    const ctx2=chart.ctx,area=chart.chartArea;
+    const cw=Math.max(2,Math.min(14,(area.right-area.left)/N*0.65)),hw=cw/2;
+    ctx2.save();
+    for(let i=0;i<N;i++){
+      const px=xs.getPixelForValue(i);
+      const po=ys.getPixelForValue(opens[i]),ph2=ys.getPixelForValue(highs[i]);
+      const pl=ys.getPixelForValue(lows[i]),pc=ys.getPixelForValue(closes[i]);
+      if([px,po,ph2,pl,pc].some(isNaN))continue;
+      const bull=closes[i]>=opens[i],col=bull?'#00b894':'#d63031';
+      ctx2.strokeStyle=col;ctx2.lineWidth=1;
+      ctx2.beginPath();ctx2.moveTo(px,ph2);ctx2.lineTo(px,pl);ctx2.stroke();
+      const top=Math.min(po,pc),ht=Math.max(Math.abs(pc-po),1);
+      ctx2.fillStyle=col;ctx2.strokeStyle=bull?'#007a5e':'#9b1c1c';ctx2.lineWidth=.5;
+      ctx2.fillRect(px-hw,top,cw,ht);ctx2.strokeRect(px-hw,top,cw,ht);
     }
+    ctx2.restore();
+  }};
 
-    function makeXAxis() {
-        return {
-            type: 'linear',
-            min: 0, max: N - 1,
-            ticks: { callback: xTick, font:{size:9}, color:'#636e72', maxRotation:0 },
-            grid: { color:'#ecf0f1' }
-        };
+  // ── PANEL 1: Price + Keltner + Forecast ──────────────────────────────
+  const fcast= compForecast(r.bars,r.fcastN,r.fcastLB);
+  const kelt = compKeltner(r.bars,20,14,1.5);
+  const hurst= compHurst(r.bars);
+  const fN   = r.fcastN;
+
+  const ancDs={label:'__a__',data:closes.map((v,i)=>({x:i,y:v})),borderColor:'transparent',pointRadius:0,fill:false,parsing:false};
+
+  function hLn(val,lbl,col,dash){return{label:lbl,data:[{x:0,y:val},{x:N-1+(fN||0),y:val}],borderColor:col,borderWidth:1.5,borderDash:dash||[6,4],pointRadius:0,fill:false,parsing:false};}
+
+  const kN=Math.min(kelt.mid.length,N);
+  function kPts(arr){return arr.slice(0,kN).map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);}
+
+  let yMinMain=pL-pad, yMaxMain=pH+pad;
+
+  const ds1=[ancDs];
+  // Keltner Channel
+  ds1.push({label:'KC Upper (±1.5×ATR)',data:kPts(kelt.upper),borderColor:'rgba(249,115,22,0.75)',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false,parsing:false});
+  ds1.push({label:'KC EMA(20)',         data:kPts(kelt.mid),  borderColor:'rgba(249,115,22,1)',   borderWidth:2,  pointRadius:0,fill:false,parsing:false});
+  ds1.push({label:'KC Lower',           data:kPts(kelt.lower),borderColor:'rgba(249,115,22,0.75)',borderWidth:1.5,borderDash:[5,3],pointRadius:0,fill:false,parsing:false});
+
+  if(kelt.upper[0])yMaxMain=Math.max(yMaxMain,kelt.upper[0]);
+  if(kelt.lower[0])yMinMain=Math.min(yMinMain,kelt.lower[0]);
+
+  // Swing/channel levels
+  if(r.sw.swingLow)    ds1.push(hLn(r.sw.swingLow,    'Swing Low',   '#00b894',[6,4]));
+  if(r.sw.swingHigh)   ds1.push(hLn(r.sw.swingHigh,   'Swing High',  '#d63031',[6,4]));
+  if(r.sw.llh)         ds1.push(hLn(r.sw.llh,         'Buy Trig',    '#00cec9',[2,5]));
+  if(r.sw.lhl)         ds1.push(hLn(r.sw.lhl,         'Sell Trig',   '#e17055',[2,5]));
+  if(r.ch.res)         ds1.push(hLn(r.ch.res,         'Chan R',      '#6c5ce7',[8,3]));
+  if(r.ch.sup)         ds1.push(hLn(r.ch.sup,         'Chan S',      '#a29bfe',[8,3]));
+
+  // Forecast
+  if(fcast){
+    const fTs=Array.from({length:fN},(_,i)=>N+i);
+    const fc=[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:fTs[i],y:v}))];
+    const fu=[{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:fTs[i],y:v}))];
+    const fl=[{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:fTs[i],y:v}))];
+    ds1.push({label:`Forecast (${fN}b)`,data:fc,borderColor:'rgba(70,70,70,.85)',borderWidth:2,borderDash:[6,4],pointRadius:[0,...Array(fN).fill(3)],pointBackgroundColor:'rgba(70,70,70,.5)',fill:false,parsing:false,tension:.3});
+    ds1.push({label:'Upper 1.5σ',data:fu,borderColor:'rgba(120,120,120,.5)',borderWidth:1.5,borderDash:[3,5],pointRadius:0,fill:false,parsing:false,tension:.3});
+    ds1.push({label:'Lower 1.5σ',data:fl,borderColor:'rgba(120,120,120,.5)',borderWidth:1.5,borderDash:[3,5],pointRadius:0,fill:false,parsing:false,tension:.3});
+    yMaxMain=Math.max(yMaxMain,...fcast.upper.filter(v=>!isNaN(v)));
+    yMinMain=Math.min(yMinMain,...fcast.lower.filter(v=>!isNaN(v)));
+  }
+
+  // Hurst arcs overlaid on price chart (light)
+  const pMid=(pH+pL)/2,pRng=pH-pL||1;
+  function hArcMain(len,col,lbl,ph){
+    const pts=[];const sx=N-1-len;
+    for(let i=0;i<=len;i++)pts.push({x:sx+i,y:pMid+pRng*.12*Math.sin(Math.PI*i/len+ph)});
+    return{label:lbl,data:pts,borderColor:col,borderWidth:1,borderDash:[3,4],pointRadius:0,fill:false,parsing:false,tension:.4};
+  }
+  ds1.push(hArcMain(hurst.half, 'rgba(59,130,246,.4)',  `½(${hurst.half}b)`, 0));
+  ds1.push(hArcMain(hurst.dom,  'rgba(245,158,11,.4)',  `Full(${hurst.dom}b)`, Math.PI));
+  ds1.push(hArcMain(hurst.dbl,  'rgba(168,85,247,.3)',  `2×(${hurst.dbl}b)`, 0));
+
+  document.getElementById('hurstLeg').innerHTML=
+    `<div class="hi"><div class="hs" style="border-top:2px dashed rgba(59,130,246,.8)"></div>½ Cycle (${hurst.half}b)</div>
+     <div class="hi"><div class="hs" style="border-top:2px dashed rgba(245,158,11,.8)"></div>Full (${hurst.dom}b)</div>
+     <div class="hi"><div class="hs" style="border-top:2px dashed rgba(168,85,247,.7)"></div>2× (${hurst.dbl}b)</div>
+     <div class="hi" style="margin-left:auto;font-size:10px">Phase:${(hurst.phase*100).toFixed(0)}% AC:${hurst.ac}</div>`;
+
+  const mainOpts={
+    interaction:{mode:'index',intersect:false},
+    plugins:{
+      legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:10,filter:i=>i.datasetIndex>0&&!i.text.startsWith('__')}},
+      tooltip:{callbacks:{label:ctx=>{
+        if(ctx.datasetIndex===0){const i=ctx.dataIndex;return[`O:$${opens[i]?.toFixed(2)}  H:$${highs[i]?.toFixed(2)}`,`L:$${lows[i]?.toFixed(2)}  C:$${closes[i]?.toFixed(2)}`];}
+        const v=ctx.parsed?.y;return v!=null?`${ctx.dataset.label}: $${v.toFixed(2)}`:'';
+      }}}
+    },
+    scales:{x:xAx(),y:{min:yMinMain,max:yMaxMain,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+  };
+
+  const mc=new Chart(document.getElementById('cMain'),{type:'line',data:{datasets:ds1},plugins:[candlePlugin],options:{responsive:true,maintainAspectRatio:false,animation:false,...mainOpts}});
+  modalCharts.push(mc);
+
+  // ── PANEL 2: Hurst Cycle Arcs — dedicated sub-chart ──────────────────
+  document.getElementById('cycSub').textContent=
+    `Dominant cycle: ${hurst.dom} bars · Half: ${hurst.half}b · 2×: ${hurst.dbl}b · Phase: ${(hurst.phase*100).toFixed(0)}% · AC strength: ${hurst.ac}`;
+
+  function cycArc(cLen,col,lbl,ph){
+    const pts=[],sx=N-1-cLen;
+    for(let i=0;i<=cLen;i++)pts.push({x:sx+i,y:50+45*Math.sin(Math.PI*i/cLen+ph)});
+    return{label:lbl,data:pts,borderColor:col,borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false,tension:.4};
+  }
+  // Phase extension into forecast zone
+  const phRad=hurst.phase*2*Math.PI;
+  function cycExt(cLen,col){
+    const pts=[];
+    for(let i=0;i<=Math.min(cLen,fN);i++)pts.push({x:N-1+i,y:50+45*Math.sin(phRad+i/cLen*2*Math.PI)});
+    return{label:'Phase fwd',data:pts,borderColor:col,borderWidth:1.5,borderDash:[3,6],pointRadius:0,fill:false,parsing:false,tension:.4};
+  }
+  const dsCyc=[
+    cycArc(hurst.half,'rgba(59,130,246,.85)',`½ Cycle (${hurst.half} bars)`,0),
+    cycArc(hurst.dom, 'rgba(245,158,11,.85)',`Full Cycle (${hurst.dom} bars)`,Math.PI),
+    cycArc(hurst.dbl, 'rgba(168,85,247,.7)', `2× Cycle (${hurst.dbl} bars)`,0),
+    cycExt(hurst.dom,'rgba(245,158,11,.45)'),
+    {label:'Now',data:[{x:N-1,y:0},{x:N-1,y:100}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false,parsing:false},
+  ];
+  mkChart('cCycles','line',dsCyc,{
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:10,filter:i=>i.text!=='Now'&&i.text!=='Phase fwd'}}},
+    scales:{
+      x:{type:'linear',min:0,max:N-1+fN,ticks:{callback:(v,i2)=>{if(v%Math.max(1,Math.floor(N/8))!==0)return'';return labels[Math.min(v,N-1)]||'';},font:{size:8},color:'#636e72',maxRotation:0},grid:{color:'#ecf0f1'}},
+      y:{min:0,max:100,ticks:{callback:v=>v+'%',color:'#636e72',font:{size:8},stepSize:25},grid:{color:'#ecf0f1'},
+        title:{display:true,text:'0=trough · 50=cross · 100=peak',font:{size:8},color:'#636e72'}}
     }
+  });
 
-    function makeYAxis(mn, mx) {
-        const pad = (mx - mn) * 0.05 || 1;
-        return {
-            min: mn - pad, max: mx + pad,
-            ticks: { callback: v => '$' + Number(v).toFixed(2), color:'#636e72', font:{size:9} },
-            grid: { color:'#ecf0f1' }
-        };
-    }
+  // ── PANEL 3: Market Structure ─────────────────────────────────────────
+  const ms=compMS(r.bars.slice(0,80));
+  document.getElementById('msSub').textContent=`Trend: ${ms.trend.toUpperCase()} · ${ms.pivots.length} pivots`;
+  const msCl=show.map((b,i)=>({x:i,y:b.close}));
+  const dsMS=[{label:'Price',data:msCl,borderColor:'#636e72',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1}];
+  const hhP=[],hlP=[],lhP=[],llP=[];
+  ms.pivots.forEach(p=>{const bi=N-1-p.i;if(bi<0||bi>=N)return;const pt={x:bi,y:p.price};
+    if(p.label==='HH')hhP.push(pt);else if(p.label==='HL')hlP.push(pt);else if(p.label==='LH')lhP.push(pt);else llP.push(pt);});
+  function pvDs(pts,lbl,col){return{label:lbl,type:'scatter',data:pts,backgroundColor:col,borderColor:col,pointRadius:5,pointStyle:'circle',parsing:false};}
+  dsMS.push(pvDs(hhP,'HH','#00b894'),pvDs(hlP,'HL','#2ecc71'),pvDs(lhP,'LH','#e17055'),pvDs(llP,'LL','#d63031'));
+  if(ms.pivots.length>1){
+    const pl=ms.pivots.map(p=>{const bi=N-1-p.i;return(bi>=0&&bi<N)?{x:bi,y:p.price}:null;}).filter(Boolean);
+    dsMS.push({label:'Structure',data:pl,borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,parsing:false,tension:0});
+  }
+  mkChart('cMS','scatter',dsMS,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
 
-    function linePts(arr) {
-        return arr.map((v, i) => ({ x: i, y: v }));
-    }
+  // ── PANEL 4: RSI ──────────────────────────────────────────────────────
+  const rsiVals=compRSI(closes.slice().reverse()).slice().reverse();
+  const divs=findDiv(closes,rsiVals);
+  const curRSI=rsiVals[rsiVals.length-1];
+  document.getElementById('rsiSub').textContent=`RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought⚠️':curRSI<30?'Oversold⚠️':'Neutral'} · ${divs.length} divergence(s)`;
+  const rsiPts=rsiVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
+  const dsRSI=[
+    {label:'RSI(14)',data:rsiPts,borderColor:'#e84393',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.2},
+    {label:'OB70', data:[{x:0,y:70},{x:N-1,y:70}],borderColor:'rgba(220,50,50,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'OS30', data:[{x:0,y:30},{x:N-1,y:30}],borderColor:'rgba(0,180,140,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'Mid',  data:[{x:0,y:50},{x:N-1,y:50}],borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
+  ];
+  divs.forEach(d=>{dsRSI.push({label:d.type==='bullish'?'▲BullDiv':'▼BearDiv',data:[{x:d.b1,y:d.r1},{x:d.b2,y:d.r2}],borderColor:d.type==='bullish'?'rgba(0,180,140,.9)':'rgba(210,40,40,.9)',borderWidth:2.5,pointRadius:4,fill:false,parsing:false});});
+  mkChart('cRSI','line',dsRSI,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:{min:0,max:100,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}});
 
-    // ──────────────────────────────────────────
-    //  PANEL 1: Candles + Forecast + Hurst
-    // ──────────────────────────────────────────
-    const fcast    = computeForecast(r.bars, r.fcastBars, r.fcastLB || 100);
-    const hurst    = computeHurst(r.bars);
-    const fcastN   = r.fcastBars;
-    const priceMid = (priceHigh + priceLow) / 2;
+  // ── PANEL 5: ATR Stop ─────────────────────────────────────────────────
+  const bR=[...show].reverse();
+  const atrV=compATR(r.bars.slice(0,60).reverse());
+  const chand=chandelier(bR,atrV.slice(0,60));
+  const curA=atrV[atrV.length-1],curSt=chand.long[chand.long.length-1];
+  document.getElementById('atrSub').textContent=`ATR(14):${curA?.toFixed(2)??'—'} · Long Stop:${curSt?.toFixed(2)??'—'} · Price:${f2(r.price)}`;
+  const pLine=closes.map((v,i)=>({x:i,y:v}));
+  const lsP=chand.long.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
+  const ssP=chand.short.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
+  const dsATR=[
+    {label:'Price',     data:pLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'Long Stop', data:lsP,  borderColor:'#00b894',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'Short Stop',data:ssP,  borderColor:'#d63031',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+  ];
+  mkChart('cATR','line',dsATR,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
 
-    // Candle plugin — draws on top of a transparent line chart
-    const candlePlugin = {
-        id: 'ohlcDraw',
-        afterDatasetsDraw(chart) {
-            const xSc = chart.scales.x;
-            const ySc = chart.scales.y;
-            if (!xSc || !ySc) return;
-            const ctx2  = chart.ctx;
-            const area  = chart.chartArea;
-            const barW  = Math.max(2, Math.min(14, (area.right - area.left) / N * 0.65));
-            const hw    = barW / 2;
+  // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
+  const vwapV=compVWAP(bR).reverse();
+  const bds=vwapBands(bR,vwapV.slice().reverse());
+  const curVW=vwapV[vwapV.length-1];
+  document.getElementById('vwapSub').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
+  function vPts(arr){return arr.slice().reverse().map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
+  const dsVWAP=[
+    {label:'Price',data:pLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'VWAP', data:vPts(vwapV),borderColor:'#0984e3',borderWidth:2,pointRadius:0,fill:false,parsing:false},
+    {label:'+1σ',  data:vPts(bds.s1p),borderColor:'rgba(9,132,227,.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'-1σ',  data:vPts(bds.s1n),borderColor:'rgba(9,132,227,.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'+2σ',  data:vPts(bds.s2p),borderColor:'rgba(9,132,227,.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
+    {label:'-2σ',  data:vPts(bds.s2n),borderColor:'rgba(9,132,227,.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
+  ];
+  mkChart('cVWAP','line',dsVWAP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
 
-            ctx2.save();
-            for (let i = 0; i < N; i++) {
-                const px  = xSc.getPixelForValue(i);
-                const pyo = ySc.getPixelForValue(opens[i]);
-                const pyh = ySc.getPixelForValue(highs[i]);
-                const pyl = ySc.getPixelForValue(lows[i]);
-                const pyc = ySc.getPixelForValue(closes[i]);
-                if ([px,pyo,pyh,pyl,pyc].some(isNaN)) continue;
-                const bull = closes[i] >= opens[i];
-                const col  = bull ? '#00b894' : '#d63031';
-                // Wick
-                ctx2.strokeStyle = col;
-                ctx2.lineWidth   = 1;
-                ctx2.beginPath();
-                ctx2.moveTo(px, pyh);
-                ctx2.lineTo(px, pyl);
-                ctx2.stroke();
-                // Body
-                const top = Math.min(pyo, pyc);
-                const ht  = Math.max(Math.abs(pyc - pyo), 1);
-                ctx2.fillStyle   = col;
-                ctx2.strokeStyle = bull ? '#007a5e' : '#9b1c1c';
-                ctx2.lineWidth   = 0.5;
-                ctx2.fillRect(px - hw, top, barW, ht);
-                ctx2.strokeRect(px - hw, top, barW, ht);
-            }
-            ctx2.restore();
-        }
-    };
+  // ── PANEL 7: Volume Profile ───────────────────────────────────────────
+  const vp=compVP(r.bars);
+  document.getElementById('vpSub').textContent=`POC:${f2(vp.poc.price)} · VAH:${f2(vp.vaH)} · VAL:${f2(vp.vaL)}`;
+  const dsVP=[
+    {label:'Price',          data:pLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:`POC ${f2(vp.poc.price)}`,data:[{x:0,y:vp.poc.price},{x:N-1,y:vp.poc.price}],borderColor:'#fdcb6e',borderWidth:2,pointRadius:0,fill:false,parsing:false},
+    {label:`VAH ${f2(vp.vaH)}`,      data:[{x:0,y:vp.vaH},{x:N-1,y:vp.vaH}],borderColor:'rgba(0,184,148,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
+    {label:`VAL ${f2(vp.vaL)}`,      data:[{x:0,y:vp.vaL},{x:N-1,y:vp.vaL}],borderColor:'rgba(214,48,49,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
+  ];
+  mkChart('cVP','line',dsVP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
+  const vpCols=vp.prof.map(p=>p.price===vp.poc.price?'rgba(253,203,110,.9)':p.price>=vp.vaL&&p.price<=vp.vaH?'rgba(9,132,227,.55)':'rgba(160,160,160,.45)');
+  mkChart('cVPp','bar',
+    [{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
+    {indexAxis:'y',scales:{x:{ticks:{display:false},grid:{display:false}},y:{labels:vp.prof.map(p=>'$'+p.price.toFixed(1)),ticks:{font:{size:7},color:'#636e72'},grid:{display:false}}},plugins:{legend:{display:false}}});
 
-    // Invisible anchor line so Chart.js sets up x/y scales correctly
-    const anchorDs = {
-        label: '__anchor__',
-        data:  closes.map((v,i) => ({x:i, y:v})),
-        borderColor: 'transparent',
-        backgroundColor: 'transparent',
-        pointRadius: 0,
-        fill: false,
-        parsing: false
-    };
-
-    const ds1 = [anchorDs];
-
-    // Swing / channel overlays
-    function hLn(val, lbl, col, dash) {
-        return { label: lbl,
-            data: [{x:0,y:val},{x:N-1+(fcastN>0?fcastN:0),y:val}],
-            borderColor: col, borderWidth:1.5, borderDash: dash||[6,4],
-            pointRadius:0, fill:false, parsing:false };
-    }
-    if (r.swing.swingLow)     ds1.push(hLn(r.swing.swingLow,     'Swing Low',    '#00b894',[6,4]));
-    if (r.swing.swingHigh)    ds1.push(hLn(r.swing.swingHigh,    'Swing High',   '#d63031',[6,4]));
-    if (r.swing.leftLowHigh)  ds1.push(hLn(r.swing.leftLowHigh,  'Buy Trigger',  '#00cec9',[2,5]));
-    if (r.swing.leftHighLow)  ds1.push(hLn(r.swing.leftHighLow,  'Sell Trigger', '#e17055',[2,5]));
-    if (r.channel.resistance) ds1.push(hLn(r.channel.resistance, 'Chan R',       '#6c5ce7',[8,3]));
-    if (r.channel.support)    ds1.push(hLn(r.channel.support,    'Chan S',       '#a29bfe',[8,3]));
-
-    // Forecast — projected bars after index N-1
-    if (fcast) {
-        const fBridge = [{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
-        const fUpper  = [{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:N+i,y:v}))];
-        const fLower  = [{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:N+i,y:v}))];
-        ds1.push({ label:`Forecast (${fcastN}b)`, data:fBridge, borderColor:'rgba(70,70,70,0.85)', borderWidth:2, borderDash:[6,4], pointRadius:[0,...Array(fcastN).fill(3)], pointBackgroundColor:'rgba(70,70,70,0.55)', fill:false, parsing:false, tension:0.3 });
-        ds1.push({ label:'Upper 1.5σ', data:fUpper, borderColor:'rgba(120,120,120,0.5)', borderWidth:1.5, borderDash:[3,5], pointRadius:0, fill:false, parsing:false, tension:0.3 });
-        ds1.push({ label:'Lower 1.5σ', data:fLower, borderColor:'rgba(120,120,120,0.5)', borderWidth:1.5, borderDash:[3,5], pointRadius:0, fill:false, parsing:false, tension:0.3 });
-    }
-
-    // Hurst arcs
-    function hurstArc(len, col, lbl, ph) {
-        const pts = [];
-        const startX = N - 1 - len;
-        for (let i = 0; i <= len; i++) {
-            const frac = i / len;
-            pts.push({ x: startX + i, y: priceMid + (priceHigh - priceLow) * 0.15 * Math.sin(Math.PI * frac + ph) });
-        }
-        return { label:lbl, data:pts, borderColor:col, borderWidth:1.5, borderDash:[4,3], pointRadius:0, fill:false, parsing:false, tension:0 };
-    }
-    ds1.push(hurstArc(hurst.halfCycle,     'rgba(59,130,246,0.75)',  `½ Cycle (${hurst.halfCycle}b)`,     0));
-    ds1.push(hurstArc(hurst.dominantCycle, 'rgba(245,158,11,0.75)',  `Full Cycle (${hurst.dominantCycle}b)`, Math.PI));
-    ds1.push(hurstArc(hurst.doubleCycle,   'rgba(168,85,247,0.55)',  `2× Cycle (${hurst.doubleCycle}b)`,  0));
-
-    document.getElementById('hurstLegend').innerHTML =
-        `<div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(59,130,246,0.8);"></div>½ Cycle (${hurst.halfCycle} bars)</div>
-         <div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(245,158,11,0.8);"></div>Full Cycle (${hurst.dominantCycle} bars)</div>
-         <div class="hurst-item"><div class="hurst-swatch" style="border-top:2px dashed rgba(168,85,247,0.6);"></div>2× Cycle (${hurst.doubleCycle} bars)</div>
-         <div class="hurst-item" style="margin-left:auto;font-size:11px;color:#636e72;">Phase: ${(hurst.phase*100).toFixed(0)}% · AC: ${hurst.autocorrStrength}</div>`;
-
-    // Compute y range including forecast
-    let yMin = priceLow  - pricePad;
-    let yMax = priceHigh + pricePad;
-    if (fcast) {
-        yMax = Math.max(yMax, ...fcast.upper.filter(v=>!isNaN(v)));
-        yMin = Math.min(yMin, ...fcast.lower.filter(v=>!isNaN(v)));
-    }
-
-    modalCharts.push(new Chart(document.getElementById('chartMain'), {
-        type: 'line',
-        data: { datasets: ds1 },
-        plugins: [candlePlugin],
-        options: {
-            responsive: true, maintainAspectRatio: false, animation: false,
-            interaction: { mode:'index', intersect:false },
-            plugins: {
-                legend: { display:true, position:'top',
-                    labels: { font:{size:9}, boxWidth:12,
-                        filter: item => item.datasetIndex > 0 && !item.text.startsWith('__') }},
-                tooltip: { callbacks: { label: ctx => {
-                    if (ctx.datasetIndex === 0) {
-                        const xi = ctx.dataIndex;
-                        return [`O:$${opens[xi]?.toFixed(2)}  H:$${highs[xi]?.toFixed(2)}`,
-                                `L:$${lows[xi]?.toFixed(2)}   C:$${closes[xi]?.toFixed(2)}`];
-                    }
-                    const v = ctx.parsed?.y;
-                    return v != null ? `${ctx.dataset.label}: $${v.toFixed(2)}` : '';
-                }}}
-            },
-            scales: {
-                x: { type:'linear', min:0, max:N-1+fcastN,
-                     ticks:{ callback:xTick, font:{size:9}, color:'#636e72', maxRotation:0 },
-                     grid:{ color:'#ecf0f1' }, offset:false },
-                y: { min:yMin, max:yMax,
-                     ticks:{ callback:v=>'$'+v.toFixed(2), color:'#636e72', font:{size:9} },
-                     grid:{ color:'#ecf0f1' }}
-            }
-        }
-    }));
-
-    // ──────────────────────────────────────────
-    //  PANEL 2: Market Structure
-    // ──────────────────────────────────────────
-    const ms = computeMarketStructure(r.bars.slice(0, 80));
-    document.getElementById('msTrend').textContent =
-        `Trend: ${ms.trend.toUpperCase()} · ${ms.pivots.length} pivots detected`;
-
-    const msCloses = show.map((b,i) => ({x:i, y:b.close}));
-    const ds2 = [{ label:'Price', data:msCloses, borderColor:'#636e72', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 }];
-
-    const hhPts=[],hlPts=[],lhPts=[],llPts=[];
-    ms.pivots.forEach(p => {
-        const bi = N - 1 - p.i;
-        if (bi < 0 || bi >= N) return;
-        const pt = {x:bi, y:p.price};
-        if      (p.label==='HH') hhPts.push(pt);
-        else if (p.label==='HL') hlPts.push(pt);
-        else if (p.label==='LH') lhPts.push(pt);
-        else                     llPts.push(pt);
-    });
-
-    function pivotDs(pts, lbl, col) {
-        return { label:lbl, type:'scatter', data:pts, backgroundColor:col, borderColor:col, pointRadius:6, pointStyle:'circle', parsing:false };
-    }
-    ds2.push(pivotDs(hhPts,'HH','#00b894'));
-    ds2.push(pivotDs(hlPts,'HL','#2ecc71'));
-    ds2.push(pivotDs(lhPts,'LH','#e17055'));
-    ds2.push(pivotDs(llPts,'LL','#d63031'));
-
-    if (ms.pivots.length > 1) {
-        const pivLine = ms.pivots
-            .map(p => { const bi=N-1-p.i; return (bi>=0&&bi<N)?{x:bi,y:p.price}:null; })
-            .filter(Boolean);
-        ds2.push({ label:'Structure', data:pivLine, borderColor:'rgba(100,100,100,0.3)', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false, parsing:false, tension:0 });
-    }
-
-    modalCharts.push(new Chart(document.getElementById('chartMS'), {
-        type:'scatter', data:{datasets:ds2},
-        options:{ responsive:true, maintainAspectRatio:false, animation:false,
-            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
-            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
-    }));
-
-    // ──────────────────────────────────────────
-    //  PANEL 3: RSI + Divergence
-    // ──────────────────────────────────────────
-    const rsiValues = computeRSI(closes.slice().reverse()).slice().reverse();
-    const divs      = findDivergence(closes, rsiValues);
-    const curRSI    = rsiValues[rsiValues.length-1];
-    document.getElementById('rsiStatus').textContent =
-        `RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought ⚠️':curRSI<30?'Oversold ⚠️':'Neutral'} · ${divs.length} divergence(s)`;
-
-    const rsiPts = rsiValues.map((v,i) => ({x:i, y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
-    const ds3 = [
-        { label:'RSI(14)', data:rsiPts, borderColor:'#e84393', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.2 },
-        { label:'OB 70',  data:[{x:0,y:70},{x:N-1,y:70}], borderColor:'rgba(220,50,50,0.4)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
-        { label:'OS 30',  data:[{x:0,y:30},{x:N-1,y:30}], borderColor:'rgba(0,180,140,0.4)', borderWidth:1, borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
-        { label:'Mid 50', data:[{x:0,y:50},{x:N-1,y:50}], borderColor:'rgba(100,100,100,0.2)', borderWidth:1, borderDash:[2,4], pointRadius:0, fill:false, parsing:false },
-    ];
-    divs.forEach(d => {
-        ds3.push({ label:d.type==='bullish'?'▲ Bull Div':'▼ Bear Div',
-            data:[{x:d.bar1,y:d.rsi1},{x:d.bar2,y:d.rsi2}],
-            borderColor:d.type==='bullish'?'rgba(0,180,140,0.9)':'rgba(210,40,40,0.9)',
-            borderWidth:2.5, pointRadius:4, fill:false, parsing:false });
-    });
-
-    modalCharts.push(new Chart(document.getElementById('chartRSI'), {
-        type:'line', data:{datasets:ds3},
-        options:{ responsive:true, maintainAspectRatio:false, animation:false,
-            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
-            scales:{ x:makeXAxis(), y:{ min:0, max:100, ticks:{callback:v=>v, color:'#636e72', font:{size:9}}, grid:{color:'#ecf0f1'} } }}
-    }));
-
-    // ──────────────────────────────────────────
-    //  PANEL 4: ATR Chandelier Stop
-    // ──────────────────────────────────────────
-    const barsRev  = show.slice().reverse();
-    const atr      = computeATR(r.bars.slice(0,60).reverse());
-    const chande   = chandelierExit(barsRev, atr.slice(0,60));
-    const curATR   = atr[atr.length-1];
-    const curStop  = chande.long[chande.long.length-1];
-    document.getElementById('atrStatus').textContent =
-        `ATR(14): ${curATR?.toFixed(2)??'—'} · Long Stop: ${curStop?.toFixed(2)??'—'} · Price: ${f2(r.price)}`;
-
-    const priceLine = closes.map((v,i) => ({x:i,y:v}));
-    const longStop  = chande.long.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
-    const shortStop = chande.short.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
-    const atrPts    = atr.slice().reverse().map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
-
-    const ds4 = [
-        { label:'Price',       data:priceLine, borderColor:'#636e72', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 },
-        { label:'Long Stop',   data:longStop,  borderColor:'#00b894', borderWidth:2,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
-        { label:'Short Stop',  data:shortStop, borderColor:'#d63031', borderWidth:2,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
-    ];
-
-    modalCharts.push(new Chart(document.getElementById('chartATR'), {
-        type:'line', data:{datasets:ds4},
-        options:{ responsive:true, maintainAspectRatio:false, animation:false,
-            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
-            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
-    }));
-
-    // ──────────────────────────────────────────
-    //  PANEL 5: VWAP + Bands
-    // ──────────────────────────────────────────
-    const barsForVWAP = show.slice().reverse();
-    const vwapVals    = computeVWAP(barsForVWAP).reverse();
-    const bands       = vwapBands(barsForVWAP, vwapVals.slice().reverse());
-    const curVWAP     = vwapVals[vwapVals.length-1];
-    document.getElementById('vwapStatus').textContent =
-        `VWAP: ${f2(curVWAP)} · Price ${r.price > curVWAP ? 'ABOVE (bullish)':'BELOW (bearish)'}`;
-
-    function vpts(arr) { return arr.slice().reverse().map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0); }
-
-    const ds5 = [
-        { label:'Price',  data:priceLine,       borderColor:'#636e72',            borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 },
-        { label:'VWAP',   data:vpts(vwapVals),  borderColor:'#0984e3',            borderWidth:2,   pointRadius:0, fill:false, parsing:false },
-        { label:'+1σ',    data:vpts(bands.s1p), borderColor:'rgba(9,132,227,0.5)',borderWidth:1,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
-        { label:'-1σ',    data:vpts(bands.s1n), borderColor:'rgba(9,132,227,0.5)',borderWidth:1,   borderDash:[4,3], pointRadius:0, fill:false, parsing:false },
-        { label:'+2σ',    data:vpts(bands.s2p), borderColor:'rgba(9,132,227,0.3)',borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false, parsing:false },
-        { label:'-2σ',    data:vpts(bands.s2n), borderColor:'rgba(9,132,227,0.3)',borderWidth:1,   borderDash:[2,5], pointRadius:0, fill:false, parsing:false },
-    ];
-
-    modalCharts.push(new Chart(document.getElementById('chartVWAP'), {
-        type:'line', data:{datasets:ds5},
-        options:{ responsive:true, maintainAspectRatio:false, animation:false,
-            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
-            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
-    }));
-
-    // ──────────────────────────────────────────
-    //  PANEL 6: Volume Profile
-    // ──────────────────────────────────────────
-    const vp = computeVolumeProfile(r.bars, 24);
-    document.getElementById('vpStatus').textContent =
-        `POC: ${f2(vp.poc.price)} · VAH: ${f2(vp.vaH)} · VAL: ${f2(vp.vaL)}`;
-
-    const ds6Main = [
-        { label:'Price',          data:priceLine, borderColor:'#636e72', borderWidth:1.5, pointRadius:0, fill:false, parsing:false, tension:0.1 },
-        { label:`POC ${f2(vp.poc.price)}`, data:[{x:0,y:vp.poc.price},{x:N-1,y:vp.poc.price}], borderColor:'#fdcb6e', borderWidth:2, pointRadius:0, fill:false, parsing:false },
-        { label:`VAH ${f2(vp.vaH)}`,       data:[{x:0,y:vp.vaH},{x:N-1,y:vp.vaH}],             borderColor:'rgba(0,184,148,0.6)', borderWidth:1.5, borderDash:[6,3], pointRadius:0, fill:false, parsing:false },
-        { label:`VAL ${f2(vp.vaL)}`,       data:[{x:0,y:vp.vaL},{x:N-1,y:vp.vaL}],             borderColor:'rgba(214,48,49,0.6)', borderWidth:1.5, borderDash:[6,3], pointRadius:0, fill:false, parsing:false },
-    ];
-
-    modalCharts.push(new Chart(document.getElementById('chartVP'), {
-        type:'line', data:{datasets:ds6Main},
-        options:{ responsive:true, maintainAspectRatio:false, animation:false,
-            plugins:{ legend:{ display:true, position:'top', labels:{font:{size:9},boxWidth:10}} },
-            scales:{ x:makeXAxis(), y:makeYAxis(priceLow,priceHigh) }}
-    }));
-
-    const vpColors = vp.profile.map(p =>
-        p.price === vp.poc.price       ? 'rgba(253,203,110,0.9)'
-        : p.price >= vp.vaL && p.price <= vp.vaH ? 'rgba(9,132,227,0.55)'
-        : 'rgba(160,160,160,0.45)');
-
-    modalCharts.push(new Chart(document.getElementById('chartVPProfile'), {
-        type:'bar',
-        data:{ labels:vp.profile.map(p=>'$'+p.price.toFixed(1)), datasets:[{ label:'Volume', data:vp.profile.map(p=>p.vol), backgroundColor:vpColors, borderWidth:0 }]},
-        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, animation:false,
-            plugins:{ legend:{display:false} },
-            scales:{ x:{ticks:{display:false},grid:{display:false}}, y:{ticks:{font:{size:8},color:'#636e72'},grid:{display:false}} }}
-    }));
-
-    // ── Build reasoning after all indicators computed ──
-    buildReasoning(r, rsiValues, vp, hurst, atr, chande, curVWAP, ms);
+  // ── Reasoning ────────────────────────────────────────────────────────
+  buildReasoning(r,rsiVals,vp,hurst,atrV,chand,curVW,ms,kelt);
 }
 
+// ═══════ REASONING ═══════════════════════════════════════════════════════
+function buildReasoning(r,rsiVals,vp,hurst,atr,chand,vwap,ms,kelt){
+  const isBuy=r.dir==='buy',isSel=r.dir==='sell';
+  const fcast=r.fcast;
+  const curRSI=rsiVals.find(v=>v!=null);
+  const rsiN=parseFloat(curRSI);
+  const sigs=[];
 
-function buildReasoning(r, rsiVals, vp, hurst, atr, chande, vwapVal, ms){
-    const isBuy  = r.direction === 'buy';
-    const isSel  = r.direction === 'sell';
-    const fcast  = r.forecast;
-    const sw     = r.swing;
-    const ch     = r.channel;
-    const curRSI = rsiVals.find(v => v !== null);
-    const curATR = atr.slice(-1)[0];
+  // Swing
+  if(r.sw.signal==='buy')  sigs.push({n:'Swing breakout',s:1, note:`Close crossed above ${f2(r.sw.llh)} — left-candle high of swing low at ${f2(r.sw.swingLow)}.`});
+  else if(r.sw.signal==='sell')sigs.push({n:'Swing breakout',s:-1,note:`Close crossed below ${f2(r.sw.lhl)} — left-candle low of swing high at ${f2(r.sw.swingHigh)}.`});
+  else sigs.push({n:'Swing breakout',s:0,note:`No breakout. Buy trigger at ${f2(r.sw.llh)}, sell trigger at ${f2(r.sw.lhl)}.`});
 
-    // ── SCORE each signal (+1 bull, -1 bear, 0 neutral) ──
-    const signals = [];
+  // Channel
+  if(r.ch.signal==='buy')  sigs.push({n:'Channel breakout',s:1, note:`Broke above resistance ${f2(r.ch.res)} (width ${r.ch.width?.toFixed(2)}%).`});
+  else if(r.ch.signal==='sell')sigs.push({n:'Channel breakout',s:-1,note:`Broke below support ${f2(r.ch.sup)} (width ${r.ch.width?.toFixed(2)}%).`});
+  else if(r.ch.inCh)sigs.push({n:'Channel',s:0,note:`Consolidating inside ${f2(r.ch.sup)}–${f2(r.ch.res)} (${r.ch.width?.toFixed(2)}%). Watch for breakout.`});
+  else sigs.push({n:'Channel',s:0,note:`No qualifying channel (width ${r.ch.width?.toFixed(2)}% > max).`});
 
-    // 1. Swing breakout
-    if(sw.signal === 'buy')  signals.push({ name:'Swing breakout', score:1,  note:`Close crossed above ${f2(sw.leftLowHigh)} — left-candle high of swing low at ${f2(sw.swingLow)}.` });
-    else if(sw.signal === 'sell') signals.push({ name:'Swing breakout', score:-1, note:`Close crossed below ${f2(sw.leftHighLow)} — left-candle low of swing high at ${f2(sw.swingHigh)}.` });
-    else signals.push({ name:'Swing breakout', score:0, note:`No breakout on current bar. Buy trigger at ${f2(sw.leftLowHigh)}, sell trigger at ${f2(sw.leftHighLow)}.` });
+  // Market structure
+  if(ms.trend==='uptrend')  sigs.push({n:'Market structure',s:1, note:'HH/HL sequence confirmed — higher highs and higher lows define a clear uptrend.'});
+  else if(ms.trend==='downtrend')sigs.push({n:'Market structure',s:-1,note:'LH/LL sequence confirmed — lower highs and lower lows define a downtrend.'});
+  else sigs.push({n:'Market structure',s:0,note:'Mixed pivots — market is ranging without clear directional bias.'});
 
-    // 2. Channel
-    if(ch.signal === 'buy')  signals.push({ name:'Channel breakout', score:1,  note:`Price broke above channel resistance ${f2(ch.resistance)} (width ${ch.channelWidth?.toFixed(2)}%).` });
-    else if(ch.signal === 'sell') signals.push({ name:'Channel breakout', score:-1, note:`Price broke below channel support ${f2(ch.support)} (width ${ch.channelWidth?.toFixed(2)}%).` });
-    else if(ch.inChannel) signals.push({ name:'Channel', score:0, note:`Price is consolidating inside the channel (${f2(ch.support)} – ${f2(ch.resistance)}, width ${ch.channelWidth?.toFixed(2)}%). Watch for breakout.` });
-    else signals.push({ name:'Channel', score:0, note:`No qualifying channel found — range too wide (${ch.channelWidth?.toFixed(2)}%).` });
+  // RSI
+  if(!isNaN(rsiN)){
+    if(rsiN>70)     sigs.push({n:'RSI(14)',s:-1,note:`RSI ${rsiN.toFixed(1)} — overbought (>70). Momentum extended, pullback risk.`});
+    else if(rsiN<30)sigs.push({n:'RSI(14)',s:1, note:`RSI ${rsiN.toFixed(1)} — oversold (<30). Selling exhausted, bounce potential.`});
+    else if(rsiN>55)sigs.push({n:'RSI(14)',s:1, note:`RSI ${rsiN.toFixed(1)} — bullish territory (>55). Momentum favors upside.`});
+    else if(rsiN<45)sigs.push({n:'RSI(14)',s:-1,note:`RSI ${rsiN.toFixed(1)} — bearish territory (<45). Momentum favors downside.`});
+    else sigs.push({n:'RSI(14)',s:0,note:`RSI ${rsiN.toFixed(1)} — neutral (45–55). No clear edge.`});
+  }
 
-    // 3. Market structure
-    if(ms.trend === 'uptrend')   signals.push({ name:'Market structure', score:1,  note:`HH/HL sequence confirmed — price is making higher highs and higher lows, defining a clear uptrend.` });
-    else if(ms.trend === 'downtrend') signals.push({ name:'Market structure', score:-1, note:`LH/LL sequence confirmed — price is making lower highs and lower lows, defining a downtrend.` });
-    else signals.push({ name:'Market structure', score:0, note:`Mixed HH/HL/LH/LL sequence — market is ranging without a clear directional bias.` });
+  // VWAP
+  if(vwap){
+    if(r.price>vwap)sigs.push({n:'VWAP',s:1, note:`Price ${f2(r.price)} above VWAP ${f2(vwap)}. Institutional money net long — bullish intraday bias.`});
+    else sigs.push({n:'VWAP',s:-1,note:`Price ${f2(r.price)} below VWAP ${f2(vwap)}. Institutional money net short — bearish intraday bias.`});
+  }
 
-    // 4. RSI
-    const rsiNum = parseFloat(curRSI);
-    if(!isNaN(rsiNum)){
-        if(rsiNum > 70)       signals.push({ name:'RSI (14)', score:-1, note:`RSI at ${rsiNum.toFixed(1)} is overbought (>70). Momentum is extended — risk of pullback even in an uptrend.` });
-        else if(rsiNum < 30)  signals.push({ name:'RSI (14)', score:1,  note:`RSI at ${rsiNum.toFixed(1)} is oversold (<30). Selling pressure is exhausted — potential for a bounce or reversal.` });
-        else if(rsiNum > 55)  signals.push({ name:'RSI (14)', score:1,  note:`RSI at ${rsiNum.toFixed(1)} is in bullish territory (above 55 midline) — momentum favors the upside.` });
-        else if(rsiNum < 45)  signals.push({ name:'RSI (14)', score:-1, note:`RSI at ${rsiNum.toFixed(1)} is in bearish territory (below 45 midline) — momentum favors the downside.` });
-        else signals.push({ name:'RSI (14)', score:0, note:`RSI at ${rsiNum.toFixed(1)} is neutral (45–55). No clear momentum edge from RSI alone.` });
-    }
+  // Keltner
+  if(kelt&&kelt.mid[0]!=null){
+    if(r.price>kelt.upper[0])sigs.push({n:'Keltner Channel',s:1, note:`Price above KC upper band ${f2(kelt.upper[0])}. Breakout above channel — strong bullish momentum.`});
+    else if(r.price<kelt.lower[0])sigs.push({n:'Keltner Channel',s:-1,note:`Price below KC lower band ${f2(kelt.lower[0])}. Breakout below channel — strong bearish momentum.`});
+    else if(r.price>kelt.mid[0])sigs.push({n:'Keltner Channel',s:1, note:`Price above KC midline EMA ${f2(kelt.mid[0])} but inside bands — mild bullish bias.`});
+    else sigs.push({n:'Keltner Channel',s:-1,note:`Price below KC midline EMA ${f2(kelt.mid[0])} but inside bands — mild bearish bias.`});
+  }
 
-    // 5. VWAP
-    if(vwapVal){
-        if(r.price > vwapVal) signals.push({ name:'VWAP position', score:1,  note:`Price (${f2(r.price)}) is above VWAP (${f2(vwapVal)}). Institutional money is net long on average — bullish bias intraday.` });
-        else signals.push({ name:'VWAP position', score:-1, note:`Price (${f2(r.price)}) is below VWAP (${f2(vwapVal)}). Institutional money is net short on average — bearish bias intraday.` });
-    }
+  // Volume Profile
+  if(vp){
+    if(Math.abs(r.price-vp.poc.price)/vp.poc.price<0.005)sigs.push({n:'Volume Profile',s:0,note:`Price at Point of Control ${f2(vp.poc.price)} — highest-volume node. Acts as magnet; decisive move away is significant.`});
+    else if(r.price>vp.vaH)sigs.push({n:'Volume Profile',s:1, note:`Price above Value Area High ${f2(vp.vaH)} — cleared top of volume cluster, bullish breakout.`});
+    else if(r.price<vp.vaL)sigs.push({n:'Volume Profile',s:-1,note:`Price below Value Area Low ${f2(vp.vaL)} — fallen through bottom of volume cluster, bearish.`});
+    else sigs.push({n:'Volume Profile',s:0,note:`Inside Value Area (${f2(vp.vaL)}–${f2(vp.vaH)}). POC ${f2(vp.poc.price)} is key reference level.`});
+  }
 
-    // 6. Volume Profile / POC
-    if(vp){
-        const distPOC = ((r.price - vp.poc.price) / vp.poc.price * 100);
-        if(Math.abs(distPOC) < 0.5) signals.push({ name:'Volume Profile', score:0, note:`Price is sitting right at the Point of Control (${f2(vp.poc.price)}) — the highest-volume price node. This acts as a magnet; a decisive move away from here is significant.` });
-        else if(r.price > vp.vaH)   signals.push({ name:'Volume Profile', score:1,  note:`Price (${f2(r.price)}) has cleared the Value Area High (${f2(vp.vaH)}). Breaking above the top 70% of volume is a bullish sign — less overhead resistance.` });
-        else if(r.price < vp.vaL)   signals.push({ name:'Volume Profile', score:-1, note:`Price (${f2(r.price)}) has broken below the Value Area Low (${f2(vp.vaL)}). Falling below the bottom of the volume cluster signals sellers are in control.` });
-        else signals.push({ name:'Volume Profile', score:0, note:`Price is within the Value Area (${f2(vp.vaL)} – ${f2(vp.vaH)}). The POC at ${f2(vp.poc.price)} is the key reference — direction of next breakout from value area will be telling.` });
-    }
+  // Hurst
+  if(hurst){
+    const ph=hurst.phase;
+    let hs=0,hn='';
+    if(ph<0.15||ph>0.85){hs=1;hn=`Near cycle trough (phase ${(ph*100).toFixed(0)}%) — ascending half-arc expected next.`;}
+    else if(ph>0.4&&ph<0.6){hs=-1;hn=`Near cycle peak (phase ${(ph*100).toFixed(0)}%) — descending half-arc expected next.`;}
+    else if(ph<0.4){hs=1;hn=`In ascending half-arc (phase ${(ph*100).toFixed(0)}%) — cycle momentum building toward peak.`;}
+    else{hs=-1;hn=`In descending half-arc (phase ${(ph*100).toFixed(0)}%) — cycle working toward next trough.`;}
+    sigs.push({n:'Hurst cycle',s:hs,note:hn});
+  }
 
-    // 7. Hurst cycle phase
-    if(hurst){
-        const phase = hurst.phase; // 0–1
-        let hurstScore = 0, hurstNote = '';
-        if(phase < 0.15 || phase > 0.85){
-            hurstScore = 1;
-            hurstNote = `Hurst dominant cycle (${hurst.dominantCycle} bars) is near its trough (phase ${(phase*100).toFixed(0)}%). This is the buying zone of the cycle — price is expected to begin the ascending half-arc.`;
-        } else if(phase > 0.4 && phase < 0.6){
-            hurstScore = -1;
-            hurstNote = `Hurst cycle (${hurst.dominantCycle} bars) is near its peak (phase ${(phase*100).toFixed(0)}%). This is the selling zone of the cycle — price is expected to begin the descending half-arc.`;
-        } else if(phase < 0.4){
-            hurstScore = 1;
-            hurstNote = `Hurst cycle (${hurst.dominantCycle} bars) is in the ascending half-arc (phase ${(phase*100).toFixed(0)}%). The bullish half-circle is in progress — momentum should build toward the cycle peak.`;
-        } else {
-            hurstScore = -1;
-            hurstNote = `Hurst cycle (${hurst.dominantCycle} bars) is in the descending half-arc (phase ${(phase*100).toFixed(0)}%). The bearish half-circle is in progress — price is working toward the next cycle trough.`;
-        }
-        signals.push({ name:'Hurst cycle', score:hurstScore, note:hurstNote });
-    }
+  // Forecast
+  if(fcast){
+    sigs.push({n:'Ensemble forecast',s:fcast.bias==='bullish'?1:-1,
+      note:`Pattern match (r=${fcast.corr}), ${hurst?.dom}-bar cycle, momentum decay project a <strong>${fcast.bias}</strong> move of ${Math.abs(fcast.biasPct)}% over ${r.fcastN} bars toward $${fcast.target}. Volatility ${f2(+fcast.vol)}/bar.`});
+  }
 
-    // 8. Forecast
-    if(fcast){
-        const fScore = fcast.bias === 'bullish' ? 1 : -1;
-        signals.push({ name:'Ensemble forecast', score:fScore,
-            note:`Pattern match (r=${fcast.bestCorr}), ${hurst?.dominantCycle}-bar cycle phase, and ${r.fcastBars > 1 ? r.fcastBars+'-bar' : ''} momentum decay all blend to project a ${fcast.bias} move of ${Math.abs(fcast.biasPct)}% over ${r.fcastBars} bars toward ${f2(+fcast.patternTarget)}. Volatility is ${f2(+fcast.volatility)}/bar — confidence bands widen with horizon.`
-        });
-    }
+  const bullN=sigs.filter(s=>s.s>0).length,bearN=sigs.filter(s=>s.s<0).length,neutN=sigs.filter(s=>s.s===0).length;
+  const net=sigs.reduce((sm,s)=>sm+s.s,0),total=sigs.length;
+  const bPct=Math.round(bullN/total*100),sPct=Math.round(bearN/total*100);
 
-    // ── COMPUTE OVERALL SCORE ──
-    const bullCount = signals.filter(s => s.score > 0).length;
-    const bearCount = signals.filter(s => s.score < 0).length;
-    const neutCount = signals.filter(s => s.score === 0).length;
-    const totalCount = signals.length;
-    const netScore   = signals.reduce((sum, s) => sum + s.score, 0);
-    const maxScore   = totalCount;
-    const bullPct    = Math.round(bullCount / totalCount * 100);
-    const bearPct    = Math.round(bearCount / totalCount * 100);
+  let vcls='vneut',vttl='🟡 Mixed / Neutral';
+  if(net>=3){vcls='vbull';vttl='🟢 Strong Bullish — multiple signals align upside';}
+  else if(net>0){vcls='vbull';vttl='🟢 Leaning Bullish';}
+  else if(net<=-3){vcls='vbear';vttl='🔴 Strong Bearish — multiple signals align downside';}
+  else if(net<0){vcls='vbear';vttl='🔴 Leaning Bearish';}
 
-    // Verdict
-    let verdictClass = 'verdict-neut', verdictTitle = '🟡 Mixed / Neutral', verdictBody = '';
-    if(netScore >= 3){
-        verdictClass = 'verdict-bull';
-        verdictTitle = '🟢 Strong Bullish — Multiple signals align to the upside';
-    } else if(netScore > 0){
-        verdictClass = 'verdict-bull';
-        verdictTitle = '🟢 Leaning Bullish — Majority of indicators favor the upside';
-    } else if(netScore <= -3){
-        verdictClass = 'verdict-bear';
-        verdictTitle = '🔴 Strong Bearish — Multiple signals align to the downside';
-    } else if(netScore < 0){
-        verdictClass = 'verdict-bear';
-        verdictTitle = '🔴 Leaning Bearish — Majority of indicators favor the downside';
-    }
+  let vbody=`Out of ${total} signals: <strong class="${net>0?'rbull':net<0?'rbear':'rneut'}">${bullN} bullish, ${bearN} bearish, ${neutN} neutral</strong> (net ${net>0?'+':''}${net}). `;
+  if(net>0&&isBuy)vbody+='Convergence <strong class="rbull">supports the BUY signal</strong> — breakout has trend, cycle and volume backing.';
+  else if(net>0)vbody+='Indicators lean bullish but <strong class="rwarn">no breakout fired yet</strong>. Monitor buy trigger.';
+  else if(net<0&&isSel)vbody+='Convergence <strong class="rbear">supports the SELL signal</strong> — breakdown confirmed by multiple indicators.';
+  else if(net<0)vbody+='Indicators lean bearish but <strong class="rwarn">no breakdown fired yet</strong>. Monitor sell trigger.';
+  else vbody+='Conflicting signals — wait for clearer price action before committing.';
 
-    // Narrative body
-    const signalWord = isBuy ? 'buy' : isSel ? 'sell' : 'neutral';
-    verdictBody = `Out of ${totalCount} signals evaluated, <strong class="${netScore>0?'bull':netScore<0?'bear':'neut'}">${bullCount} are bullish, ${bearCount} are bearish, and ${neutCount} are neutral</strong>. The net score is ${netScore > 0 ? '+' : ''}${netScore} out of a possible ±${maxScore}. `;
+  const secDefs=[
+    {t:'📈 Breakout Signals',col:'#667eea',keys:['Swing breakout','Channel breakout','Channel']},
+    {t:'📐 Trend & Structure',col:'#00b894',keys:['Market structure','VWAP']},
+    {t:'📐 Keltner Channel',  col:'#f97316',keys:['Keltner Channel']},
+    {t:'🔄 Cycle Analysis',   col:'#f59e0b',keys:['Hurst cycle']},
+    {t:'📉 Momentum',         col:'#e84393',keys:['RSI(14)']},
+    {t:'📦 Volume Context',   col:'#0984e3',keys:['Volume Profile']},
+    {t:'🔮 Forecast Engine',  col:'#c4b5fd',keys:['Ensemble forecast']},
+  ];
 
-    if(netScore > 0 && isBuy)        verdictBody += `This convergence supports the <strong class="bull">BUY signal</strong> — the breakout is occurring with trend, cycle, and momentum backing.`;
-    else if(netScore > 0 && !isBuy)  verdictBody += `Indicators lean bullish but <strong class="warn">no breakout has fired yet</strong>. Monitor the buy trigger at ${f2(sw.leftLowHigh)}.`;
-    else if(netScore < 0 && isSel)   verdictBody += `This convergence supports the <strong class="bear">SELL signal</strong> — the breakdown has trend, cycle, and momentum confirming to the downside.`;
-    else if(netScore < 0 && !isSel)  verdictBody += `Indicators lean bearish but <strong class="warn">no breakdown has fired yet</strong>. Monitor the sell trigger at ${f2(sw.leftHighLow)}.`;
-    else verdictBody += `Conflicting signals suggest waiting for clearer price action before committing.`;
+  const secsHTML=secDefs.map(sec=>{
+    const ss=sigs.filter(s=>sec.keys.includes(s.n));if(!ss.length)return'';
+    const sn=ss.reduce((sm,s)=>sm+s.s,0);
+    const badge=sn>0?'<span class="rbull">↑ Bullish</span>':sn<0?'<span class="rbear">↓ Bearish</span>':'<span class="rneut">→ Neutral</span>';
+    return`<div class="rsec"><div class="rsec-t"><span class="rdt" style="background:${sec.col}"></span>${sec.t} — ${badge}</div><div class="rsec-b">${ss.map(s=>`<p style="margin-bottom:4px"><strong>${s.n}:</strong> ${s.note}</p>`).join('')}</div></div>`;
+  }).join('');
 
-    // Group signals by topic into section cards
-    const sectionDefs = [
-        { title:'📈 Breakout Signals',  color:'#667eea', keys:['Swing breakout','Channel breakout','Channel'] },
-        { title:'📐 Trend & Structure', color:'#00b894', keys:['Market structure','VWAP position'] },
-        { title:'🔄 Cycle Analysis',    color:'#f59e0b', keys:['Hurst cycle'] },
-        { title:'📉 Momentum',          color:'#e84393', keys:['RSI (14)'] },
-        { title:'📦 Volume Context',    color:'#0984e3', keys:['Volume Profile'] },
-        { title:'🔮 Forecast Engine',   color:'#c4b5fd', keys:['Ensemble forecast'] },
-    ];
+  const forecastSection=fcast?`<div class="rsec" style="grid-column:1/-1">
+    <div class="rsec-t"><span class="rdt" style="background:#c4b5fd"></span>🔮 How the Forecast Was Built</div>
+    <div class="rsec-b">
+      <p style="margin-bottom:5px">Three methods blended 40/30/30:</p>
+      <p style="margin-bottom:4px"><strong>Pattern Matching (40%):</strong> Scanned ${r.fcastLB} bars for most similar 20-bar pattern (r=${fcast.corr}). Subsequent bars scaled from current price anchor.</p>
+      <p style="margin-bottom:4px"><strong>Timing Cycle (30%):</strong> Dominant ${fcast.cLen}-bar autocorrelation cycle. Current phase projects next sine-wave turn.</p>
+      <p style="margin-bottom:4px"><strong>Momentum Decay (30%):</strong> 10-bar linear regression slope ${fcast.slope} with exponential decay — momentum fades naturally over horizon.</p>
+      <p><strong>Confidence Bands:</strong> ±1.5σ × √(horizon) grey dotted bands widen with time — reflecting genuine uncertainty growth. Result: <strong class="${fcast.bias==='bullish'?'rbull':'rbear'}">${fcast.bias} ${Math.abs(fcast.biasPct)}%</strong> target $${fcast.target}.</p>
+    </div></div>`:'';
 
-    const sectionHTML = sectionDefs.map(sec => {
-        const secSigs = signals.filter(s => sec.keys.includes(s.name));
-        if(!secSigs.length) return '';
-        const secNet = secSigs.reduce((sum,s)=>sum+s.score,0);
-        const badge = secNet > 0
-            ? `<span class="bull">↑ Bullish</span>`
-            : secNet < 0
-            ? `<span class="bear">↓ Bearish</span>`
-            : `<span class="neut">→ Neutral</span>`;
-        const body = secSigs.map(s => `<p style="margin-bottom:5px;"><strong>${s.name}:</strong> ${s.note}</p>`).join('');
-        return `<div class="rsec">
-            <div class="rsec-title">
-                <span class="rsec-dot" style="background:${sec.color};"></span>
-                ${sec.title} — ${badge}
-            </div>
-            <div class="rsec-body">${body}</div>
-        </div>`;
-    }).join('');
-
-    // Forecast logic explanation
-    const forecastLogic = fcast ? `
-        <div class="rsec" style="grid-column:1/-1;">
-            <div class="rsec-title"><span class="rsec-dot" style="background:#c4b5fd;"></span>🔮 How the Forecast Was Built</div>
-            <div class="rsec-body">
-                <p style="margin-bottom:6px;">The forecast blends three independent methods with fixed weights (40% pattern / 30% cycle / 30% momentum):</p>
-                <p style="margin-bottom:5px;"><strong>Pattern Matching (40%):</strong> The algorithm scanned the last ${r.fcastLB} bars for the historical 20-bar window most similar to current price action (Pearson correlation r = ${fcast.bestCorr}). The bars that followed that historical match were scaled from today's anchor price to project what typically happens next. A correlation above 0.7 is considered a strong pattern match.</p>
-                <p style="margin-bottom:5px;"><strong>Timing Cycle (30%):</strong> Autocorrelation of returns identified a dominant ${fcast.cycleLen}-bar rhythm in ${r.symbol}'s price behavior. The current position within that cycle was used to project the next sine-wave phase — ascending if in the first half, descending if in the second half.</p>
-                <p style="margin-bottom:5px;"><strong>Momentum Decay (30%):</strong> A linear regression over the last 10 bars produced a slope of ${fcast.slope} per bar. This trend is projected forward with exponential decay (half-life ~8 bars) — momentum fades naturally rather than projecting a straight line indefinitely.</p>
-                <p style="margin-bottom:5px;"><strong>Confidence Bands:</strong> The grey dotted upper and lower bands represent ±1.5 standard deviations of daily returns × √(horizon). They widen with time — a natural reflection of forecast uncertainty growing the further out you project.</p>
-                <p><strong>Result:</strong> The ensemble projects ${r.symbol} to <strong class="${fcast.bias==='bullish'?'bull':'bear'}">${fcast.bias === 'bullish' ? 'rise' : 'fall'} ${Math.abs(fcast.biasPct)}%</strong> over the next ${r.fcastBars} ${r.tfLabel} bars toward a target of ${f2(+fcast.patternTarget)}, with 1σ volatility of ${f2(+fcast.volatility)} per bar.</p>
-            </div>
-        </div>` : '';
-
-    // Conclusion
-    const conclusion = `
-        <div class="reasoning-conclusion">
-            <strong>Summary for ${r.symbol} on the ${r.tfLabel} chart:</strong><br>
-            ${isBuy || isSel
-                ? `A <strong>${r.direction.toUpperCase()}</strong> signal has fired via the ${r.scanType === 'both' ? 'swing AND channel breakout' : r.scanType + ' breakout'}. `
-                : `No breakout signal has fired yet on the current bar. `}
-            The overall indicator stack reads <strong>${netScore > 0 ? '+' : ''}${netScore}</strong> (${bullPct}% bullish / ${bearPct}% bearish).
-            ${r.ms.trend !== 'ranging' ? ` Market structure confirms a <strong>${r.ms.trend}</strong>.` : ' Market structure is ranging — no directional trend bias.'}
-            ${fcast ? ` The ensemble forecast projects a <strong>${fcast.bias}</strong> move of <strong>${Math.abs(fcast.biasPct)}%</strong> over the next ${r.fcastBars} bars.` : ''}
-            ${r.optType ? ` If taking a position, the ATM ${r.optType} at strike <strong>${f2(r.strike)}</strong> (≤7 DTE) is the recommended option. Stop loss: <strong>${f2(r.stopLevel)}</strong>.` : ''}
-        </div>
-        <div class="risk-disclaimer">
-            ⚠️ <strong>Disclaimer:</strong> This analysis is generated algorithmically from price, volume, and technical data.
-            It is for educational and informational purposes only and does not constitute financial advice.
-            Past patterns do not guarantee future results. Always manage risk appropriately and consult a qualified financial advisor before trading.
-            Options involve significant risk and are not suitable for all investors.
-        </div>`;
-
-    // Score bar HTML
-    const bullWidth  = Math.round(bullPct);
-    const bearWidth  = Math.round(bearPct);
-    const scoreBarColor = netScore > 0 ? '#00b894' : netScore < 0 ? '#d63031' : '#fdcb6e';
-
-    document.getElementById('reasoningContent').innerHTML = `
-        <div class="verdict-box ${verdictClass}">
-            <div class="verdict-title">${verdictTitle}</div>
-            <div>${verdictBody}</div>
-        </div>
-
-        <div class="signal-score-bar">
-            <span class="score-label">Bullish signals: ${bullCount}/${totalCount}</span>
-            <div class="score-track">
-                <div class="score-fill" style="width:${bullWidth}%;background:linear-gradient(90deg,#00b894,#00cec9);"></div>
-            </div>
-            <span class="score-label" style="color:#00b894;">${bullPct}%</span>
-        </div>
-        <div class="signal-score-bar">
-            <span class="score-label">Bearish signals: ${bearCount}/${totalCount}</span>
-            <div class="score-track">
-                <div class="score-fill" style="width:${bearWidth}%;background:linear-gradient(90deg,#d63031,#e17055);"></div>
-            </div>
-            <span class="score-label" style="color:#d63031;">${bearPct}%</span>
-        </div>
-
-        <div class="reasoning-sections">
-            ${sectionHTML}
-            ${forecastLogic}
-        </div>
-        ${conclusion}
-    `;
+  document.getElementById('reasonContent').innerHTML=`
+    <div class="verd ${vcls}"><div class="vtl">${vttl}</div>${vbody}</div>
+    <div class="sbar"><span class="slbl">Bullish: ${bullN}/${total}</span><div class="strk"><div class="sfil" style="width:${bPct}%;background:linear-gradient(90deg,#00b894,#00cec9)"></div></div><span class="slbl" style="color:#00b894">${bPct}%</span></div>
+    <div class="sbar"><span class="slbl">Bearish: ${bearN}/${total}</span><div class="strk"><div class="sfil" style="width:${sPct}%;background:linear-gradient(90deg,#d63031,#e17055)"></div></div><span class="slbl" style="color:#d63031">${sPct}%</span></div>
+    <div class="rsecs">${secsHTML}${forecastSection}</div>
+    <div class="rconc"><strong>Summary for ${r.sym} · ${r.tfLabel}:</strong><br>
+      ${isBuy||isSel?`A <strong>${r.dir.toUpperCase()}</strong> signal fired via ${r.stype==='both'?'swing AND channel':r.stype}. `:' No breakout yet. '}
+      Stack: <strong>${net>0?'+':''}${net}</strong> (${bPct}% bull / ${sPct}% bear). ${r.ms.trend!=='ranging'?`Structure confirms <strong>${r.ms.trend}</strong>.`:'Structure ranging.'}
+      ${fcast?` Forecast projects <strong>${fcast.bias}</strong> ${Math.abs(fcast.biasPct)}% over ${r.fcastN} bars.`:''}
+      ${r.opt?` Recommended: ATM <strong>${r.opt}</strong> strike <strong>${f2(r.strike)}</strong> ≤7 DTE. Stop: <strong>${f2(r.stop)}</strong>.`:''}
+    </div>
+    <div class="rdis">⚠️ This analysis is generated algorithmically from price, volume and technical data. For educational purposes only — not financial advice. Past patterns do not guarantee future results. Options involve significant risk.</div>`;
 }
 
 function closeModal(){
-    document.getElementById('modal').style.display='none';
-    modalCharts.forEach(c=>c.destroy());
-    modalCharts=[];
+  document.getElementById('modal').style.display='none';
+  modalCharts.forEach(c=>{try{c.destroy();}catch(e){}});
+  modalCharts=[];
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+// Auto-test proxy on load
+testProxies();
 </script>
 </body>
 </html>
