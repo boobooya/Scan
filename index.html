@@ -529,6 +529,120 @@ function compForecast(bars,nFwd,lb){
     cLen,corr:bestC.toFixed(3),slope:(slope*10).toFixed(4)};
 }
 
+
+// ═══════ ADX + DI ════════════════════════════════════════════════════════
+function compADX(bars, p=14){
+  // bars = oldest-first
+  if(bars.length < p+2) return {adx:[],pdi:[],mdi:[]};
+  const tr=[],pdm=[],mdm=[];
+  for(let i=1;i<bars.length;i++){
+    const h=bars[i].high,l=bars[i].low,ph=bars[i-1].high,pl=bars[i-1].low,pc=bars[i-1].close;
+    tr.push(Math.max(h-l, Math.abs(h-pc), Math.abs(l-pc)));
+    const up=h-ph, dn=pl-l;
+    pdm.push(up>dn&&up>0?up:0);
+    mdm.push(dn>up&&dn>0?dn:0);
+  }
+  // Wilder smooth
+  function wilderSmooth(arr,p){
+    let s=arr.slice(0,p).reduce((a,b)=>a+b,0);
+    const out=[...Array(p).fill(null),s];
+    for(let i=p;i<arr.length;i++){s=s-s/p+arr[i];out.push(s);}
+    return out;
+  }
+  const sTR=wilderSmooth(tr,p), sPDM=wilderSmooth(pdm,p), sMDM=wilderSmooth(mdm,p);
+  const pdi=[],mdi=[],dx=[];
+  for(let i=0;i<sTR.length;i++){
+    if(sTR[i]==null||sTR[i]===0){pdi.push(null);mdi.push(null);dx.push(null);continue;}
+    const pd=100*sPDM[i]/sTR[i], md=100*sMDM[i]/sTR[i];
+    pdi.push(pd); mdi.push(md);
+    const s=pd+md; dx.push(s===0?0:100*Math.abs(pd-md)/s);
+  }
+  // ADX = Wilder smooth of DX
+  const validDx=dx.filter(v=>v!=null);
+  const adxRaw=[...Array(dx.findIndex(v=>v!=null)).fill(null)];
+  let adxS=validDx.slice(0,p).reduce((a,b)=>a+b,0)/p;
+  adxRaw.push(...Array(p).fill(null),adxS);
+  for(let i=p;i<validDx.length;i++){adxS=(adxS*(p-1)+validDx[i])/p;adxRaw.push(adxS);}
+  return{adx:adxRaw,pdi,mdi};
+}
+
+// ═══════ FIBONACCI ════════════════════════════════════════════════════════
+const FIB_LEVELS=[0,0.236,0.382,0.5,0.618,0.786,1.0];
+const FIB_COLORS=['#00b894','#2ecc71','#f59e0b','#e17055','#d63031','#6c5ce7','#2d3436'];
+const FIB_LABELS=['0% (Low)','23.6%','38.2%','50%','61.8%','78.6%','100% (High)'];
+
+function compFibAuto(bars){
+  // Method 1: absolute high/low of visible bars
+  const pH=Math.max(...bars.map(b=>b.high));
+  const pL=Math.min(...bars.map(b=>b.low));
+  // Method 2: most recent confirmed swing pivot (using lb=5)
+  const lb=5;
+  let swHigh=null,swHighIdx=null,swLow=null,swLowIdx=null;
+  for(let i=lb;i<bars.length-lb;i++){
+    const hSlice=bars.slice(i-lb,i+lb+1).map(b=>b.high);
+    const lSlice=bars.slice(i-lb,i+lb+1).map(b=>b.low);
+    if(bars[i].high===Math.max(...hSlice)&&swHighIdx===null){swHigh=bars[i].high;swHighIdx=i;}
+    if(bars[i].low===Math.min(...lSlice)&&swLowIdx===null){swLow=bars[i].low;swLowIdx=i;}
+    if(swHighIdx!==null&&swLowIdx!==null)break;
+  }
+  function fibLevels(high,low,label){
+    const rng=high-low;
+    return FIB_LEVELS.map((f,i)=>({
+      level:f, price:high-f*rng,
+      label:`Fib ${FIB_LABELS[i]} $${(high-f*rng).toFixed(2)}`,
+      color:FIB_COLORS[i], set:label
+    }));
+  }
+  return{
+    abs: fibLevels(pH,pL,'Auto H/L'),
+    swing: (swHigh!==null&&swLow!==null)?fibLevels(swHigh,swLow,'Swing'):[],
+    swHighIdx, swLowIdx, swHigh, swLow, pH, pL
+  };
+}
+
+// ═══════ GANN SQUARE ══════════════════════════════════════════════════════
+// Gann Square of Nine: key resistance/support levels radiating from a price
+// Uses formula: (sqrt(price) ± n)^2 for n=1,2,3,4 cardinals + diagonals
+function compGann(price){
+  if(!price||price<=0)return{levels:[],center:price};
+  const sq=Math.sqrt(price);
+  const steps=[1,2,3,4]; // rings outward
+  // Gann angles: 0°,45°,90°,135°,180°,225°,270°,315° = 8 spokes
+  const angles=[0,0.25,0.5,0.75,1,1.25,1.5,1.75]; // fractions of full ring
+  const levels=[];
+  steps.forEach(n=>{
+    angles.forEach((a,ai)=>{
+      const val=Math.pow(sq+n+a,2);
+      const dir=val>price?'resistance':'support';
+      levels.push({price:val, ring:n, angle:ai*45, dir,
+        label:`G${n} ${ai*45}° $${val.toFixed(2)}`});
+    });
+    // Also pure square levels (cardinal points)
+    const up=Math.pow(sq+n,2), dn=Math.pow(Math.max(0.01,sq-n),2);
+    levels.push({price:up,ring:n,angle:0,dir:'resistance',label:`G↑${n} $${up.toFixed(2)}`,cardinal:true});
+    levels.push({price:dn,ring:n,angle:180,dir:'support',label:`G↓${n} $${dn.toFixed(2)}`,cardinal:true});
+  });
+  // Filter to ±15% of center price and keep cardinals + close ones
+  const filtered=levels.filter(l=>Math.abs(l.price-price)/price<0.12&&l.cardinal);
+  // Deduplicate by proximity
+  const deduped=[];
+  filtered.forEach(l=>{
+    if(!deduped.some(d=>Math.abs(d.price-l.price)/price<0.005)) deduped.push(l);
+  });
+  return{levels:deduped.sort((a,b)=>a.price-b.price),center:price};
+}
+
+// ═══════ Z-SCORE ══════════════════════════════════════════════════════════
+function compZScore(closes, p=20){
+  return closes.map((v,i)=>{
+    if(i<p-1)return null;
+    const window=closes.slice(i-p+1,i+1);
+    const mean=window.reduce((s,x)=>s+x,0)/p;
+    const sd=Math.sqrt(window.reduce((s,x)=>s+(x-mean)*(x-mean),0)/p)||0.0001;
+    return(v-mean)/sd;
+  });
+}
+
 // ═══════ DETECTORS ══════════════════════════════════════════════════════
 function detSwing(bars,lb,rb){
   const len=bars.length;
@@ -776,6 +890,10 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <label class="itog on" style="color:#0984e3" onclick="togP('pVWAP')"><span class="idot" style="background:#0984e3"></span><span class="il">📊 VWAP</span></label>
     <label class="itog on" style="color:#00b894" onclick="togP('pVP')"><span class="idot" style="background:#00b894"></span><span class="il">📦 Volume Profile</span></label>
     <label class="itog on" style="color:#c4b5fd" onclick="togP('pReason')"><span class="idot" style="background:#c4b5fd"></span><span class="il">🧠 Reasoning</span></label>
+    <label class="itog on" style="color:#ef4444" onclick="togP('pADX')"><span class="idot" style="background:#ef4444"></span><span class="il">📈 ADX/DI</span></label>
+    <label class="itog on" style="color:#f59e0b" onclick="togP('pFib')"><span class="idot" style="background:#f59e0b"></span><span class="il">🌀 Fibonacci</span></label>
+    <label class="itog on" style="color:#8b5cf6" onclick="togP('pGann')"><span class="idot" style="background:#8b5cf6"></span><span class="il">⬡ Gann Square</span></label>
+    <label class="itog on" style="color:#06b6d4" onclick="togP('pZScore')"><span class="idot" style="background:#06b6d4"></span><span class="il">📊 Z-Score</span></label>
   </div>
 
   <!-- P1: Price + Keltner Channel + Forecast + Hurst overlay -->
@@ -835,7 +953,45 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div id="reasonContent">Computing…</div>
   </div>
 
-  <div class="rec">
+  <!-- ADX Panel -->
+  <div class="cpanel" id="pADX">
+    <div class="phdr"><div>
+      <div class="pttl">📈 ADX (14) + Directional Indicators (+DI / -DI)</div>
+      <div class="psub" id="adxSub">ADX: — · +DI: — · -DI: —</div>
+    </div></div>
+    <div class="csm"><canvas id="cADX"></canvas></div>
+  </div>
+
+  <!-- Fibonacci Panel -->
+  <div class="cpanel" id="pFib">
+    <div class="phdr"><div>
+      <div class="pttl">🌀 Fibonacci Retracement Levels</div>
+      <div class="psub" id="fibSub">Auto H/L + Swing Pivot fibs overlaid on price</div>
+    </div></div>
+    <div class="cmd"><canvas id="cFib"></canvas></div>
+    <div id="fibTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+  </div>
+
+  <!-- Gann Square Panel -->
+  <div class="cpanel" id="pGann">
+    <div class="phdr"><div>
+      <div class="pttl">⬡ Gann Square of Nine</div>
+      <div class="psub" id="gannSub">Key resistance/support levels from close price and swing high/low</div>
+    </div></div>
+    <div class="cmd"><canvas id="cGann"></canvas></div>
+    <div id="gannTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px"></div>
+  </div>
+
+  <!-- Z-Score Panel -->
+  <div class="cpanel" id="pZScore">
+    <div class="phdr"><div>
+      <div class="pttl">📊 Z-Score (20-period rolling)</div>
+      <div class="psub" id="zSub">Z &gt; 2 = overbought · Z &lt; -2 = oversold · Mean-reversion signal</div>
+    </div></div>
+    <div class="csm"><canvas id="cZScore"></canvas></div>
+  </div>
+
+    <div class="rec">
     <div class="rttl">${r.stype==='both'&&isBuy?'⭐ STRONG BUY — Both signals + Forecast · ATM CALL':r.stype==='both'&&isSel?'⭐ STRONG SELL — Both signals · ATM PUT':isBuy?'🟢 BUY — ATM CALL':isSel?'🔴 SELL — ATM PUT':'🟡 NO SIGNAL — Monitor'}</div>
     <div class="rgr">
       <div class="ri"><div class="rl">Symbol</div><div class="rv">${sym}</div></div>
@@ -865,6 +1021,7 @@ function renderPanels(r){
 
   const pH = Math.max(...highs), pL = Math.min(...lows);
   const pad= Math.max((pH-pL)*0.05, pH*0.001);
+  const pricePad=pad;
 
   function xAx(){return{type:'linear',min:0,max:N-1,ticks:{callback:(v,i)=>{if(i%Math.max(1,Math.floor(N/8))!==0)return'';return labels[v]||'';},font:{size:8},color:'#636e72',maxRotation:0},grid:{color:'#ecf0f1'}};}
   function yAx(mn,mx){const p=(mx-mn)*0.04||0.5;return{min:mn-p,max:mx+p,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}};}
@@ -944,9 +1101,14 @@ function renderPanels(r){
   // Hurst arcs overlaid on price chart (light)
   const pMid=(pH+pL)/2,pRng=pH-pL||1;
   function hArcMain(len,col,lbl,ph){
-    const pts=[];const sx=N-1-len;
-    for(let i=0;i<=len;i++)pts.push({x:sx+i,y:pMid+pRng*.12*Math.sin(Math.PI*i/len+ph)});
-    return{label:lbl,data:pts,borderColor:col,borderWidth:1,borderDash:[3,4],pointRadius:0,fill:false,parsing:false,tension:.4};
+    // Clamp so arcs always appear within visible bars
+    const visLen = Math.min(len, N-1);
+    const pts=[];
+    for(let i=0;i<=visLen;i++){
+      const frac = i/visLen;  // normalise within visible window
+      pts.push({x:N-1-visLen+i, y:pMid+pRng*.12*Math.sin(Math.PI*frac+ph)});
+    }
+    return{label:lbl,data:pts,borderColor:col,borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,parsing:false,tension:.4};
   }
   ds1.push(hArcMain(hurst.half, 'rgba(59,130,246,.4)',  `½(${hurst.half}b)`, 0));
   ds1.push(hArcMain(hurst.dom,  'rgba(245,158,11,.4)',  `Full(${hurst.dom}b)`, Math.PI));
@@ -978,8 +1140,13 @@ function renderPanels(r){
     `Dominant cycle: ${hurst.dom} bars · Half: ${hurst.half}b · 2×: ${hurst.dbl}b · Phase: ${(hurst.phase*100).toFixed(0)}% · AC strength: ${hurst.ac}`;
 
   function cycArc(cLen,col,lbl,ph){
-    const pts=[],sx=N-1-cLen;
-    for(let i=0;i<=cLen;i++)pts.push({x:sx+i,y:50+45*Math.sin(Math.PI*i/cLen+ph)});
+    // Always draw full cycle within visible window, clamped to N-1 bars
+    const visLen = Math.min(cLen, N-1);
+    const pts=[];
+    for(let i=0;i<=visLen;i++){
+      const frac = i/visLen;
+      pts.push({x:N-1-visLen+i, y:50+45*Math.sin(Math.PI*frac+ph)});
+    }
     return{label:lbl,data:pts,borderColor:col,borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false,tension:.4};
   }
   // Phase extension into forecast zone
@@ -1082,6 +1249,119 @@ function renderPanels(r){
   mkChart('cVPp','bar',
     [{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
     {indexAxis:'y',scales:{x:{ticks:{display:false},grid:{display:false}},y:{labels:vp.prof.map(p=>'$'+p.price.toFixed(1)),ticks:{font:{size:7},color:'#636e72'},grid:{display:false}}},plugins:{legend:{display:false}}});
+
+  // ── PANEL: ADX + DI ─────────────────────────────────────────────────
+  {
+    const barsOF = show.slice().reverse();
+    const adxData = compADX(barsOF, 14);
+    const curADX = adxData.adx[adxData.adx.length-1];
+    const curPDI = adxData.pdi[adxData.pdi.length-1];
+    const curMDI = adxData.mdi[adxData.mdi.length-1];
+    document.getElementById('adxSub').textContent =
+      'ADX: '+(curADX?.toFixed(1)??'—')+' ('+(curADX>=25?'Trending':'Ranging')+') · +DI: '+(curPDI?.toFixed(1)??'—')+' · -DI: '+(curMDI?.toFixed(1)??'—');
+    function adxPts(arr){ return arr.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)); }
+    const dsADX = [
+      {label:'ADX', data:adxPts(adxData.adx.slice().reverse()), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
+      {label:'+DI', data:adxPts(adxData.pdi.slice().reverse()), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'-DI', data:adxPts(adxData.mdi.slice().reverse()), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'25',  data:[{x:0,y:25},{x:N-1,y:25}], borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    ];
+    mkChart('cADX','line',dsADX,{
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},
+      scales:{x:xAx(), y:{min:0,max:60,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+    });
+  }
+
+  // ── PANEL: Fibonacci ─────────────────────────────────────────────────
+  {
+    const fibData = compFibAuto(show);
+    const fN2 = r.fcastN||10;
+    document.getElementById('fibSub').textContent =
+      'Auto H/L: '+f2(fibData.pL)+' to '+f2(fibData.pH)+' · Swing: '+f2(fibData.swLow)+' to '+f2(fibData.swHigh);
+
+    const dsFib = [{label:'Price',data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1}];
+    fibData.abs.forEach((fi,i)=>{
+      dsFib.push({label:'H/L '+FIB_LABELS[i],
+        data:[{x:0,y:fi.price},{x:N-1+fN2,y:fi.price}],
+        borderColor:fi.color,borderWidth:1.5,borderDash:[],pointRadius:0,fill:false,parsing:false});
+    });
+    fibData.swing.forEach((fi,i)=>{
+      dsFib.push({label:'Swg '+FIB_LABELS[i],
+        data:[{x:0,y:fi.price},{x:N-1+fN2,y:fi.price}],
+        borderColor:fi.color+'99',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+    });
+    const allFP=[...fibData.abs,...fibData.swing];
+    const fibYmin=Math.min(pL,...allFP.map(f=>f.price))-pricePad;
+    const fibYmax=Math.max(pH,...allFP.map(f=>f.price))+pricePad;
+    mkChart('cFib','line',dsFib,{
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7}}},
+      scales:{x:xAx(), y:{min:fibYmin,max:fibYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+    });
+    const ftEl=document.getElementById('fibTable');
+    if(ftEl){
+      ftEl.innerHTML=fibData.abs.map((fi,i)=>
+        '<div style="background:'+fi.color+'22;border-left:3px solid '+fi.color+';padding:5px 8px;border-radius:4px"><div style="font-size:9px;color:#636e72">H/L · '+FIB_LABELS[i]+'</div><div style="font-weight:700;color:'+fi.color+'">'+f2(fi.price)+'</div></div>'
+      ).join('')+fibData.swing.map((fi,i)=>
+        '<div style="background:'+fi.color+'15;border-left:2px dashed '+fi.color+';padding:5px 8px;border-radius:4px"><div style="font-size:9px;color:#636e72">Swing · '+FIB_LABELS[i]+'</div><div style="font-weight:600;color:'+fi.color+'99">'+f2(fi.price)+'</div></div>'
+      ).join('');
+    }
+  }
+
+  // ── PANEL: Gann Square ───────────────────────────────────────────────
+  {
+    const gClose  = compGann(r.price);
+    const gSwHigh = r.sw.swingHigh?compGann(r.sw.swingHigh):null;
+    const gSwLow  = r.sw.swingLow ?compGann(r.sw.swingLow) :null;
+    const allG=[
+      ...gClose.levels.map(l=>({...l,src:'Close',col:'#8b5cf6'})),
+      ...(gSwHigh?gSwHigh.levels.map(l=>({...l,src:'SwH',col:'#d63031'})):[]),
+      ...(gSwLow ?gSwLow.levels.map(l=>({...l,src:'SwL',col:'#00b894'})):[]),
+    ];
+    const dedG=[];
+    allG.forEach(l=>{if(!dedG.some(d=>Math.abs(d.price-l.price)/r.price<0.003))dedG.push(l);});
+    dedG.sort((a,b)=>a.price-b.price);
+    document.getElementById('gannSub').textContent=
+      'Gann Square of 9 · Centers: close '+f2(r.price)+', swing H '+f2(r.sw.swingHigh)+', swing L '+f2(r.sw.swingLow)+' · ±12% range';
+    const dsGann=[{label:'Price',data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1}];
+    dedG.slice(0,16).forEach(l=>{
+      dsGann.push({label:l.src+' '+l.dir[0].toUpperCase()+' '+f2(l.price),
+        data:[{x:0,y:l.price},{x:N-1,y:l.price}],
+        borderColor:l.col+(l.dir==='resistance'?'cc':'99'),
+        borderWidth:l.dir==='resistance'?1.5:1,borderDash:l.dir==='resistance'?[6,3]:[3,5],
+        pointRadius:0,fill:false,parsing:false});
+    });
+    const gYmin=Math.min(pL,...dedG.map(l=>l.price))-pricePad;
+    const gYmax=Math.max(pH,...dedG.map(l=>l.price))+pricePad;
+    mkChart('cGann','line',dsGann,{
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7}}},
+      scales:{x:xAx(), y:{min:gYmin,max:gYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+    });
+    const gtEl=document.getElementById('gannTable');
+    if(gtEl){
+      gtEl.innerHTML=dedG.slice(0,18).map(l=>
+        '<div style="background:'+l.col+'18;border-left:2px solid '+l.col+(l.dir==='resistance'?'cc':'88')+';padding:4px 7px;border-radius:4px"><div style="font-size:9px;color:#636e72">'+l.src+' · '+(l.dir==='resistance'?'⬆ R':'⬇ S')+'</div><div style="font-weight:700;color:'+l.col+'">'+f2(l.price)+'</div></div>'
+      ).join('');
+    }
+  }
+
+  // ── PANEL: Z-Score ───────────────────────────────────────────────────
+  {
+    const zVals=compZScore(closes,20);
+    const curZ=zVals[zVals.length-1];
+    document.getElementById('zSub').textContent=
+      'Current Z-Score: '+(curZ?.toFixed(2)??'—')+' · '+(curZ==null?'—':Math.abs(curZ)>2?'EXTREME '+(curZ>0?'OVERBOUGHT ⚠️':'OVERSOLD ⚠️'):Math.abs(curZ)>1?'Extended':'Neutral');
+    const dsZ=[
+      {label:'Z-Score(20)',data:zVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)),
+        borderColor:'#06b6d4',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.2},
+      {label:'+2σ',data:[{x:0,y:2},{x:N-1,y:2}],borderColor:'rgba(220,50,50,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+      {label:'-2σ',data:[{x:0,y:-2},{x:N-1,y:-2}],borderColor:'rgba(0,180,140,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+      {label:'0',  data:[{x:0,y:0},{x:N-1,y:0}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[2,3],pointRadius:0,fill:false,parsing:false},
+    ];
+    mkChart('cZScore','line',dsZ,{
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=2}}},
+      scales:{x:xAx(), y:{ticks:{callback:v=>v.toFixed(1)+'σ',color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+    });
+  }
 
   // ── Reasoning ────────────────────────────────────────────────────────
   buildReasoning(r,rsiVals,vp,hurst,atrV,chand,curVW,ms,kelt);
