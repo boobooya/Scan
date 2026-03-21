@@ -215,7 +215,7 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
   </div>
   <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
     <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
-    <div style="font-size:14px;font-weight:700;font-family:monospace">20260321.0339</div>
+    <div style="font-size:14px;font-weight:700;font-family:monospace">20260321.0350</div>
     <div style="font-size:9px;opacity:0.6">▾ changelog</div>
   </div>
 </div>
@@ -1259,6 +1259,33 @@ function renderPanels(r){
   const hurst= compHurst(r.bars);
   const fN   = r.fcastN;
 
+  // ── Pre-compute extended price arrays for forecast zone ──────────────────
+  // These extend the historical data with the forecast center/upper/lower prices
+  // so every indicator can be projected into the forecast zone consistently.
+  const fcastXs     = Array.from({length: fN}, (_, i) => N + i);       // x positions
+  const priceExt    = fcast ? [...closes, ...fcast.center]  : closes;   // extended close
+  const priceExtUp  = fcast ? [...closes, ...fcast.upper]   : closes;   // upper bound
+  const priceExtDn  = fcast ? [...closes, ...fcast.lower]   : closes;   // lower bound
+
+  // Forecast divider line (shared by all panels)
+  const fcastDivider = fN > 0 ? [{x:N-1, y:0}, {x:N-1, y:1e9}] : [];  // y is overridden per panel
+  function fDivDs(yMin, yMax) {
+    return {label:'_fdiv', data:[{x:N-1,y:yMin},{x:N-1,y:yMax}],
+      borderColor:'rgba(100,100,100,0.35)', borderWidth:1.5, borderDash:[4,3],
+      pointRadius:0, fill:false, parsing:false};
+  }
+  function fLabel(x) {
+    if(x > N-1) return '+'+(x-N+1)+'b';
+    if(x % Math.max(1,Math.floor(N/8)) !== 0) return '';
+    return labels[x] || '';
+  }
+  function xAxFcast() {
+    return {type:'linear', min:0, max:N-1+fN,
+      ticks:{callback:fLabel, font:{size:8}, color:'#636e72', maxRotation:0},
+      grid:{color:'#ecf0f1'}};
+  }
+
+
   const ancDs={label:'__a__',data:closes.map((v,i)=>({x:i,y:v})),borderColor:'transparent',pointRadius:0,fill:false,parsing:false};
 
   function hLn(val,lbl,col,dash){return{label:lbl,data:[{x:0,y:val},{x:N-1+(fN||0),y:val}],borderColor:col,borderWidth:1.5,borderDash:dash||[6,4],pointRadius:0,fill:false,parsing:false};}
@@ -1330,7 +1357,7 @@ function renderPanels(r){
         const v=ctx.parsed?.y;return v!=null?`${ctx.dataset.label}: $${v.toFixed(2)}`:'';
       }}}
     },
-    scales:{x:xAx(),y:{min:yMinMain,max:yMaxMain,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+    scales:{x:xAxFcast(),y:{min:yMinMain,max:yMaxMain,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
   };
 
   // Override x-axis max to include forecast bars (N-1+fN)
@@ -1442,7 +1469,7 @@ function renderPanels(r){
     const pl=ms.pivots.map(p=>{const bi=N-1-p.i;return(bi>=0&&bi<N)?{x:bi,y:p.price}:null;}).filter(Boolean);
     dsMS.push({label:'Structure',data:pl,borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,parsing:false,tension:0});
   }
-  mkChart('cMS','scatter',dsMS,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
+
 
   // ── PANEL 4: RSI ──────────────────────────────────────────────────────
   // RSI: closes is oldest-first, compRSI expects oldest-first → pass directly
@@ -1458,7 +1485,7 @@ function renderPanels(r){
     {label:'Mid',  data:[{x:0,y:50},{x:N-1,y:50}],borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
   ];
   divs.forEach(d=>{dsRSI.push({label:d.type==='bullish'?'▲BullDiv':'▼BearDiv',data:[{x:d.b1,y:d.r1},{x:d.b2,y:d.r2}],borderColor:d.type==='bullish'?'rgba(0,180,140,.9)':'rgba(210,40,40,.9)',borderWidth:2.5,pointRadius:4,fill:false,parsing:false});});
-  mkChart('cRSI','line',dsRSI,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:{min:0,max:100,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}});
+
 
   // ── PANEL 5: ATR Stop ─────────────────────────────────────────────────
   // ATR/Chandelier: all oldest-first using 'show' (already oldest-first)
@@ -1473,7 +1500,7 @@ function renderPanels(r){
     {label:'Long Stop', data:lsP,  borderColor:'#00b894',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     {label:'Short Stop',data:ssP,  borderColor:'#d63031',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
   ];
-  mkChart('cATR','line',dsATR,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
+
 
   // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
   // VWAP: compute on oldest-first 'show' for clean alignment
@@ -1491,7 +1518,7 @@ function renderPanels(r){
     {label:'+2σ',  data:vPts(bds.s2p),borderColor:'rgba(9,132,227,.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
     {label:'-2σ',  data:vPts(bds.s2n),borderColor:'rgba(9,132,227,.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
   ];
-  mkChart('cVWAP','line',dsVWAP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
+
 
   // ── PANEL 7: Volume Profile ───────────────────────────────────────────
   const vp=compVP(r.bars);
@@ -1502,11 +1529,84 @@ function renderPanels(r){
     {label:`VAH ${f2(vp.vaH)}`,      data:[{x:0,y:vp.vaH},{x:N-1,y:vp.vaH}],borderColor:'rgba(0,184,148,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
     {label:`VAL ${f2(vp.vaL)}`,      data:[{x:0,y:vp.vaL},{x:N-1,y:vp.vaL}],borderColor:'rgba(214,48,49,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
   ];
-  mkChart('cVP','line',dsVP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},scales:{x:xAx(),y:yAx(pL,pH)}});
+  if(fcast) {
+      const fcVP=[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+      const fuVP=[{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:N+i,y:v}))];
+      const fdVP=[{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:N+i,y:v}))];
+      dsVP.push({label:'Price proj',data:fcVP,borderColor:'rgba(55,65,81,.65)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+      dsVP.push({label:'_fvu',data:fuVP,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsVP.push({label:'_fvd',data:fdVP,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsVP.push(fDivDs(pL-pricePad,pH+pricePad));
+    }
+    const vpYmin2=fcast?Math.min(pL,...(fcast.lower||[]))-pricePad:pL-pricePad;
+    const vpYmax2=fcast?Math.max(pH,...(fcast.upper||[]))+pricePad:pH+pricePad;
+    mkChart('cVP','line',dsVP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},scales:{x:xAxFcast(),y:{min:vpYmin2,max:vpYmax2,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}});
   const vpCols=vp.prof.map(p=>p.price===vp.poc.price?'rgba(253,203,110,.9)':p.price>=vp.vaL&&p.price<=vp.vaH?'rgba(9,132,227,.55)':'rgba(160,160,160,.45)');
   mkChart('cVPp','bar',
     [{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
     {indexAxis:'y',scales:{x:{ticks:{display:false},grid:{display:false}},y:{labels:vp.prof.map(p=>'$'+p.price.toFixed(1)),ticks:{font:{size:7},color:'#636e72'},grid:{display:false}}},plugins:{legend:{display:false}}});
+
+  // ── Pre-compute projected indicator values for forecast zone ─────────────
+  // RSI projected: run compRSI on extended price series, take last fN values
+  const rsiProj = fcast ? compRSI(priceExt).slice(N) : [];
+  const rsiProjUp = fcast ? compRSI(priceExtUp).slice(N) : [];
+  const rsiProjDn = fcast ? compRSI(priceExtDn).slice(N) : [];
+
+  // Z-Score projected
+  const zProj   = fcast ? compZScore(priceExt, 20).slice(N)   : [];
+  const zProjUp = fcast ? compZScore(priceExtUp, 20).slice(N) : [];
+  const zProjDn = fcast ? compZScore(priceExtDn, 20).slice(N) : [];
+
+  // ATR projected: last ATR value with slow mean-reversion toward long-run mean
+  const lastATR = atrOF[atrOF.length-1] || 0;
+  const meanATR = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / atrOF.filter(v=>v).length;
+  const atrProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const decay = Math.exp(-0.05*i);
+    return lastATR*decay + meanATR*(1-decay);   // ATR reverts to mean
+  }) : [];
+
+  // Chandelier projected: extend last stop value with ATR projection
+  const lastLong  = chandOF.long[chandOF.long.length-1];
+  const lastShort = chandOF.short[chandOF.short.length-1];
+  const longProj  = fcast ? fcast.center.map((v,i) => {
+    const projHigh = Math.max(...fcast.upper.slice(0,i+1).concat(r.price));
+    return projHigh - atrProj[i] * 2;
+  }) : [];
+  const shortProj = fcast ? fcast.center.map((v,i) => {
+    const projLow = Math.min(...fcast.lower.slice(0,i+1).concat(r.price));
+    return projLow + atrProj[i] * 2;
+  }) : [];
+
+  // VWAP projected: extends as the average of forecast prices (price mean-reverts to VWAP)
+  const lastVWAP = vwapV[vwapV.length-1];
+  const vwapProj = fcast ? fcast.center.map((v,i) => {
+    // VWAP drifts toward the forecast center price weighted by bar count
+    return (lastVWAP * N + fcast.center.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N + i + 1);
+  }) : [];
+  const vwapProjUp = fcast ? fcast.upper.map((v,i) =>
+    (lastVWAP*N + fcast.upper.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+  const vwapProjDn = fcast ? fcast.lower.map((v,i) =>
+    (lastVWAP*N + fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+
+  // ADX projected: decay toward 25 (trend weakens/strengthens toward equilibrium)
+  const lastADX = adxData ? adxData.adx[adxData.adx.length-1] : 25;
+  const lastPDI = adxData ? adxData.pdi[adxData.pdi.length-1] : 25;
+  const lastMDI = adxData ? adxData.mdi[adxData.mdi.length-1] : 25;
+  const adxProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const decay = Math.exp(-0.08*i);
+    return (lastADX-25)*decay + 25;             // ADX mean-reverts toward 25
+  }) : [];
+  const pdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    // +DI follows price forecast direction
+    const bias = fcast.bias==='bullish' ? 1 : -1;
+    const d = Math.exp(-0.08*i);
+    return lastPDI + bias*(lastPDI-lastMDI)*0.3*(1-d);
+  }) : [];
+  const mdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const bias = fcast.bias==='bullish' ? -1 : 1;
+    const d = Math.exp(-0.08*i);
+    return lastMDI + bias*(lastMDI-lastPDI)*0.3*(1-d);
+  }) : [];
 
   // ── PANEL: ADX + DI ─────────────────────────────────────────────────
   {
@@ -1525,9 +1625,20 @@ function renderPanels(r){
       {label:'-DI', data:adxPts(adxData.mdi), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
       {label:'25',  data:[{x:0,y:25},{x:N-1,y:25}], borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     ];
+    // ADX forecast projection
+    if(fcast && adxProj.length) {
+      const adxPj  = [{x:N-1,y:lastADX}, ...adxProj.map((v,i)=>({x:N+i,y:v}))];
+      const pdiPj  = [{x:N-1,y:lastPDI}, ...pdiProj.map((v,i)=>({x:N+i,y:v}))];
+      const mdiPj  = [{x:N-1,y:lastMDI}, ...mdiProj.map((v,i)=>({x:N+i,y:v}))];
+      dsADX.push({label:'ADX proj', data:adxPj,borderColor:'rgba(245,158,11,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+      dsADX.push({label:'+DI proj', data:pdiPj,borderColor:'rgba(0,184,148,.7)',  borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+      dsADX.push({label:'-DI proj', data:mdiPj,borderColor:'rgba(214,48,49,.7)',  borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+      dsADX.push(fDivDs(0, 60));
+      dsADX[3].data[1].x = N-1+fN;  // Extend the 25 reference line
+    }
     mkChart('cADX','line',dsADX,{
-      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8}}},
-      scales:{x:xAx(), y:{min:0,max:60,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},
+      scales:{x:xAxFcast(), y:{min:0,max:60,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
     });
   }
 
@@ -1552,9 +1663,18 @@ function renderPanels(r){
     const allFP=[...fibData.abs,...fibData.swing];
     const fibYmin=Math.min(pL,...allFP.map(f=>f.price))-pricePad;
     const fibYmax=Math.max(pH,...allFP.map(f=>f.price))+pricePad;
+    if(fcast) {
+      const fcFib = [{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+      const fuFib = [{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:N+i,y:v}))];
+      const fdFib = [{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:N+i,y:v}))];
+      dsFib.push({label:'Price proj',data:fcFib,borderColor:'rgba(55,65,81,.65)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+      dsFib.push({label:'_fu',data:fuFib,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsFib.push({label:'_fd',data:fdFib,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsFib.push(fDivDs(fibYmin, fibYmax));
+    }
     mkChart('cFib','line',dsFib,{
-      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7}}},
-      scales:{x:xAx(), y:{min:fibYmin,max:fibYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7&&!i.text.startsWith('_')}}},
+      scales:{x:xAxFcast(), y:{min:fibYmin,max:fibYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
     });
     const ftEl=document.getElementById('fibTable');
     if(ftEl){
@@ -1591,9 +1711,18 @@ function renderPanels(r){
     });
     const gYmin=Math.min(pL,...dedG.map(l=>l.price))-pricePad;
     const gYmax=Math.max(pH,...dedG.map(l=>l.price))+pricePad;
+    if(fcast) {
+      const fcGann = [{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+      const fuGann = [{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:N+i,y:v}))];
+      const fdGann = [{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:N+i,y:v}))];
+      dsGann.push({label:'Price proj',data:fcGann,borderColor:'rgba(55,65,81,.65)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+      dsGann.push({label:'_fgu',data:fuGann,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsGann.push({label:'_fgd',data:fdGann,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsGann.push(fDivDs(gYmin, gYmax));
+    }
     mkChart('cGann','line',dsGann,{
-      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7}}},
-      scales:{x:xAx(), y:{min:gYmin,max:gYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7&&!i.text.startsWith('_')}}},
+      scales:{x:xAxFcast(), y:{min:gYmin,max:gYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
     });
     const gtEl=document.getElementById('gannTable');
     if(gtEl){
@@ -1616,9 +1745,23 @@ function renderPanels(r){
       {label:'-2σ',data:[{x:0,y:-2},{x:N-1,y:-2}],borderColor:'rgba(0,180,140,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
       {label:'0',  data:[{x:0,y:0},{x:N-1,y:0}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[2,3],pointRadius:0,fill:false,parsing:false},
     ];
+    // Z-Score forecast projection
+    if(fcast && zProj.length) {
+      const zPts   = [{x:N-1,y:curZ}, ...zProj.map((v,i)=>({x:N+i,y:v}))];
+      const zUpPts = [{x:N-1,y:curZ}, ...zProjUp.map((v,i)=>({x:N+i,y:v}))];
+      const zDnPts = [{x:N-1,y:curZ}, ...zProjDn.map((v,i)=>({x:N+i,y:v}))];
+      dsZ.push({label:'Z proj (center)',data:zPts,  borderColor:'rgba(6,182,212,.85)',borderWidth:2,  borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+      dsZ.push({label:'Z proj (upper)', data:zUpPts,borderColor:'rgba(6,182,212,.4)', borderWidth:1,  borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsZ.push({label:'Z proj (lower)', data:zDnPts,borderColor:'rgba(6,182,212,.4)', borderWidth:1,  borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsZ.push(fDivDs(-4, 4));
+      // Extend reference lines
+      [1,2,3,5].forEach(i=>{ if(dsZ[i]&&dsZ[i].data) dsZ[i].data[1].x = N-1+fN; });
+    }
+    const zMin = fcast ? Math.min(-3,...zProj.filter(v=>v!=null),...zProjDn.filter(v=>v!=null))-0.5 : -3;
+    const zMax = fcast ? Math.max(3, ...zProj.filter(v=>v!=null),...zProjUp.filter(v=>v!=null))+0.5 : 3;
     mkChart('cZScore','line',dsZ,{
-      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=2}}},
-      scales:{x:xAx(), y:{ticks:{callback:v=>v.toFixed(1)+'σ',color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')&&i.datasetIndex<=2}}},
+      scales:{x:xAxFcast(), y:{min:zMin,max:zMax,ticks:{callback:v=>v.toFixed(1)+'σ',color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
     });
   }
 
@@ -1783,9 +1926,25 @@ testProxies();
 // ═══════ VERSION HISTORY ══════════════════════════════════════════════
 const VERSION_HISTORY = [
   {
+    version: '20260321.0350',
+    date: 'Mar 21, 2026 03:50',
+    label: 'Current',
+    changes: [
+      'Forecast projection added to ALL charts (RSI, ATR Stop, VWAP, ADX, Z-Score, VP, Fib, Gann, MS)',
+      'RSI forecast: projects RSI values from forecast price center/upper/lower',
+      'ATR Stop forecast: projects Chandelier stops using ATR mean-reversion model',
+      'VWAP forecast: projects VWAP drift toward forecast price center',
+      'ADX forecast: ADX decays toward equilibrium (25), DI follows forecast direction',
+      'Z-Score forecast: computes Z-Score on extended forecast price series',
+      'Price/Fib/Gann/VP/MS: forecast zone shown with grey dotted price projection',
+      'All panels share xAxFcast() — x-axis unified to N-1+fN across every chart',
+      'Vertical grey divider on every chart marks the forecast zone boundary',
+    ]
+  },
+  {
     version: '20260321.0339',
     date: 'Mar 21, 2026 03:39',
-    label: 'Current',
+    label: '',
     changes: [
       'Fixed forecast projection — main chart x-axis now extends to N-1+fN to show all forecast bars',
       'Rewrote Hurst Cycle panel — phase-continuous sine waves for all 3 cycles across full chart width',
