@@ -171,6 +171,36 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
 .rconc{background:#252540;border:1px solid #2d2d4a;border-radius:6px;padding:12px;font-size:10px;line-height:1.8;color:#b0b0cc}
 .rconc strong{color:#c4b5fd}
 .rdis{font-size:9px;color:#4a4a6a;margin-top:10px;padding-top:8px;border-top:1px solid #2d2d4a;line-height:1.6}
+/* Panel explanations */
+.panel-explain {
+  margin-top: 12px;
+  background: #f0f4ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.pe-title {
+  background: #667eea;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 13px;
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pe-title::after { content: '▾ '; font-size: 10px; opacity: 0.8; }
+.pe-body {
+  font-size: 11px;
+  line-height: 1.75;
+  color: #374151;
+  padding: 12px 14px;
+  display: none;
+}
+.pe-body.open { display: block; }
+
 @media(max-width:900px){
   .ctrl,.srow{grid-template-columns:1fr 1fr!important}
   .sgrid,.agrid,.rsecs{grid-template-columns:1fr}
@@ -185,7 +215,7 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
   </div>
   <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
     <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
-    <div style="font-size:14px;font-weight:700;font-family:monospace">20260321.0324</div>
+    <div style="font-size:14px;font-weight:700;font-family:monospace">20260321.0339</div>
     <div style="font-size:9px;opacity:0.6">▾ changelog</div>
   </div>
 </div>
@@ -924,6 +954,18 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="hl" id="hurstLeg"></div>
     <div class="cxl"><canvas id="cMain"></canvas></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read this chart</div>
+    <div class="pe-body">
+      <strong>Candles:</strong> Green = price closed higher (bullish bar), Red = closed lower (bearish bar). The wick shows the full high/low range, the body shows open-to-close range.<br><br>
+      <strong>Keltner Channel (orange):</strong> The middle line is a 20-period EMA. The upper and lower bands are ±1.5×ATR away. Price <em>above the upper band</em> = strong bullish breakout momentum. Price <em>below the lower band</em> = strong bearish momentum. Price oscillating inside the channel = ranging market — wait for a band break before trading.<br><br>
+      <strong>Grey dotted forecast lines:</strong> The center dotted line projects the most likely price path for the next bars based on a blend of pattern matching, Hurst cycle phase, and momentum decay. The outer dotted bands are ±1.5σ confidence bounds — they widen over time reflecting genuine uncertainty. <em>This is a probabilistic projection, not a guarantee.</em><br><br>
+      <strong>Swing Low / High (green/red dashed):</strong> Most recently detected pivot extremes. A breakout above the buy trigger (cyan) or below the sell trigger (orange) fires the signal.<br><br>
+      <strong>Fibonacci levels:</strong> Horizontal lines at 0%, 23.6%, 38.2%, 50%, 61.8%, 78.6%, 100% of the detected price range. Price often stalls or reverses at these natural ratios.<br><br>
+      <strong>Gann levels:</strong> Key price levels derived from Gann Square of Nine. Resistance levels (solid) and support levels (dashed) computed from the current price, swing high, and swing low.
+    </div>
+  </div>
+
 
   <!-- P2: Hurst Cycle Arcs — dedicated sub-chart BELOW price -->
   <div class="cpanel" id="pCycles">
@@ -931,6 +973,23 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="psub" id="cycSub">Sine arcs: ½ cycle · full cycle · 2× cycle · phase extension into forecast</div></div></div>
     <div class="ccy"><canvas id="cCycles"></canvas></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Hurst Cycle Arcs</div>
+    <div class="pe-body">
+      <strong>What is Hurst Cycle Analysis?</strong> H.M. Hurst's principle states that price moves in nested, harmonically-related cycles. Every market has a dominant cycle and smaller (half) and larger (double) harmonics. These cycles repeat with measurable regularity.<br><br>
+      <strong>The Y-axis (0–100%) represents cycle phase:</strong><br>
+      • <strong>0% = Trough</strong> — cycle bottom, historically where buying occurs<br>
+      • <strong>50% = Mid-cross</strong> — cycle moving through its midpoint (momentum peak)<br>
+      • <strong>100% = Peak</strong> — cycle top, historically where selling occurs<br><br>
+      <strong>The three waves:</strong><br>
+      • <strong>Blue (½ Cycle)</strong> — short-term rhythm, more frequent turns<br>
+      • <strong>Amber (Full Cycle, thick)</strong> — the dominant tradeable cycle, highest autocorrelation<br>
+      • <strong>Purple (2× Cycle)</strong> — major trend container; when this is ascending, dips tend to recover<br><br>
+      <strong>The ▼NOW marker</strong> shows exactly where the current bar falls on each cycle. If the dominant cycle is near 0% or 100%, a directional turn is close. If near 50%, the move is in full swing.<br><br>
+      <strong>Forecast zone (right of NOW):</strong> The waves continue into the future, projecting where each cycle will be in the next N bars. When all 3 cycles align at a trough simultaneously, it historically produces the strongest buy setups.
+    </div>
+  </div>
+
 
   <!-- P3: Market Structure -->
   <div class="cpanel" id="pMS">
@@ -938,6 +997,18 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="psub" id="msSub">Trend: —</div></div></div>
     <div class="cmd"><canvas id="cMS"></canvas></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Market Structure</div>
+    <div class="pe-body">
+      <strong>HH (Higher High):</strong> Price made a new high above the previous pivot high — bullish continuation signal.<br>
+      <strong>HL (Higher Low):</strong> A pullback that held above the prior swing low — uptrend buyers defending.<br>
+      <strong>LH (Lower High):</strong> A bounce that failed to reach the prior high — sellers stepping in earlier.<br>
+      <strong>LL (Lower Low):</strong> Price broke below a prior swing low — downtrend continuation.<br><br>
+      <strong>Trend definition:</strong> An uptrend requires at least 3 of the last 4 pivots to be HH or HL. A downtrend requires 3 of 4 to be LH or LL. Otherwise the market is <em>ranging</em>.<br><br>
+      <strong>Why it matters:</strong> Market structure tells you the "trend permission" for a trade. A buy signal is much higher probability when structure is HH/HL (uptrend) than when it is LH/LL (downtrend). Never trade breakouts against structure unless you have strong confirmation from multiple other indicators.
+    </div>
+  </div>
+
 
   <!-- P4: RSI -->
   <div class="cpanel" id="pRSI">
@@ -945,6 +1016,21 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="psub" id="rsiSub">RSI: —</div></div></div>
     <div class="csm"><canvas id="cRSI"></canvas></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read RSI + Divergence</div>
+    <div class="pe-body">
+      <strong>RSI (Relative Strength Index):</strong> Measures the speed and magnitude of recent price changes on a 0–100 scale. Calculated using 14 bars by default.<br><br>
+      <strong>Key levels:</strong><br>
+      • <strong>&gt;70 Overbought:</strong> Momentum extended to the upside. Not a sell signal by itself — in strong uptrends RSI can stay above 70 for extended periods. Look for it to <em>roll back below 70</em> as a sell trigger.<br>
+      • <strong>&lt;30 Oversold:</strong> Momentum extended to the downside. Same caveat — wait for RSI to cross back above 30 for a buy trigger.<br>
+      • <strong>50 midline:</strong> RSI above 50 indicates net bullish momentum, below 50 indicates net bearish momentum.<br><br>
+      <strong>Divergences (colored lines on the chart):</strong><br>
+      • <strong>🟢 Bullish divergence:</strong> Price made a <em>lower low</em> but RSI made a <em>higher low</em>. Selling pressure is weakening — potential reversal upward.<br>
+      • <strong>🔴 Bearish divergence:</strong> Price made a <em>higher high</em> but RSI made a <em>lower high</em>. Buying momentum is fading — potential reversal downward.<br><br>
+      Divergences are most reliable when they occur at extreme RSI levels (&lt;35 or &gt;65) and are confirmed by price structure (HH/HL or LH/LL breakdown).
+    </div>
+  </div>
+
 
   <!-- P5: ATR Stop -->
   <div class="cpanel" id="pATR">
@@ -952,6 +1038,21 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="psub" id="atrSub">ATR: —</div></div></div>
     <div class="cmd"><canvas id="cATR"></canvas></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read the ATR Dynamic Stop (Chandelier Exit)</div>
+    <div class="pe-body">
+      <strong>ATR (Average True Range):</strong> Measures current market volatility — the average size of price moves over 14 bars. A large ATR means wide swings; a small ATR means tight consolidation.<br><br>
+      <strong>Chandelier Exit:</strong> A trailing stop that adapts to volatility.<br>
+      • <strong>Green line (Long Stop):</strong> = Highest High of last 22 bars − 2×ATR. While price stays above this line, the uptrend is intact. A close below it signals the uptrend may be reversing.<br>
+      • <strong>Red line (Short Stop):</strong> = Lowest Low of last 22 bars + 2×ATR. While price stays below this line, the downtrend is intact.<br><br>
+      <strong>How to use it for position management:</strong><br>
+      • Enter long → use the green line as your trailing stop. Move your stop up as the green line rises.<br>
+      • Enter short → use the red line as your trailing stop.<br>
+      • A single candle close beyond the stop line is the exit signal.<br><br>
+      <strong>Why 2×ATR?</strong> Using 1×ATR is too tight (many false exits). 3×ATR gives back too much profit. 2×ATR is the industry standard balance between staying in trends and limiting drawdown.
+    </div>
+  </div>
+
 
   <!-- P6: VWAP -->
   <div class="cpanel" id="pVWAP">
@@ -959,6 +1060,20 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="psub" id="vwapSub">VWAP: —</div></div></div>
     <div class="cmd"><canvas id="cVWAP"></canvas></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read VWAP + Standard Deviation Bands</div>
+    <div class="pe-body">
+      <strong>VWAP (Volume-Weighted Average Price):</strong> The average price weighted by volume from the start of the session. This is the primary reference used by institutional traders, market makers, and algorithmic systems.<br><br>
+      <strong>Interpretation:</strong><br>
+      • <strong>Price above VWAP:</strong> Buyers are in control on average. Institutions accumulating are paying above VWAP — bullish bias. Long entries above VWAP have higher probability.<br>
+      • <strong>Price below VWAP:</strong> Sellers dominating. Short entries below VWAP have higher probability.<br>
+      • <strong>VWAP as support/resistance:</strong> Price often bounces off VWAP. A strong move that reclaims VWAP is bullish; a rejection from VWAP is bearish.<br><br>
+      <strong>Standard Deviation Bands:</strong><br>
+      • <strong>±1σ bands:</strong> ~68% of price action occurs within these bands. Good entry zones for mean-reversion trades (fade moves to ±1σ).<br>
+      • <strong>±2σ bands:</strong> ~95% of price action. Extreme readings — strong mean-reversion signal when price reaches ±2σ. Also signals strong trend continuation if price <em>stays</em> beyond ±2σ.
+    </div>
+  </div>
+
 
   <!-- P7: Volume Profile -->
   <div class="cpanel" id="pVP">
@@ -966,6 +1081,19 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="psub" id="vpSub">POC: —</div></div></div>
     <div class="cvp"><div class="cvp-sub"><canvas id="cVP"></canvas></div><div class="cvp-sub"><canvas id="cVPp"></canvas></div></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Volume Profile</div>
+    <div class="pe-body">
+      <strong>Volume Profile</strong> shows how much trading volume occurred at each price level, rather than over time. It reveals where the market spent the most energy.<br><br>
+      <strong>Point of Control (POC) — amber line:</strong> The price level with the highest traded volume. This is the strongest magnet in the chart. Price gravitates back toward the POC during consolidation, and a decisive move away from it is significant.<br><br>
+      <strong>Value Area (VAH / VAL — green/red dashed):</strong> The range containing 70% of total traded volume. Price inside the value area = fair value, expect choppiness. Price outside = directional opportunity.<br>
+      • <strong>Price above VAH:</strong> Breakout from value — bullish momentum.<br>
+      • <strong>Price below VAL:</strong> Breakdown from value — bearish momentum.<br>
+      • <strong>Price returning to VAH from above:</strong> VAH becomes support — good long entry zone.<br><br>
+      <strong>The horizontal bar chart (right):</strong> Bar width = volume at that price. Tall bars = high activity nodes (strong S/R). Thin areas = low volume nodes, price passes through quickly.
+    </div>
+  </div>
+
 
   <!-- P8: Reasoning -->
   <div class="rpanel" id="pReason">
@@ -982,6 +1110,23 @@ function buildModalHTML(r,sym,isBuy,isSel){
     </div></div>
     <div class="csm"><canvas id="cADX"></canvas></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read ADX + Directional Indicators</div>
+    <div class="pe-body">
+      <strong>ADX (Average Directional Index):</strong> Measures the <em>strength</em> of a trend — not its direction. ADX rising = trend strengthening regardless of whether up or down.<br><br>
+      <strong>ADX levels:</strong><br>
+      • <strong>&lt;20:</strong> Weak or absent trend — ranging market. Avoid trend-following strategies. Mean-reversion and range strategies work better here.<br>
+      • <strong>20–25:</strong> Transitional — trend beginning to form. Watch for breakout confirmation.<br>
+      • <strong>≥25:</strong> Trend confirmed and tradeable. Breakout signals are more reliable.<br>
+      • <strong>≥40:</strong> Very strong trend — may be overextended, watch for exhaustion.<br><br>
+      <strong>+DI (green) and -DI (red) — Directional Indicators:</strong><br>
+      • <strong>+DI above -DI:</strong> Bullish pressure dominant — upward directional movement.<br>
+      • <strong>-DI above +DI:</strong> Bearish pressure dominant — downward directional movement.<br>
+      • <strong>Crossover:</strong> +DI crossing above -DI = bullish signal (especially when ADX≥25). -DI crossing above +DI = bearish signal.<br><br>
+      <strong>Best use:</strong> Use ADX to filter breakout signals. Only take buy signals when ADX≥25 and +DI&gt;-DI. Ignore breakouts when ADX&lt;20 — they are likely false.
+    </div>
+  </div>
+
 
   <!-- Fibonacci Panel -->
   <div class="cpanel" id="pFib">
@@ -992,6 +1137,23 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="cmd"><canvas id="cFib"></canvas></div>
     <div id="fibTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Fibonacci Retracement Levels</div>
+    <div class="pe-body">
+      <strong>Fibonacci retracement</strong> identifies potential support/resistance levels based on natural mathematical ratios (derived from the Fibonacci sequence) applied to a price range.<br><br>
+      <strong>Two sets of levels are shown:</strong><br>
+      • <strong>Solid lines (Auto H/L):</strong> Computed from the absolute highest high and lowest low of all visible bars.<br>
+      • <strong>Dashed lines (Swing):</strong> Computed from the most recent confirmed pivot swing high and swing low — more responsive to current price action.<br><br>
+      <strong>Key levels to watch:</strong><br>
+      • <strong>23.6%:</strong> Shallow retracement — strong trend, price barely dipped. Aggressive re-entry zone.<br>
+      • <strong>38.2%:</strong> Normal retracement in a healthy trend. Most common re-entry level.<br>
+      • <strong>50%:</strong> Not a Fibonacci ratio but widely respected psychological level.<br>
+      • <strong>61.8% (Golden Ratio):</strong> The most important level. Deep retracements to 61.8% that hold are classic trend-continuation setups.<br>
+      • <strong>78.6%:</strong> If price retraces this deep, the original move may be reversing entirely.<br><br>
+      <strong>How to trade fibs:</strong> Wait for price to pull back to a level, then look for confirmation (RSI turning up, bullish candle, VWAP support) before entering.
+    </div>
+  </div>
+
 
   <!-- Gann Square Panel -->
   <div class="cpanel" id="pGann">
@@ -1002,6 +1164,21 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="cmd"><canvas id="cGann"></canvas></div>
     <div id="gannTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px"></div>
   </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Gann Square of Nine</div>
+    <div class="pe-body">
+      <strong>W.D. Gann's Square of Nine</strong> is a spiral of numbers arranged in a grid. Key price levels are found by taking the square root of a price, adding or subtracting integers, then squaring the result: <em>Level = (√Price ± n)²</em><br><br>
+      <strong>Why it works (in Gann's theory):</strong> Price moves in geometric progressions. Just as planets complete orbits, prices complete "squares" around key levels. The levels that appear above and below a price represent natural gravitational points where price tends to pause, reverse, or accelerate.<br><br>
+      <strong>Three sets of levels are shown:</strong><br>
+      • <strong>Purple (from Close):</strong> Gann levels radiating from today's closing price.<br>
+      • <strong>Red (from Swing High):</strong> Resistance levels computed from the recent pivot high.<br>
+      • <strong>Green (from Swing Low):</strong> Support levels computed from the recent pivot low.<br><br>
+      <strong>Resistance levels (solid):</strong> Price approaching these from below = potential stall or reversal.<br>
+      <strong>Support levels (dashed):</strong> Price approaching these from above = potential bounce.<br><br>
+      <strong>Confluence zones:</strong> When a Gann level aligns with a Fibonacci level AND a VWAP band, the probability of a reaction at that price is significantly higher.
+    </div>
+  </div>
+
 
   <!-- Z-Score Panel -->
   <div class="cpanel" id="pZScore">
@@ -1156,45 +1333,100 @@ function renderPanels(r){
     scales:{x:xAx(),y:{min:yMinMain,max:yMaxMain,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
   };
 
-  const mc=new Chart(document.getElementById('cMain'),{type:'line',data:{datasets:ds1},plugins:[candlePlugin],options:{responsive:true,maintainAspectRatio:false,animation:false,...mainOpts}});
+  // Override x-axis max to include forecast bars (N-1+fN)
+  const mainChartOpts = {...mainOpts,
+    scales:{
+      ...mainOpts.scales,
+      x:{...mainOpts.scales.x,
+        min:0, max:N-1+fN,
+        ticks:{...mainOpts.scales.x.ticks,
+          callback:(v,i)=>{
+            if(v>N-1) return '+'+(v-N+1)+'b';  // label forecast bars as +1b, +2b...
+            if(v%Math.max(1,Math.floor(N/8))!==0) return '';
+            return labels[v]||'';
+          }
+        }
+      }
+    }
+  };
+  const mc=new Chart(document.getElementById('cMain'),{type:'line',data:{datasets:ds1},plugins:[candlePlugin],options:{responsive:true,maintainAspectRatio:false,animation:false,...mainChartOpts}});
   modalCharts.push(mc);
 
-  // ── PANEL 2: Hurst Cycle Arcs — dedicated sub-chart ──────────────────
-  document.getElementById('cycSub').textContent=
-    `Dominant cycle: ${hurst.dom} bars · Half: ${hurst.half}b · 2×: ${hurst.dbl}b · Phase: ${(hurst.phase*100).toFixed(0)}% · AC strength: ${hurst.ac}`;
+  // ── PANEL 2: Hurst Cycle Arcs ─────────────────────────────────────────
+  // THREE continuous sine waves, each spanning full chart + forecast zone.
+  // Y = normalised phase 0-100 (0=trough 50=midcross 100=peak).
+  // Each cycle's current phase is computed from bar count modulo cycle length.
+  {
+    const domPhase  = (r.bars.length % hurst.dom)  / hurst.dom;
+    const halfPhase = (r.bars.length % hurst.half) / hurst.half;
+    const dblPhase  = (r.bars.length % hurst.dbl)  / hurst.dbl;
 
-  function cycArc(cLen,col,lbl,ph){
-    // Always draw full cycle within visible window, clamped to N-1 bars
-    const visLen = Math.min(cLen, N-1);
-    const pts=[];
-    for(let i=0;i<=visLen;i++){
-      const frac = i/visLen;
-      pts.push({x:N-1-visLen+i, y:50+45*Math.sin(Math.PI*frac+ph)});
+    function buildWave(cycLen, curPhase) {
+      const pts = [];
+      for (let x = 0; x <= N - 1 + fN; x++) {
+        const phi = curPhase + (x - (N - 1)) / cycLen;
+        pts.push({x, y: 50 + 46 * Math.sin(2 * Math.PI * phi)});
+      }
+      return pts;
     }
-    return{label:lbl,data:pts,borderColor:col,borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false,tension:.4};
+
+    const domPct  = (domPhase  * 100).toFixed(0);
+    const halfPct = (halfPhase * 100).toFixed(0);
+    const dblPct  = (dblPhase  * 100).toFixed(0);
+    const domPos  = domPhase < 0.25 ? '🟢 Rising from trough'
+                  : domPhase < 0.5  ? '📈 Nearing peak'
+                  : domPhase < 0.75 ? '🔴 Falling from peak'
+                  :                   '📉 Nearing trough';
+
+    document.getElementById('cycSub').textContent =
+      'Dominant ' + hurst.dom + 'b @ ' + domPct + '% — ' + domPos +
+      ' · Half ' + hurst.half + 'b @ ' + halfPct + '% · 2× ' + hurst.dbl + 'b @ ' + dblPct + '% · AC: ' + hurst.ac;
+
+    const dsCyc = [
+      {label:'½ Cycle ('+hurst.half+'b)',
+        data:buildWave(hurst.half, halfPhase),
+        borderColor:'rgba(59,130,246,.8)',borderWidth:1.5,borderDash:[5,3],
+        pointRadius:0,fill:false,parsing:false,tension:0},
+      {label:'Full Cycle ('+hurst.dom+'b) — dominant',
+        data:buildWave(hurst.dom, domPhase),
+        borderColor:'rgba(245,158,11,.95)',borderWidth:2.5,borderDash:[],
+        pointRadius:0,fill:false,parsing:false,tension:0},
+      {label:'2× Cycle ('+hurst.dbl+'b)',
+        data:buildWave(hurst.dbl, dblPhase),
+        borderColor:'rgba(168,85,247,.75)',borderWidth:1.5,borderDash:[8,4],
+        pointRadius:0,fill:false,parsing:false,tension:0},
+      {label:'_mid',data:[{x:0,y:50},{x:N-1+fN,y:50}],
+        borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,3],
+        pointRadius:0,fill:false,parsing:false},
+      {label:'_now',data:[{x:N-1,y:0},{x:N-1,y:100}],
+        borderColor:'rgba(255,255,255,.55)',borderWidth:2,
+        pointRadius:0,fill:false,parsing:false},
+      {label:'_fcast',data:[{x:N-1,y:0},{x:N-1,y:100}],
+        borderColor:'rgba(120,120,120,.4)',borderWidth:1.5,borderDash:[4,3],
+        pointRadius:0,fill:false,parsing:false},
+    ];
+
+    mkChart('cCycles','line',dsCyc,{
+      plugins:{legend:{display:true,position:'top',
+        labels:{font:{size:8},boxWidth:10,filter:i=>!i.text.startsWith('_')}}},
+      scales:{
+        x:{type:'linear',min:0,max:N-1+fN,
+          ticks:{callback:v=>{
+            if(v===N-1) return '▼NOW';
+            if(v>N-1)   return '+'+(v-N+1)+'b';
+            if(v%Math.max(1,Math.floor(N/8))!==0) return '';
+            return labels[v]||'';
+          },font:{size:8},color:'#636e72',maxRotation:0},
+          grid:{color:'#ecf0f1'}},
+        y:{min:0,max:100,
+          ticks:{callback:v=>v===0?'Trough':v===50?'Mid':v===100?'Peak':v+'%',
+            color:'#636e72',font:{size:8},stepSize:25},
+          grid:{color:'#ecf0f1'},
+          title:{display:true,text:'Cycle Phase: 0=Trough · 50=Mid-cross · 100=Peak',
+            font:{size:8},color:'#636e72'}}
+      }
+    });
   }
-  // Phase extension into forecast zone
-  const phRad=hurst.phase*2*Math.PI;
-  function cycExt(cLen,col){
-    const pts=[];
-    for(let i=0;i<=Math.min(cLen,fN);i++)pts.push({x:N-1+i,y:50+45*Math.sin(phRad+i/cLen*2*Math.PI)});
-    return{label:'Phase fwd',data:pts,borderColor:col,borderWidth:1.5,borderDash:[3,6],pointRadius:0,fill:false,parsing:false,tension:.4};
-  }
-  const dsCyc=[
-    cycArc(hurst.half,'rgba(59,130,246,.85)',`½ Cycle (${hurst.half} bars)`,0),
-    cycArc(hurst.dom, 'rgba(245,158,11,.85)',`Full Cycle (${hurst.dom} bars)`,Math.PI),
-    cycArc(hurst.dbl, 'rgba(168,85,247,.7)', `2× Cycle (${hurst.dbl} bars)`,0),
-    cycExt(hurst.dom,'rgba(245,158,11,.45)'),
-    {label:'Now',data:[{x:N-1,y:0},{x:N-1,y:100}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[3,3],pointRadius:0,fill:false,parsing:false},
-  ];
-  mkChart('cCycles','line',dsCyc,{
-    plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:10,filter:i=>i.text!=='Now'&&i.text!=='Phase fwd'}}},
-    scales:{
-      x:{type:'linear',min:0,max:N-1+fN,ticks:{callback:(v,i2)=>{if(v%Math.max(1,Math.floor(N/8))!==0)return'';return labels[Math.min(v,N-1)]||'';},font:{size:8},color:'#636e72',maxRotation:0},grid:{color:'#ecf0f1'}},
-      y:{min:0,max:100,ticks:{callback:v=>v+'%',color:'#636e72',font:{size:8},stepSize:25},grid:{color:'#ecf0f1'},
-        title:{display:true,text:'0=trough · 50=cross · 100=peak',font:{size:8},color:'#636e72'}}
-    }
-  });
 
   // ── PANEL 3: Market Structure ─────────────────────────────────────────
   const ms=compMS(r.bars.slice(0,80));
@@ -1524,6 +1756,19 @@ function buildReasoning(r,rsiVals,vp,hurst,atr,chand,vwap,ms,kelt){
     <div class="rdis">⚠️ This analysis is generated algorithmically from price, volume and technical data. For educational purposes only — not financial advice. Past patterns do not guarantee future results. Options involve significant risk.</div>`;
 }
 
+function toggleExplain(el) {
+  const body = el.nextElementSibling;
+  if (body) body.classList.toggle('open');
+}
+// Make all pe-title clickable
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('pe-title') || e.target.closest('.pe-title')) {
+    const title = e.target.classList.contains('pe-title') ? e.target : e.target.closest('.pe-title');
+    const body = title.nextElementSibling;
+    if (body && body.classList.contains('pe-body')) body.classList.toggle('open');
+  }
+});
+
 function closeModal(){
   document.getElementById('modal').style.display='none';
   modalCharts.forEach(c=>{try{c.destroy();}catch(e){}});
@@ -1538,9 +1783,22 @@ testProxies();
 // ═══════ VERSION HISTORY ══════════════════════════════════════════════
 const VERSION_HISTORY = [
   {
+    version: '20260321.0339',
+    date: 'Mar 21, 2026 03:39',
+    label: 'Current',
+    changes: [
+      'Fixed forecast projection — main chart x-axis now extends to N-1+fN to show all forecast bars',
+      'Rewrote Hurst Cycle panel — phase-continuous sine waves for all 3 cycles across full chart width',
+      'Hurst: each cycle has independent phase, ▼NOW marker, future projection into forecast zone',
+      'Added ▼NOW and +Nb labels on cycle x-axis for clarity',
+      'Added per-panel explanations below every chart (toggleable, click to expand)',
+      'Explanations cover: how to read, key levels, trading signals, confluence tips',
+    ]
+  },
+  {
     version: '20260321.0324',
     date: 'Mar 21, 2026 03:24',
-    label: 'Current',
+    label: '',
     changes: [
       'Fixed chart alignment — all studies now share identical x-axis (oldest-first)',
       'Fixed Keltner Channel direction mismatch (reversed before mapping)',
@@ -1651,6 +1909,23 @@ function renderVersionLog() {
         ${v.changes.map(ch=>`<li style="font-size:11px;color:#b0b0cc;display:flex;gap:7px"><span style="color:#667eea;flex-shrink:0">•</span>${ch}</li>`).join('')}
       </ul>
     </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Z-Score</div>
+    <div class="pe-body">
+      <strong>Z-Score</strong> measures how far the current price is from its recent average, expressed in standard deviations. It answers: "Is the current price statistically extreme compared to recent history?"<br><br>
+      <strong>Formula:</strong> Z = (Current Price − 20-bar Mean) ÷ 20-bar Standard Deviation<br><br>
+      <strong>Interpretation:</strong><br>
+      • <strong>Z = 0:</strong> Price is exactly at its recent average — neutral.<br>
+      • <strong>Z = +1 to +2:</strong> Price is 1–2 standard deviations above average — extended, but within normal range.<br>
+      • <strong>Z &gt; +2 (red dashed):</strong> Statistically overbought. In a mean-reverting market, this signals a likely pullback. In a trending market, momentum may sustain it briefly longer.<br>
+      • <strong>Z &lt; -2 (green dashed):</strong> Statistically oversold. Price is 2 standard deviations below its mean — historically high probability of a bounce.<br><br>
+      <strong>Best use cases:</strong><br>
+      • <strong>Mean reversion:</strong> When Z &gt; +2 and RSI &gt; 70 and ADX &lt; 25 (ranging market) → strong short/put signal.<br>
+      • <strong>Trend continuation:</strong> When Z is persistently above +1 and ADX &gt; 25 → trend is strong, don't fade it.<br>
+      • <strong>Divergence:</strong> Price makes new high but Z-Score makes lower high → exhaustion signal.
+    </div>
+  </div>
+
   `).join('<div style="height:1px;background:#2d2d4a;margin:0 0 18px"></div>');
 }
 
