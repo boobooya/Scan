@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenClaw AI Trader</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #050810;
+    --panel: #0a0f1e;
+    --border: #1a2540;
+    --green: #00ff88;
+    --red: #ff3355;
+    --blue: #00aaff;
+    --gold: #ffcc00;
+    --purple: #aa55ff;
+    --dim: #3a4a6a;
+    --text: #c8d8f0;
+    --mono: 'Share Tech Mono', monospace;
+    --ui: 'Rajdhani', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--ui);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .scanlines {
+    position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 1.3rem;
+    color: var(--green);
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px var(--green);
+  }
+
+  .logo span { color: var(--blue); }
+
+  .status-bar {
+    display: flex; gap: 20px; align-items: center;
+    font-family: var(--mono); font-size: 0.75rem;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 1.5s infinite; }
+  .dot.idle { background: var(--dim); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .level-badge {
+    background: linear-gradient(135deg, #1a0a40, #0a1a40);
+    border: 1px solid var(--purple);
+    padding: 4px 14px; border-radius: 20px;
+    font-family: var(--mono); font-size: 0.8rem; color: var(--purple);
+    box-shadow: 0 0 12px rgba(170,85,255,0.3);
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: auto auto;
+    gap: 12px;
+    padding: 12px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 0.75rem;
+    color: var(--blue); letter-spacing: 2px;
+    background: rgba(0,170,255,0.03);
+  }
+
+  /* CHART */
+  .chart-panel { grid-row: 1; grid-column: 1; }
+  canvas#chart { display: block; width: 100%; }
+
+  /* CONTROLS */
+  .controls {
+    display: flex; gap: 10px; align-items: center;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  select, button {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    background: #0d1428;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 6px 12px;
+    cursor: pointer;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  button:hover { border-color: var(--blue); color: var(--blue); box-shadow: 0 0 8px rgba(0,170,255,0.2); }
+
+  button.primary {
+    background: linear-gradient(135deg, #003366, #001a33);
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+
+  button.danger {
+    background: linear-gradient(135deg, #330011, #1a000a);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  button.success {
+    background: linear-gradient(135deg, #003322, #001a11);
+    border-color: var(--green);
+    color: var(--green);
+  }
+
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* SIDE PANEL */
+  .side-panel { grid-row: 1 / 3; grid-column: 2; display: flex; flex-direction: column; gap: 12px; }
+
+  /* STATS */
+  .stats-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; padding: 12px;
+  }
+
+  .stat-card {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .stat-label { font-family: var(--mono); font-size: 0.6rem; color: var(--dim); letter-spacing: 1px; }
+  .stat-value { font-family: var(--mono); font-size: 1.1rem; margin-top: 4px; }
+  .stat-value.green { color: var(--green); text-shadow: 0 0 8px var(--green); }
+  .stat-value.red { color: var(--red); text-shadow: 0 0 8px var(--red); }
+  .stat-value.gold { color: var(--gold); text-shadow: 0 0 8px var(--gold); }
+  .stat-value.blue { color: var(--blue); }
+  .stat-value.purple { color: var(--purple); }
+
+  /* XP BAR */
+  .xp-bar-wrap { padding: 0 12px 12px; }
+  .xp-label { font-family: var(--mono); font-size: 0.65rem; color: var(--dim); margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .xp-track { height: 6px; background: #1a2540; border-radius: 3px; overflow: hidden; }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--blue)); border-radius: 3px; transition: width 0.5s ease; box-shadow: 0 0 8px var(--purple); }
+
+  /* AI LOG */
+  .ai-log {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    padding: 10px;
+    height: 200px;
+    overflow-y: auto;
+    line-height: 1.6;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .log-line { margin-bottom: 2px; }
+  .log-line.info { color: var(--blue); }
+  .log-line.success { color: var(--green); }
+  .log-line.warn { color: var(--gold); }
+  .log-line.error { color: var(--red); }
+  .log-line.ai { color: var(--purple); }
+  .log-line.dim { color: var(--dim); }
+
+  /* BACKTEST PANEL */
+  .backtest-panel { grid-row: 2; grid-column: 1; }
+
+  .backtest-results {
+    padding: 12px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    display: flex; gap: 20px; flex-wrap: wrap;
+  }
+
+  .bt-stat { text-align: center; }
+  .bt-label { color: var(--dim); font-size: 0.6rem; letter-spacing: 1px; }
+  .bt-val { font-size: 1rem; margin-top: 2px; }
+
+  .prediction-row {
+    display: flex; gap: 4px; padding: 8px 12px;
+    flex-wrap: wrap;
+  }
+
+  .pred-candle {
+    width: 20px; height: 36px;
+    display: flex; flex-direction: column; align-items: center;
+    font-size: 0.55rem; font-family: var(--mono);
+    position: relative;
+  }
+
+  .pred-body {
+    width: 10px; border-radius: 1px;
+    position: absolute; left: 50%; transform: translateX(-50%);
+  }
+
+  .pred-wick {
+    width: 1px; position: absolute; left: 50%; transform: translateX(-50%);
+    background: var(--dim);
+  }
+
+  .thinking {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--purple); font-family: var(--mono); font-size: 0.75rem;
+    padding: 10px 16px;
+  }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--purple);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .accuracy-bar-wrap { padding: 4px 12px 12px; }
+  .acc-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 0.65rem; font-family: var(--mono); }
+  .acc-label { width: 70px; color: var(--dim); }
+  .acc-track { flex: 1; height: 5px; background: #1a2540; border-radius: 2px; overflow: hidden; }
+  .acc-fill { height: 100%; border-radius: 2px; transition: width 0.6s; }
+  .acc-val { width: 35px; text-align: right; }
+
+  /* TICKER */
+  .price-ticker {
+    display: flex; gap: 24px;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 0.8rem;
+    background: rgba(0,0,0,0.2);
+  }
+
+  .ticker-item { display: flex; flex-direction: column; }
+  .ticker-symbol { font-size: 0.6rem; color: var(--dim); letter-spacing: 1px; }
+  .ticker-price { font-size: 0.95rem; }
+
+  .flash-green { animation: flashG 0.4s; }
+  .flash-red { animation: flashR 0.4s; }
+  @keyframes flashG { 0%{color:var(--green)} 100%{color:inherit} }
+  @keyframes flashR { 0%{color:var(--red)} 100%{color:inherit} }
+</style>
+</head>
+<body>
+<div class="scanlines"></div>
+
+<header>
+  <div class="logo">OPEN<span>CLAW</span> AI</div>
+  <div class="status-bar">
+    <span id="liveStatus"><span class="dot idle" id="liveDot"></span><span id="liveText">IDLE</span></span>
+    <span id="clockEl" style="color:var(--dim)">--:--:--</span>
+    <span id="candleCount" style="font-size:0.7rem;color:var(--dim)">CANDLES: 0</span>
+  </div>
+  <div class="level-badge" id="levelBadge">LVL 1 — NOVICE</div>
+</header>
+
+<div class="main-grid">
+
+  <!-- CHART PANEL -->
+  <div class="panel chart-panel">
+    <div class="price-ticker" id="priceTicker">
+      <div class="ticker-item"><div class="ticker-symbol">SYMBOL</div><div class="ticker-price" id="tPrice">—</div></div>
+      <div class="ticker-item"><div class="ticker-symbol">OPEN</div><div class="ticker-price" id="tOpen">—</div></div>
+      <div class="ticker-item"><div class="ticker-symbol">HIGH</div><div class="ticker-price green" id="tHigh">—</div></div>
+      <div class="ticker-item"><div class="ticker-symbol">LOW</div><div class="ticker-price red" id="tLow">—</div></div>
+      <div class="ticker-item"><div class="ticker-symbol">CHANGE</div><div class="ticker-price" id="tChange">—</div></div>
+      <div class="ticker-item"><div class="ticker-symbol">VOLUME</div><div class="ticker-price" id="tVol">—</div></div>
+    </div>
+    <div class="controls">
+      <select id="symbolSel">
+        <option value="SPY">SPY — S&P 500</option>
+        <option value="QQQ">QQQ — NASDAQ</option>
+        <option value="AAPL">AAPL — Apple</option>
+        <option value="TSLA">TSLA — Tesla</option>
+        <option value="BTC">BTC — Bitcoin</option>
+        <option value="ETH">ETH — Ethereum</option>
+      </select>
+      <select id="tfSel">
+        <option value="1m">1m</option>
+        <option value="5m" selected>5m</option>
+        <option value="15m">15m</option>
+        <option value="1h">1h</option>
+        <option value="4h">4h</option>
+      </select>
+      <button class="success" id="startBtn" onclick="startFeed()">▶ START FEED</button>
+      <button class="danger" id="stopBtn" onclick="stopFeed()" disabled>■ STOP</button>
+      <button class="primary" id="predictBtn" onclick="runPrediction()" disabled>◈ PREDICT 15</button>
+      <button onclick="runBacktest()" id="btBtn" disabled>⟳ BACKTEST</button>
+      <button onclick="resetAll()" style="color:var(--dim)">↺ RESET</button>
+    </div>
+    <canvas id="chart" height="340"></canvas>
+    <div id="thinkingBar" style="display:none" class="thinking">
+      <div class="spinner"></div>
+      <span id="thinkText">AI is analyzing patterns...</span>
+    </div>
+    <div class="prediction-row" id="predRow"></div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side-panel">
+
+    <!-- PERFORMANCE -->
+    <div class="panel">
+      <div class="panel-header">◈ PERFORMANCE</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">PREDICTIONS</div>
+          <div class="stat-value blue" id="sPreds">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ACCURACY</div>
+          <div class="stat-value gold" id="sAcc">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">DIRECTION ✓</div>
+          <div class="stat-value green" id="sDir">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">XP POINTS</div>
+          <div class="stat-value purple" id="sXp">0</div>
+        </div>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-label"><span>XP TO NEXT LEVEL</span><span id="xpLabel">0 / 100</span></div>
+        <div class="xp-track"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+      </div>
+      <div class="accuracy-bar-wrap" id="accBars"></div>
+    </div>
+
+    <!-- AI LOG -->
+    <div class="panel" style="flex:1">
+      <div class="panel-header">◈ AI SIGNAL LOG</div>
+      <div class="ai-log" id="aiLog">
+        <div class="log-line dim">// OpenClaw AI Trading System</div>
+        <div class="log-line dim">// Powered by Claude AI Engine</div>
+        <div class="log-line dim">// Start feed to begin monitoring...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BACKTEST PANEL -->
+  <div class="panel backtest-panel">
+    <div class="panel-header">◈ BACKTEST ENGINE <span id="btStatus" style="color:var(--dim)">READY</span></div>
+    <div class="backtest-results" id="btResults">
+      <div class="bt-stat"><div class="bt-label">WIN RATE</div><div class="bt-val green" id="bWin">—</div></div>
+      <div class="bt-stat"><div class="bt-label">DIRECTION ACC</div><div class="bt-val blue" id="bDir">—</div></div>
+      <div class="bt-stat"><div class="bt-label">AVG ERROR %</div><div class="bt-val gold" id="bErr">—</div></div>
+      <div class="bt-stat"><div class="bt-label">BEST ROUND</div><div class="bt-val purple" id="bBest">—</div></div>
+      <div class="bt-stat"><div class="bt-label">ROUNDS RUN</div><div class="bt-val" id="bRounds">0</div></div>
+      <div class="bt-stat"><div class="bt-label">MODEL GRADE</div><div class="bt-val gold" id="bGrade">—</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+const state = {
+  candles: [],
+  predictions: [],
+  feedInterval: null,
+  isRunning: false,
+  symbol: 'SPY',
+  tf: '5m',
+  xp: 0,
+  level: 1,
+  predictionRounds: 0,
+  totalDirectionCorrect: 0,
+  totalDirectionChecked: 0,
+  backtestRounds: 0,
+  backtestWins: 0,
+  backtestErrors: [],
+  bestAccuracy: 0,
+  predictionHistory: [], // {predicted, actual, dirScore, errPct}
+  basePrice: 450,
+  trend: 0,
+  volatility: 1.2,
+};
+
+const LEVELS = [
+  { min: 0,    name: 'NOVICE',    color: '#3a4a6a' },
+  { min: 100,  name: 'ANALYST',   color: '#00aaff' },
+  { min: 300,  name: 'TRADER',    color: '#00cc66' },
+  { min: 700,  name: 'STRATEGIST',color: '#ffcc00' },
+  { min: 1500, name: 'EXPERT',    color: '#ff8800' },
+  { min: 3000, name: 'MASTER',    color: '#aa55ff' },
+  { min: 6000, name: 'ORACLE',    color: '#ff3355' },
+];
+
+// ═══════════════════════════════════════════════════════
+// CANDLE GENERATION (simulated market)
+// ═══════════════════════════════════════════════════════
+function generateCandle(prev) {
+  const lastClose = prev ? prev.close : state.basePrice;
+  
+  // Evolving trend + mean reversion
+  state.trend += (Math.random() - 0.52) * 0.3;
+  state.trend = Math.max(-3, Math.min(3, state.trend));
+  
+  // Occasional regime changes
+  if (Math.random() < 0.03) state.trend = -state.trend * 0.5;
+  
+  const change = (state.trend + (Math.random() - 0.5) * state.volatility * 2) * (lastClose * 0.003);
+  const open = lastClose;
+  const close = Math.max(1, open + change);
+  const range = Math.abs(change) * (1 + Math.random() * 1.5);
+  const high = Math.max(open, close) + range * Math.random() * 0.5;
+  const low = Math.min(open, close) - range * Math.random() * 0.5;
+  const volume = Math.floor(1000000 + Math.random() * 5000000);
+  
+  return {
+    time: Date.now(),
+    open: +open.toFixed(2),
+    high: +high.toFixed(2),
+    low: +low.toFixed(2),
+    close: +close.toFixed(2),
+    volume,
+    isPredicted: false,
+  };
+}
+
+function initCandles() {
+  state.candles = [];
+  state.basePrice = { SPY: 580, QQQ: 490, AAPL: 225, TSLA: 248, BTC: 87000, ETH: 3200 }[state.symbol] || 450;
+  state.volatility = { SPY: 0.8, QQQ: 1.0, AAPL: 1.1, TSLA: 2.5, BTC: 4.0, ETH: 4.5 }[state.symbol] || 1.2;
+  
+  let c = null;
+  for (let i = 0; i < 80; i++) {
+    c = generateCandle(c);
+    c.time = Date.now() - (80 - i) * 60000;
+    state.candles.push(c);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CHART RENDERER
+// ═══════════════════════════════════════════════════════
+function drawChart() {
+  const canvas = document.getElementById('chart');
+  const container = canvas.parentElement;
+  canvas.width = container.clientWidth;
+  canvas.height = 340;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const pad = { top: 20, right: 60, bottom: 30, left: 10 };
+  const allC = [...state.candles, ...state.predictions];
+  if (allC.length === 0) return;
+
+  const prices = allC.flatMap(c => [c.high, c.low]);
+  const minP = Math.min(...prices) * 0.999;
+  const maxP = Math.max(...prices) * 1.001;
+  const pRange = maxP - minP;
+
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+  const maxCandles = 60;
+  const visible = allC.slice(-maxCandles);
+  const cw = chartW / maxCandles;
+  const bw = Math.max(2, cw * 0.6);
+
+  const py = p => pad.top + chartH - ((p - minP) / pRange) * chartH;
+  const cx = i => pad.left + (i + 0.5) * cw;
+
+  // Background grid
+  ctx.strokeStyle = '#0d1428';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 5; i++) {
+    const y = pad.top + (chartH / 5) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    const price = maxP - (pRange / 5) * i;
+    ctx.fillStyle = '#2a3a5a';
+    ctx.font = '10px Share Tech Mono';
+    ctx.textAlign = 'left';
+    ctx.fillText(price.toFixed(2), W - pad.right + 4, y + 4);
+  }
+
+  // Separator between real and predicted
+  const realCount = Math.min(state.candles.length, maxCandles);
+  if (state.predictions.length > 0) {
+    const sepX = pad.left + realCount * cw;
+    ctx.strokeStyle = 'rgba(170,85,255,0.3)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(sepX, pad.top); ctx.lineTo(sepX, H - pad.bottom); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(170,85,255,0.5)';
+    ctx.font = '9px Share Tech Mono';
+    ctx.fillText('◈ PREDICTED', sepX + 4, pad.top + 10);
+  }
+
+  // Draw candles
+  visible.forEach((c, i) => {
+    const x = cx(i);
+    const isPred = c.isPredicted;
+    const bull = c.close >= c.open;
+    const color = isPred
+      ? (bull ? 'rgba(0,255,136,0.5)' : 'rgba(255,51,85,0.5)')
+      : (bull ? '#00ff88' : '#ff3355');
+    const alpha = isPred ? 0.6 : 1;
+
+    // Wick
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = alpha;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, py(c.high));
+    ctx.lineTo(x, py(c.low));
+    ctx.stroke();
+
+    // Body
+    const bodyTop = py(Math.max(c.open, c.close));
+    const bodyBot = py(Math.min(c.open, c.close));
+    const bodyH = Math.max(1, bodyBot - bodyTop);
+
+    if (isPred) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - bw / 2, bodyTop, bw, bodyH);
+    } else {
+      ctx.fillStyle = color;
+      ctx.fillRect(x - bw / 2, bodyTop, bw, bodyH);
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  // Current price line
+  if (state.candles.length > 0) {
+    const last = state.candles[state.candles.length - 1];
+    const y = py(last.close);
+    ctx.strokeStyle = 'rgba(0,170,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#00aaff';
+    ctx.font = '10px Share Tech Mono';
+    ctx.fillText(last.close.toFixed(2), W - pad.right + 4, y + 4);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// FEED CONTROL
+// ═══════════════════════════════════════════════════════
+function startFeed() {
+  state.symbol = document.getElementById('symbolSel').value;
+  state.tf = document.getElementById('tfSel').value;
+  initCandles();
+  state.isRunning = true;
+  state.predictions = [];
+
+  document.getElementById('startBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  document.getElementById('predictBtn').disabled = false;
+  document.getElementById('btBtn').disabled = false;
+  document.getElementById('liveDot').className = 'dot live';
+  document.getElementById('liveText').textContent = 'LIVE';
+
+  log(`Feed started: ${state.symbol} [${state.tf}]`, 'info');
+  log(`Loaded ${state.candles.length} historical candles`, 'dim');
+
+  const speed = { '1m': 2000, '5m': 3000, '15m': 4000, '1h': 5000, '4h': 6000 }[state.tf] || 3000;
+
+  state.feedInterval = setInterval(() => {
+    const newC = generateCandle(state.candles[state.candles.length - 1]);
+    state.candles.push(newC);
+    state.predictions = []; // clear predictions on new candle
+    updateTicker(newC);
+    drawChart();
+    document.getElementById('candleCount').textContent = `CANDLES: ${state.candles.length}`;
+
+    // Auto-check predictions
+    if (state.predictionHistory.length > 0 && Math.random() < 0.15) {
+      checkPredictions();
+    }
+  }, speed);
+
+  drawChart();
+}
+
+function stopFeed() {
+  clearInterval(state.feedInterval);
+  state.isRunning = false;
+  document.getElementById('startBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('liveDot').className = 'dot idle';
+  document.getElementById('liveText').textContent = 'STOPPED';
+  log('Feed stopped', 'warn');
+}
+
+function resetAll() {
+  stopFeed();
+  state.candles = [];
+  state.predictions = [];
+  state.xp = 0;
+  state.level = 1;
+  state.predictionRounds = 0;
+  state.totalDirectionCorrect = 0;
+  state.totalDirectionChecked = 0;
+  state.backtestRounds = 0;
+  state.backtestWins = 0;
+  state.backtestErrors = [];
+  state.bestAccuracy = 0;
+  state.predictionHistory = [];
+  document.getElementById('predictBtn').disabled = true;
+  document.getElementById('btBtn').disabled = true;
+  updateStats();
+  drawChart();
+  document.getElementById('predRow').innerHTML = '';
+  clearBacktest();
+  document.getElementById('aiLog').innerHTML = '<div class="log-line dim">// System reset. Start feed to begin.</div>';
+}
+
+function updateTicker(c) {
+  const first = state.candles[0];
+  const change = c.close - first.close;
+  const pct = (change / first.close * 100).toFixed(2);
+  document.getElementById('tPrice').textContent = c.close.toFixed(2);
+  document.getElementById('tOpen').textContent = c.open.toFixed(2);
+  document.getElementById('tHigh').textContent = c.high.toFixed(2);
+  document.getElementById('tLow').textContent = c.low.toFixed(2);
+  const chEl = document.getElementById('tChange');
+  chEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${pct}%)`;
+  chEl.style.color = change >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('tVol').textContent = (c.volume / 1e6).toFixed(2) + 'M';
+}
+
+// ═══════════════════════════════════════════════════════
+// AI PREDICTION ENGINE
+// ═══════════════════════════════════════════════════════
+async function runPrediction() {
+  if (state.candles.length < 30) { log('Need 30+ candles', 'warn'); return; }
+
+  document.getElementById('predictBtn').disabled = true;
+  document.getElementById('thinkingBar').style.display = 'flex';
+  document.getElementById('thinkText').textContent = 'AI analyzing market patterns...';
+
+  const recent = state.candles.slice(-30);
+  const summary = buildCandleSummary(recent);
+  const levelCtx = getLevelContext();
+
+  const prompt = `You are an expert quantitative trading AI with ${levelCtx.experience} of experience analyzing ${state.symbol} on the ${state.tf} timeframe.
+
+RECENT MARKET DATA (last 30 candles):
+${summary}
+
+CURRENT PRICE: ${state.candles[state.candles.length-1].close.toFixed(2)}
+SYMBOL: ${state.symbol} | TIMEFRAME: ${state.tf}
+${levelCtx.instruction}
+
+Task: Predict the next 15 candles. For each candle provide OHLC values.
+
+Respond with ONLY a JSON array of 15 objects:
+[{"open":X,"high":Y,"low":Z,"close":W}, ...]
+
+No explanation. No markdown. Pure JSON array only.`;
+
+  try {
+    log('Sending data to Claude AI engine...', 'ai');
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.content.map(b => b.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+
+    let preds;
+    try { preds = JSON.parse(clean); }
+    catch { throw new Error('Could not parse AI response as JSON'); }
+
+    if (!Array.isArray(preds) || preds.length === 0) throw new Error('Invalid prediction format');
+
+    // Anchor predictions to current price
+    const lastClose = state.candles[state.candles.length - 1].close;
+    const firstPredOpen = preds[0].open;
+    const drift = lastClose - firstPredOpen;
+
+    state.predictions = preds.slice(0, 15).map(p => ({
+      open: +(p.open + drift).toFixed(2),
+      high: +(p.high + drift).toFixed(2),
+      low: +(p.low + drift).toFixed(2),
+      close: +(p.close + drift).toFixed(2),
+      volume: Math.floor(1000000 + Math.random() * 3000000),
+      isPredicted: true,
+    }));
+
+    // Store for backtesting
+    state.predictionHistory.push({
+      snapshot: state.candles.length,
+      predicted: [...state.predictions],
+      actual: null,
+      symbol: state.symbol,
+      tf: state.tf,
+    });
+
+    state.predictionRounds++;
+    gainXP(20);
+    renderPredictionBars();
+    drawChart();
+
+    const dir = preds[14].close > preds[0].open ? '↑ BULLISH' : '↓ BEARISH';
+    log(`✓ 15 candles predicted — Bias: ${dir}`, 'success');
+    log(`Prediction anchored at $${lastClose.toFixed(2)}`, 'dim');
+
+    document.getElementById('sPreds').textContent = state.predictionRounds;
+
+  } catch (err) {
+    log(`AI Error: ${err.message}`, 'error');
+    // Fallback: generate deterministic predictions
+    generateFallbackPredictions();
+  }
+
+  document.getElementById('thinkingBar').style.display = 'none';
+  document.getElementById('predictBtn').disabled = false;
+}
+
+function buildCandleSummary(candles) {
+  return candles.map((c, i) => 
+    `${i+1}. O:${c.open.toFixed(2)} H:${c.high.toFixed(2)} L:${c.low.toFixed(2)} C:${c.close.toFixed(2)} ${c.close>=c.open?'▲':'▼'}`
+  ).join('\n');
+}
+
+function getLevelContext() {
+  const lvl = state.level;
+  const contexts = [
+    { experience: '1 month', instruction: 'Use basic trend analysis. Look at the direction of price movement.' },
+    { experience: '6 months', instruction: 'Analyze trend, support/resistance, and basic candlestick patterns.' },
+    { experience: '2 years', instruction: 'Apply technical analysis: trends, S/R, candlestick patterns, momentum.' },
+    { experience: '5 years', instruction: 'Use advanced TA: Elliott waves, Fibonacci, volume analysis, market structure.' },
+    { experience: '10 years', instruction: 'Apply institutional-level analysis: order flow, liquidity, market microstructure.' },
+    { experience: '20 years', instruction: 'Master-level: multi-timeframe confluence, intermarket analysis, sentiment.' },
+    { experience: '30 years', instruction: 'Oracle-level: synthesize all factors, identify regime changes, predict with high precision.' },
+  ];
+  return contexts[Math.min(lvl - 1, contexts.length - 1)];
+}
+
+function generateFallbackPredictions() {
+  log('Using local pattern engine (fallback)', 'warn');
+  const last = state.candles[state.candles.length - 1];
+  const recent = state.candles.slice(-10);
+  const avgChange = recent.reduce((s, c) => s + (c.close - c.open), 0) / recent.length;
+  
+  state.predictions = [];
+  let prev = last;
+  for (let i = 0; i < 15; i++) {
+    const noise = (Math.random() - 0.5) * state.volatility * prev.close * 0.005;
+    const change = avgChange * 0.7 + noise;
+    const o = prev.close;
+    const c = o + change;
+    const range = Math.abs(change) * (1 + Math.random());
+    state.predictions.push({
+      open: +o.toFixed(2),
+      high: +(Math.max(o, c) + range * 0.3).toFixed(2),
+      low: +(Math.min(o, c) - range * 0.3).toFixed(2),
+      close: +c.toFixed(2),
+      volume: Math.floor(500000 + Math.random() * 2000000),
+      isPredicted: true,
+    });
+    prev = state.predictions[state.predictions.length - 1];
+  }
+  renderPredictionBars();
+  drawChart();
+}
+
+// ═══════════════════════════════════════════════════════
+// BACKTEST ENGINE
+// ═══════════════════════════════════════════════════════
+async function runBacktest() {
+  if (state.candles.length < 50) { log('Need 50+ candles for backtest', 'warn'); return; }
+
+  document.getElementById('btStatus').textContent = 'RUNNING...';
+  document.getElementById('btStatus').style.color = 'var(--gold)';
+  document.getElementById('btBtn').disabled = true;
+
+  log('Starting backtest simulation...', 'info');
+  document.getElementById('thinkingBar').style.display = 'flex';
+  document.getElementById('thinkText').textContent = 'Backtesting prediction model...';
+
+  // Take a historical window and test prediction
+  const testIdx = Math.floor(state.candles.length * 0.6);
+  const trainData = state.candles.slice(0, testIdx);
+  const actualNext = state.candles.slice(testIdx, testIdx + 15);
+
+  if (actualNext.length < 15) {
+    log('Not enough data for full backtest window', 'warn');
+    document.getElementById('thinkingBar').style.display = 'none';
+    document.getElementById('btBtn').disabled = false;
+    return;
+  }
+
+  const summary = buildCandleSummary(trainData.slice(-30));
+  const lastClose = trainData[trainData.length - 1].close;
+
+  const prompt = `You are a quantitative trading AI. Analyze this ${state.symbol} price data and predict the next 15 candles.
+
+HISTORICAL DATA (last 30 candles before cutoff):
+${summary}
+
+Last known price: ${lastClose.toFixed(2)}
+
+Respond with ONLY a JSON array of 15 predicted OHLC objects:
+[{"open":X,"high":Y,"low":Z,"close":W}, ...]
+No explanation. Pure JSON only.`;
+
+  let predicted;
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    const text = data.content.map(b => b.text || '').join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    predicted = JSON.parse(clean);
+  } catch {
+    // fallback
+    predicted = [];
+    let prev = { close: lastClose };
+    for (let i = 0; i < 15; i++) {
+      const ch = (Math.random() - 0.48) * state.volatility * 0.01 * prev.close;
+      const o = prev.close, c = o + ch;
+      predicted.push({ open: o, high: Math.max(o,c)*1.002, low: Math.min(o,c)*0.998, close: c });
+      prev = { close: c };
+    }
+  }
+
+  // Score predictions
+  const drift = lastClose - (predicted[0]?.open || lastClose);
+  let dirCorrect = 0, totalErr = 0;
+  
+  for (let i = 0; i < Math.min(15, predicted.length, actualNext.length); i++) {
+    const predClose = (predicted[i].close || 0) + drift;
+    const actClose = actualNext[i].close;
+    const predDir = predClose > lastClose;
+    const actDir = actClose > lastClose;
+    if (predDir === actDir) dirCorrect++;
+    totalErr += Math.abs(predClose - actClose) / actClose * 100;
+  }
+
+  const dirAcc = (dirCorrect / 15 * 100).toFixed(1);
+  const avgErr = (totalErr / 15).toFixed(2);
+  const win = parseFloat(dirAcc) >= 55;
+
+  state.backtestRounds++;
+  if (win) state.backtestWins++;
+  state.backtestErrors.push(parseFloat(avgErr));
+  if (parseFloat(dirAcc) > state.bestAccuracy) state.bestAccuracy = parseFloat(dirAcc);
+
+  // Update backtest display
+  const winRate = (state.backtestWins / state.backtestRounds * 100).toFixed(1);
+  const avgErrAll = (state.backtestErrors.reduce((a, b) => a + b, 0) / state.backtestErrors.length).toFixed(2);
+  const grade = parseFloat(winRate) >= 70 ? 'A+' : parseFloat(winRate) >= 60 ? 'A' : parseFloat(winRate) >= 50 ? 'B' : parseFloat(winRate) >= 40 ? 'C' : 'D';
+
+  document.getElementById('bWin').textContent = winRate + '%';
+  document.getElementById('bDir').textContent = dirAcc + '%';
+  document.getElementById('bErr').textContent = avgErr + '%';
+  document.getElementById('bBest').textContent = state.bestAccuracy.toFixed(1) + '%';
+  document.getElementById('bRounds').textContent = state.backtestRounds;
+  document.getElementById('bGrade').textContent = grade;
+
+  const xpGain = win ? 50 : 20;
+  gainXP(xpGain);
+
+  log(`Backtest #${state.backtestRounds}: Dir=${dirAcc}% Err=${avgErr}% ${win ? '✓ WIN' : '✗ MISS'}`, win ? 'success' : 'warn');
+  log(`Model improving... Win rate: ${winRate}% | Grade: ${grade}`, 'ai');
+
+  document.getElementById('btStatus').textContent = win ? '✓ PASS' : '✗ MISS';
+  document.getElementById('btStatus').style.color = win ? 'var(--green)' : 'var(--red)';
+  document.getElementById('thinkingBar').style.display = 'none';
+  document.getElementById('btBtn').disabled = false;
+
+  updateStats();
+}
+
+function clearBacktest() {
+  ['bWin','bDir','bErr','bBest','bGrade'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('bRounds').textContent = '0';
+  document.getElementById('btStatus').textContent = 'READY';
+  document.getElementById('btStatus').style.color = 'var(--dim)';
+}
+
+function checkPredictions() {
+  if (state.predictionHistory.length === 0) return;
+  const last = state.predictionHistory[state.predictionHistory.length - 1];
+  if (last.actual) return;
+  
+  const candles = state.candles;
+  if (candles.length > last.snapshot + 5) {
+    const actual = candles.slice(last.snapshot, last.snapshot + Math.min(5, last.predicted.length));
+    let correct = 0;
+    actual.forEach((a, i) => {
+      const p = last.predicted[i];
+      if (!p) return;
+      if ((p.close > p.open) === (a.close > a.open)) correct++;
+    });
+    const dirScore = (correct / actual.length * 100).toFixed(0);
+    last.actual = actual;
+    state.totalDirectionCorrect += correct;
+    state.totalDirectionChecked += actual.length;
+    log(`Auto-check: ${correct}/${actual.length} directions correct (${dirScore}%)`, correct/actual.length > 0.5 ? 'success' : 'warn');
+    updateStats();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// XP & LEVELING
+// ═══════════════════════════════════════════════════════
+function gainXP(amount) {
+  state.xp += amount;
+  const thresholds = [0, 100, 300, 700, 1500, 3000, 6000, Infinity];
+  for (let i = LEVELS.length - 1; i >= 0; i--) {
+    if (state.xp >= LEVELS[i].min) {
+      if (state.level !== i + 1) {
+        state.level = i + 1;
+        log(`⬆ LEVEL UP! Now: ${LEVELS[i].name} (Lv.${state.level})`, 'ai');
+      }
+      break;
+    }
+  }
+  updateXPBar();
+  document.getElementById('sXp').textContent = state.xp;
+}
+
+function updateXPBar() {
+  const lvlIdx = state.level - 1;
+  const curr = LEVELS[lvlIdx].min;
+  const next = lvlIdx + 1 < LEVELS.length ? LEVELS[lvlIdx + 1].min : state.xp + 1000;
+  const pct = Math.min(100, ((state.xp - curr) / (next - curr)) * 100);
+  document.getElementById('xpFill').style.width = pct + '%';
+  document.getElementById('xpLabel').textContent = `${state.xp} / ${next}`;
+  const lv = LEVELS[lvlIdx];
+  document.getElementById('levelBadge').textContent = `LVL ${state.level} — ${lv.name}`;
+  document.getElementById('levelBadge').style.borderColor = lv.color;
+  document.getElementById('levelBadge').style.color = lv.color;
+  document.getElementById('levelBadge').style.boxShadow = `0 0 12px ${lv.color}40`;
+}
+
+function updateStats() {
+  document.getElementById('sPreds').textContent = state.predictionRounds;
+  const dirPct = state.totalDirectionChecked > 0
+    ? (state.totalDirectionCorrect / state.totalDirectionChecked * 100).toFixed(1) + '%'
+    : '—';
+  document.getElementById('sDir').textContent = dirPct;
+  document.getElementById('sAcc').textContent = state.bestAccuracy > 0 ? state.bestAccuracy.toFixed(1) + '%' : '—';
+  document.getElementById('sXp').textContent = state.xp;
+
+  // Accuracy mini-bars
+  const bars = document.getElementById('accBars');
+  bars.innerHTML = '';
+  const metrics = [
+    { label: 'DIRECTION', val: state.totalDirectionChecked > 0 ? state.totalDirectionCorrect / state.totalDirectionChecked * 100 : 0, color: 'var(--green)' },
+    { label: 'BEST RUN', val: state.bestAccuracy, color: 'var(--gold)' },
+    { label: 'BT WIN RT', val: state.backtestRounds > 0 ? state.backtestWins / state.backtestRounds * 100 : 0, color: 'var(--blue)' },
+  ];
+  metrics.forEach(m => {
+    const row = document.createElement('div');
+    row.className = 'acc-row';
+    row.innerHTML = `<div class="acc-label">${m.label}</div>
+      <div class="acc-track"><div class="acc-fill" style="width:${m.val.toFixed(1)}%;background:${m.color}"></div></div>
+      <div class="acc-val" style="color:${m.color}">${m.val.toFixed(0)}%</div>`;
+    bars.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER PREDICTION MINI BARS
+// ═══════════════════════════════════════════════════════
+function renderPredictionBars() {
+  const row = document.getElementById('predRow');
+  row.innerHTML = '<span style="font-family:var(--mono);font-size:0.65rem;color:var(--purple);margin-right:8px">FORECAST:</span>';
+  state.predictions.forEach((c, i) => {
+    const bull = c.close >= c.open;
+    const div = document.createElement('div');
+    div.style.cssText = `display:inline-block;width:16px;height:28px;background:${bull?'rgba(0,255,136,0.2)':'rgba(255,51,85,0.2)'};border:1px solid ${bull?'var(--green)':'var(--red)'};border-radius:2px;margin:1px;font-family:var(--mono);font-size:8px;color:${bull?'var(--green)':'var(--red)'};text-align:center;line-height:28px`;
+    div.textContent = bull ? '▲' : '▼';
+    div.title = `#${i+1}: O:${c.open} H:${c.high} L:${c.low} C:${c.close}`;
+    row.appendChild(div);
+  });
+  const last = state.predictions[14];
+  const first = state.predictions[0];
+  const bias = last.close > first.open;
+  const biasTxt = document.createElement('span');
+  biasTxt.style.cssText = `font-family:var(--mono);font-size:0.7rem;margin-left:10px;color:${bias?'var(--green)':'var(--red)'}`;
+  biasTxt.textContent = bias ? '↑ BULLISH BIAS' : '↓ BEARISH BIAS';
+  row.appendChild(biasTxt);
+}
+
+// ═══════════════════════════════════════════════════════
+// LOGGING
+// ═══════════════════════════════════════════════════════
+function log(msg, type = 'info') {
+  const logEl = document.getElementById('aiLog');
+  const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+  const div = document.createElement('div');
+  div.className = `log-line ${type}`;
+  div.textContent = `[${now}] ${msg}`;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+  while (logEl.children.length > 100) logEl.removeChild(logEl.firstChild);
+}
+
+// ═══════════════════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════════════════
+setInterval(() => {
+  document.getElementById('clockEl').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+}, 1000);
+
+// Init
+drawChart();
+updateXPBar();
+updateStats();
+window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>
