@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OpenClaw AI v9 — Live Data Only</title>
+<title>OpenClaw AI v9.1 — Live Data Only</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap');
 :root{
@@ -321,7 +321,7 @@ const FINNHUB_KEY = 'd707t81r01qtb4r9qsogd707t81r01qtb4r9qsp0';
 const MEM_KEY = 'openclaw-v9-mem';
 
 function verStamp(){
-  return 'v9.0 — ' + new Date().toLocaleString('en-US',{
+  return 'v9.1 — ' + new Date().toLocaleString('en-US',{
     month:'2-digit',day:'2-digit',year:'numeric',
     hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
   });
@@ -431,10 +431,11 @@ function loadMem(){
 // ════════════════════════════════════════════════════
 
 // ── BINANCE REST (crypto history, no key)
-async function fetchBinanceREST(sym, interval='5m', limit=200){
+// Uses daily candles for fast initial load — WS handles live ticks after
+async function fetchBinanceREST(sym, interval='1d', limit=120){
   const r = await fetch(
     `https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${interval}&limit=${limit}`,
-    {signal:AbortSignal.timeout(8000)}
+    {signal:AbortSignal.timeout(6000)}
   );
   if(!r.ok) throw new Error(`Binance ${r.status}`);
   const d = await r.json();
@@ -446,10 +447,14 @@ async function fetchBinanceREST(sym, interval='5m', limit=200){
 }
 
 // ── BINANCE WEBSOCKET (crypto live ticks, no key)
+// Subscribe to both 1d (for chart candle updates) and ticker (for instant price)
 function connectBinanceWS(id){
   const sym = SS[id];
   if(sym.ws){ sym.ws.close(); sym.ws=null; }
-  sym.ws = new WebSocket(`wss://stream.binance.com:9443/ws/${id.toLowerCase()}@kline_5m`);
+  // Use combined stream: daily kline + individual ticker for real-time price
+  sym.ws = new WebSocket(
+    `wss://stream.binance.com:9443/ws/${id.toLowerCase()}@kline_1d/${id.toLowerCase()}@ticker`
+  );
   sym.ws.onopen = () => {
     setCStat(id,'BINANCE LIVE ●');
     srcDot('bn','live'); srcTag('bn','LIVE','rt');
@@ -457,9 +462,28 @@ function connectBinanceWS(id){
   };
   sym.ws.onmessage = e => {
     try{
-      const k = JSON.parse(e.data).k; if(!k) return;
+      const msg = JSON.parse(e.data);
+      if(!sym.candles.length) return;
+
+      // Handle ticker stream (instant price update, event type 'e'='24hrTicker')
+      if(msg.e === '24hrTicker'){
+        const price = +msg.c; // current price
+        const last = sym.candles[sym.candles.length-1];
+        const prev = last.close;
+        if(price && price !== prev){
+          last.close = price;
+          if(price > last.high) last.high = price;
+          if(price < last.low)  last.low  = price;
+          sym.lastUpdate = Date.now();
+          flashPrice(id, price, prev);
+          updateCH(id); drawChart(id);
+        }
+        return;
+      }
+
+      // Handle kline stream
+      const k = msg.k; if(!k) return;
       const c = {time:+k.t,open:+k.o,high:+k.h,low:+k.l,close:+k.c,vol:+k.v,ip:false};
-      if(!sym.candles.length){ sym.candles.push(c); return; }
       const last = sym.candles[sym.candles.length-1];
       const prev = last.close;
       if(c.time === last.time){
@@ -614,7 +638,7 @@ async function loadSymbol(id){
       updateCSrc(id,'binance');
       sym.lastUpdate = Date.now();
       mlog(id,'ll-ok',`${def.label} ✓ ${sym.candles.length} candles from Binance`);
-      updateCH(id); await sleep(50); drawChart(id);
+      updateCH(id); drawChart(id);
       setCnt(id, sym.candles.length+' candles');
       connectBinanceWS(id);
       liveStreamUp();
@@ -634,7 +658,7 @@ async function loadSymbol(id){
       sym.lastUpdate = Date.now();
       srcDot('fx','live'); srcTag('fx','CONNECTED','rt');
       mlog(id,'ll-ok',`${def.label} ✓ ${sym.candles.length} daily rates from Frankfurter`);
-      updateCH(id); await sleep(50); drawChart(id);
+      updateCH(id); drawChart(id);
       setCnt(id, sym.candles.length+' days');
       setCStat(id,'DAILY RATES');
       // Refresh once a day
@@ -653,39 +677,41 @@ async function loadSymbol(id){
       drawWaiting(id,'Frankfurter unreachable\nCheck internet connection');
     }
 
-  // ── STOCKS: Finnhub REST (candles + live quote) → Yahoo fallback (delayed)
+  // ── STOCKS: Finnhub quote (instant) + candles (parallel) → Yahoo fallback
   }else{
-    // Try Finnhub first
     try{
       const now = Math.floor(Date.now()/1000);
-      const from = now - 365*86400;
-      sym.candles = await fetchFinnhubCandles(def.fh||id, from, now, 'D');
+      const from = now - 90*86400; // 90 days is enough, loads 4x faster than 365
+
+      // Fetch quote AND candles in parallel — don't wait for one before starting the other
+      const [candles, quote] = await Promise.allSettled([
+        fetchFinnhubCandles(def.fh||id, from, now, 'D'),
+        fetchFinnhubQuote(def.fh||id),
+      ]);
+
+      if(candles.status === 'rejected') throw new Error(candles.reason?.message||'FH candles failed');
+
+      sym.candles = candles.value;
       sym.src = 'finnhub';
       updateCSrc(id,'finnhub');
 
-      // Inject live quote into latest candle
-      try{
-        const q = await fetchFinnhubQuote(def.fh||id);
-        if(q.c){
-          const last = sym.candles[sym.candles.length-1];
-          last.close = q.c;
-          if(q.h) last.high = Math.max(last.high, q.h);
-          if(q.l) last.low  = Math.min(last.low,  q.l);
-          mlog(id,'ll-ok',
-            `${def.label} live quote: $${fN(q.c)} (${q.dp>=0?'+':''}${(q.dp||0).toFixed(2)}%)`
-          );
-        }
-      }catch{}
+      // Inject live quote price immediately
+      if(quote.status === 'fulfilled' && quote.value?.c){
+        const q = quote.value;
+        const last = sym.candles[sym.candles.length-1];
+        last.close = q.c;
+        if(q.h) last.high = Math.max(last.high, q.h);
+        if(q.l) last.low  = Math.min(last.low, q.l);
+        mlog(id,'ll-ok',`${def.label} ✓ $${fN(q.c)} live (${q.dp>=0?'+':''}${(q.dp||0).toFixed(2)}%)`);
+      }
 
       sym.lastUpdate = Date.now();
-      mlog(id,'ll-ok',`${def.label} ✓ ${sym.candles.length} candles from Finnhub`);
-      updateCH(id); await sleep(50); drawChart(id);
+      updateCH(id); drawChart(id);
       setCnt(id, sym.candles.length+' candles');
       setCStat(id,'FINNHUB LIVE ●');
       liveStreamUp();
 
-      // Poll Finnhub quote every 10s to keep price current
-      // (WS trades come via shared fhWS connection)
+      // Poll quote every 15s (Finnhub free: 60 calls/min — 6 stocks × 4/min = 24/min, well within limit)
       sym.pollIv = setInterval(async()=>{
         if(!sym.running) return;
         try{
@@ -695,17 +721,17 @@ async function loadSymbol(id){
           const prev = last.close;
           last.close = q.c;
           if(q.h) last.high = Math.max(last.high, q.h);
-          if(q.l) last.low  = Math.min(last.low,  q.l);
+          if(q.l) last.low  = Math.min(last.low, q.l);
           sym.lastUpdate = Date.now();
           flashPrice(id, q.c, prev);
           updateCH(id); drawChart(id);
           setCStat(id,'FINNHUB LIVE ●');
         }catch{}
-      }, 10000);
+      }, 15000);
       return;
 
     }catch(e){
-      mlog(id,'ll-warn',`${def.label} Finnhub failed: ${e.message} — trying Yahoo (15-min delayed)`);
+      mlog(id,'ll-warn',`${def.label} Finnhub failed: ${e.message} — trying Yahoo`);
     }
 
     // Yahoo fallback (delayed but real data)
@@ -715,15 +741,12 @@ async function loadSymbol(id){
       updateCSrc(id,'yahoo');
       sym.lastUpdate = Date.now();
       srcDot('yh','trying'); srcTag('yh','DELAYED','dl');
-      mlog(id,'ll-warn',
-        `${def.label} ✓ ${sym.candles.length} candles from Yahoo (⚠ 15-min delayed)`
-      );
-      updateCH(id); await sleep(50); drawChart(id);
+      mlog(id,'ll-warn',`${def.label} ✓ ${sym.candles.length} candles from Yahoo (⚠ 15-min delayed)`);
+      updateCH(id); drawChart(id);
       setCnt(id, sym.candles.length+' candles (delayed)');
       setCStat(id,'YAHOO ⚠ DELAYED');
       liveStreamUp();
 
-      // Poll Yahoo every 30s
       sym.pollIv = setInterval(async()=>{
         if(!sym.running) return;
         try{
@@ -738,11 +761,9 @@ async function loadSymbol(id){
       setCStat(id,'ALL SOURCES FAILED');
       drawWaiting(id,
         'All data sources unreachable\n\n' +
-        'Possible causes:\n' +
-        '• No internet connection\n' +
-        '• Running in restricted sandbox\n' +
-        '• Finnhub key issue\n\n' +
-        'This file works fully when opened\nlocally or on GitHub Pages'
+        '• Check internet connection\n' +
+        '• Verify Finnhub key is valid\n' +
+        '• GitHub Pages hosting works fully'
       );
     }
   }
@@ -792,24 +813,47 @@ async function startAll(){
   ['autoBtn','learnBtn','liveBtn'].forEach(id=>document.getElementById(id).disabled=false);
   MS.running = true;
   setMD('on','CONNECTING');
-  setAS(`Connecting to ${SYMDEFS.length} real data sources...`);
-  mlog('SYS','ll-ok',`Starting real data feeds — Binance WS + Finnhub WS + Yahoo fallback`);
+  setAS(`Connecting to all ${SYMDEFS.length} sources in parallel...`);
+  mlog('SYS','ll-ok','Launching all feeds simultaneously — Binance WS + Finnhub WS + Yahoo');
 
-  // Connect Finnhub WS for all stocks at once
+  // Connect Finnhub WS immediately (shared connection for all stocks)
   connectFinnhubWS();
 
-  // Load each symbol staggered 400ms apart to avoid rate limits
-  for(let i=0; i<SYMDEFS.length; i++){
-    const def = SYMDEFS[i];
-    await sleep(400);
-    SS[def.id].running = true;
-    loadSymbol(def.id).catch(e => mlog(def.id,'ll-warn',`${def.label} load error: ${e.message}`));
-  }
+  // Mark all symbols as running immediately
+  SYMDEFS.forEach(d => { SS[d.id].running = true; });
 
+  // Fire ALL symbols in parallel — no sequential waiting
+  // Group by type to avoid Finnhub rate limit (60/min free):
+  // Crypto: all at once (Binance, no rate limit)
+  // Stocks: stagger 200ms each (Finnhub: 60/min = 1/sec, 200ms is safe for 6 stocks)
+  // Forex: immediate
+
+  const cryptoSyms  = SYMDEFS.filter(d=>isCrypto(d.id));
+  const stockSyms   = SYMDEFS.filter(d=>d.type==='stock');
+  const forexSyms   = SYMDEFS.filter(d=>isForex(d.id));
+
+  // Crypto — all parallel, Binance has no rate limit
+  cryptoSyms.forEach(def => {
+    loadSymbol(def.id).catch(e => mlog(def.id,'ll-warn',`${def.label}: ${e.message}`));
+  });
+
+  // Stocks — 200ms stagger (stays within Finnhub 60/min free limit)
+  stockSyms.forEach((def,i) => {
+    setTimeout(()=>{
+      loadSymbol(def.id).catch(e => mlog(def.id,'ll-warn',`${def.label}: ${e.message}`));
+    }, i * 200);
+  });
+
+  // Forex — immediate
+  forexSyms.forEach(def => {
+    loadSymbol(def.id).catch(e => mlog(def.id,'ll-warn',`${def.label}: ${e.message}`));
+  });
+
+  // Update status after 6 seconds (enough for all to attempt)
   setTimeout(()=>{
-    setMD('on', MS.liveStreamCount > 0 ? `${MS.liveStreamCount}/${SYMDEFS.length} LIVE` : 'WAITING FOR DATA');
-    setAS(`${MS.liveStreamCount} of ${SYMDEFS.length} symbols connected`);
-  }, SYMDEFS.length*400 + 2000);
+    setMD('on', MS.liveStreamCount > 0 ? `${MS.liveStreamCount}/${SYMDEFS.length} LIVE` : 'CHECK CONNECTION');
+    setAS(`${MS.liveStreamCount}/${SYMDEFS.length} streams connected`);
+  }, 6000);
 }
 
 function stopAll(){
