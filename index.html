@@ -241,7 +241,7 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
   </div>
   <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
     <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
-    <div style="font-size:14px;font-weight:700;font-family:monospace">20260323.1904</div>
+    <div style="font-size:14px;font-weight:700;font-family:monospace">20260323.1935</div>
     <div style="font-size:9px;opacity:0.6">▾ changelog</div>
   </div>
 </div>
@@ -1006,7 +1006,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
 
     <!-- PANE: Hurst Cycles -->
     <div class="sg-pane sg-sub" id="paneHurst">
-      <div class="sg-label">Hurst Cycle Phase</div>
+      <div class="sg-label">Hurst Cycle Phase — <span id="cycStatus" style="font-weight:400;text-transform:none;letter-spacing:0;color:#9ca3af"></span></div>
       <div style="position:relative;height:130px"><canvas id="cCycles"></canvas></div>
     </div>
 
@@ -1518,7 +1518,7 @@ function renderPanels(r){
                   : domPhase < 0.75 ? '🔴 Falling from peak'
                   :                   '📉 Nearing trough';
 
-    document.getElementById('cycSub').textContent =
+    document.getElementById('cycStatus').textContent =
       'Dominant ' + hurst.dom + 'b @ ' + domPct + '% — ' + domPos +
       ' · Half ' + hurst.half + 'b @ ' + halfPct + '% · 2× ' + hurst.dbl + 'b @ ' + dblPct + '% · AC: ' + hurst.ac;
 
@@ -1570,7 +1570,7 @@ function renderPanels(r){
 
   // ── PANEL 3: Market Structure ─────────────────────────────────────────
   const ms=compMS(r.bars.slice(0,80));
-  document.getElementById('msSub').textContent=`Trend: ${ms.trend.toUpperCase()} · ${ms.pivots.length} pivots`;
+  document.getElementById('msLabel').textContent=`Trend: ${ms.trend.toUpperCase()} · ${ms.pivots.length} pivots`;
   const msCl=show.map((b,i)=>({x:i,y:b.close}));
   const dsMS=[{label:'Price',data:msCl,borderColor:'#636e72',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1}];
   const hhP=[],hlP=[],lhP=[],llP=[];
@@ -1593,7 +1593,7 @@ function renderPanels(r){
   const rsiVals=compRSI(closes);
   const divs=findDiv(closes,rsiVals);
   const curRSI=rsiVals[rsiVals.length-1];
-  document.getElementById('rsiSub').textContent=`RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought⚠️':curRSI<30?'Oversold⚠️':'Neutral'} · ${divs.length} divergence(s)`;
+  document.getElementById('rsiLabel').textContent=`RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought⚠️':curRSI<30?'Oversold⚠️':'Neutral'} · ${divs.length} divergence(s)`;
   const rsiPts=rsiVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
   const dsRSI=[
     {label:'RSI(14)',data:rsiPts,borderColor:'#e84393',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.2},
@@ -1625,7 +1625,7 @@ function renderPanels(r){
   const atrOF=compATR(show);
   const chandOF=chandelier(show,atrOF);
   const curA=atrOF[atrOF.length-1],curSt=chandOF.long[chandOF.long.length-1];
-  document.getElementById('atrSub').textContent='ATR(14):'+f2(curA)+' · Long Stop:'+f2(curSt)+' · Price:'+f2(r.price);
+  document.getElementById('atrLabel').textContent='ATR(14):'+f2(curA)+' · Long Stop:'+f2(curSt)+' · Price:'+f2(r.price);
   const lsP=chandOF.long.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
   const ssP=chandOF.short.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
   const dsATR=[
@@ -1655,7 +1655,7 @@ function renderPanels(r){
   const vwapV = compVWAP(show);                     // oldest-first in/out
   const bds   = vwapBands(show, vwapV);              // oldest-first in/out
   const curVW = vwapV[vwapV.length-1];               // last=newest ✓
-  document.getElementById('vwapSub').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
+  document.getElementById('vwapLabel').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
   // vPts: data already oldest-first from compVWAP(show)
   function vPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
   const dsVWAP=[
@@ -1683,7 +1683,7 @@ function renderPanels(r){
 
   // ── PANEL 7: Volume Profile ───────────────────────────────────────────
   const vp=compVP(r.bars);
-  document.getElementById('vpSub').textContent=`POC:${f2(vp.poc.price)} · VAH:${f2(vp.vaH)} · VAL:${f2(vp.vaL)}`;
+  document.getElementById('vpLabel').textContent=`POC:${f2(vp.poc.price)} · VAH:${f2(vp.vaH)} · VAL:${f2(vp.vaL)}`;
   const dsVP=[
     {label:'Price',          data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
     {label:`POC ${f2(vp.poc.price)}`,data:[{x:0,y:vp.poc.price},{x:N-1,y:vp.poc.price}],borderColor:'#fdcb6e',borderWidth:2,pointRadius:0,fill:false,parsing:false},
@@ -1722,8 +1722,8 @@ function renderPanels(r){
   const lastATR = atrOF[atrOF.length-1] || 0;
   const meanATR = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / atrOF.filter(v=>v).length;
   const atrProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const decay = Math.exp(-0.05*i);
-    return lastATR*decay + meanATR*(1-decay);   // ATR reverts to mean
+    const aDecay = Math.exp(-0.05*i);
+    return lastATR*aDecay + meanATR*(1-aDecay);   // ATR reverts to mean
   }) : [];
 
   // Chandelier projected: extend last stop value with ATR projection
@@ -1754,19 +1754,18 @@ function renderPanels(r){
   const lastPDI = adxData ? adxData.pdi[adxData.pdi.length-1] : 25;
   const lastMDI = adxData ? adxData.mdi[adxData.mdi.length-1] : 25;
   const adxProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const decay = Math.exp(-0.08*i);
-    return (lastADX-25)*decay + 25;             // ADX mean-reverts toward 25
+    const xDecay = Math.exp(-0.08*i);
+    return (lastADX-25)*xDecay + 25;             // ADX mean-reverts toward 25
   }) : [];
   const pdiProj = fcast ? Array.from({length:fN}, (_,i) => {
-    // +DI follows price forecast direction
-    const bias = fcast.bias==='bullish' ? 1 : -1;
-    const d = Math.exp(-0.08*i);
-    return lastPDI + bias*(lastPDI-lastMDI)*0.3*(1-d);
+    const pBias = fcast.bias==='bullish' ? 1 : -1;
+    const pDec  = Math.exp(-0.08*i);
+    return lastPDI + pBias*(lastPDI-lastMDI)*0.3*(1-pDec);
   }) : [];
   const mdiProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const bias = fcast.bias==='bullish' ? -1 : 1;
-    const d = Math.exp(-0.08*i);
-    return lastMDI + bias*(lastMDI-lastPDI)*0.3*(1-d);
+    const mBias = fcast.bias==='bullish' ? -1 : 1;
+    const mDec  = Math.exp(-0.08*i);
+    return lastMDI + mBias*(lastMDI-lastPDI)*0.3*(1-mDec);
   }) : [];
 
   // ── PANEL: ADX + DI ─────────────────────────────────────────────────
@@ -1776,7 +1775,7 @@ function renderPanels(r){
     const curADX = adxData.adx[adxData.adx.length-1];
     const curPDI = adxData.pdi[adxData.pdi.length-1];
     const curMDI = adxData.mdi[adxData.mdi.length-1];
-    document.getElementById('adxSub').textContent =
+    document.getElementById('adxLabel').textContent =
       'ADX: '+(curADX?.toFixed(1)??'—')+' ('+(curADX>=25?'Trending':'Ranging')+') · +DI: '+(curPDI?.toFixed(1)??'—')+' · -DI: '+(curMDI?.toFixed(1)??'—');
     // compADX(barsOF) output is oldest-first — map directly, no reversal needed
     function adxPts(arr){ return arr.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)); }
@@ -1807,7 +1806,7 @@ function renderPanels(r){
   {
     const fibData = compFibAuto(show);
     const fN2 = r.fcastN||10;
-    document.getElementById('fibSub').textContent =
+    document.getElementById('fibLabel').textContent =
       'Auto H/L: '+f2(fibData.pL)+' to '+f2(fibData.pH)+' · Swing: '+f2(fibData.swLow)+' to '+f2(fibData.swHigh);
 
     const dsFib = [{label:'Price',data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1}];
@@ -1860,7 +1859,7 @@ function renderPanels(r){
     const dedG=[];
     allG.forEach(l=>{if(!dedG.some(d=>Math.abs(d.price-l.price)/r.price<0.003))dedG.push(l);});
     dedG.sort((a,b)=>a.price-b.price);
-    document.getElementById('gannSub').textContent=
+    document.getElementById('gannLabel').textContent=
       'Gann Square of 9 · Centers: close '+f2(r.price)+', swing H '+f2(r.sw.swingHigh)+', swing L '+f2(r.sw.swingLow)+' · ±12% range';
     const dsGann=[{label:'Price',data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1}];
     dedG.slice(0,16).forEach(l=>{
@@ -1897,7 +1896,7 @@ function renderPanels(r){
   {
     const zVals=compZScore(closes,20);
     const curZ=zVals[zVals.length-1];
-    document.getElementById('zSub').textContent=
+    document.getElementById('zLabel').textContent=
       'Current Z-Score: '+(curZ?.toFixed(2)??'—')+' · '+(curZ==null?'—':Math.abs(curZ)>2?'EXTREME '+(curZ>0?'OVERBOUGHT ⚠️':'OVERSOLD ⚠️'):Math.abs(curZ)>1?'Extended':'Neutral');
     const dsZ=[
       {label:'Z-Score(20)',data:zVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)),
@@ -2183,8 +2182,12 @@ function setupSync(chartInst, opens, highs, lows, closes, labels) {
 
 function closeModal(){
   document.getElementById('modal').style.display='none';
-  modalCharts.forEach(c=>{try{c.destroy();}catch(e){}});
+  modalCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
   modalCharts=[];
+  syncedCharts=[];
+  // Restore light theme defaults
+  Chart.defaults.color = '#636e72';
+  Chart.defaults.borderColor = '#e0e0e0';
 }
 
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
