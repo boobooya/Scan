@@ -171,6 +171,32 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
 .rconc{background:#252540;border:1px solid #2d2d4a;border-radius:6px;padding:12px;font-size:10px;line-height:1.8;color:#b0b0cc}
 .rconc strong{color:#c4b5fd}
 .rdis{font-size:9px;color:#4a4a6a;margin-top:10px;padding-top:8px;border-top:1px solid #2d2d4a;line-height:1.6}
+/* Synchronized chart panes */
+.sg-pane {
+  border-bottom: 1px solid #2d2d4a;
+  background: #1a1a2e;
+  position: relative;
+}
+.sg-pane:last-child { border-bottom: none; }
+.sg-label {
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: #6b6b9a;
+  padding: 4px 10px; background: #1e1e2e;
+  border-bottom: 1px solid #2d2d4a;
+  position: sticky; top: 0; z-index: 2;
+}
+.sg-tog {
+  display: flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.1);
+  background: rgba(255,255,255,.05);
+  font-size: 10px; font-weight: 700; cursor: pointer;
+  color: rgba(255,255,255,.6); user-select: none;
+  transition: all .15s;
+}
+.sg-tog.on { background: rgba(255,255,255,.12); color: rgba(255,255,255,.9); border-color: rgba(255,255,255,.2); }
+.sg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
 /* Panel explanations */
 .panel-explain {
   margin-top: 12px;
@@ -215,7 +241,7 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
   </div>
   <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
     <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
-    <div style="font-size:14px;font-weight:700;font-family:monospace">20260321.0350</div>
+    <div style="font-size:14px;font-weight:700;font-family:monospace">20260323.1904</div>
     <div style="font-size:9px;opacity:0.6">▾ changelog</div>
   </div>
 </div>
@@ -947,14 +973,112 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <label class="itog on" style="color:#06b6d4" onclick="togP('pZScore')"><span class="idot" style="background:#06b6d4"></span><span class="il">📊 Z-Score</span></label>
   </div>
 
-  <!-- P1: Price + Keltner Channel + Forecast + Hurst overlay -->
-  <div class="cpanel" id="pMain">
-    <div class="phdr"><div><div class="pttl">🕯️ Price · Keltner Channel · Forecast</div>
-    <div class="psub">Candles · KC EMA20 ±1.5×ATR (orange) · Grey dotted forecast bands · Swing/Channel levels</div></div></div>
-    <div class="hl" id="hurstLeg"></div>
-    <div class="cxl"><canvas id="cMain"></canvas></div>
-  </div>
-  <div class="panel-explain">
+  <!-- UNIFIED SYNCHRONIZED CHART PANES -->
+  <div id="chartContainer" style="background:#1a1a2e;border-radius:10px;overflow:hidden;margin-bottom:14px;border:1px solid #2d2d4a">
+
+    <!-- Toggle bar for subgraphs -->
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#252540;border-bottom:1px solid #2d2d4a;flex-wrap:wrap">
+      <span style="font-size:10px;font-weight:700;color:#6b6b9a;margin-right:4px;text-transform:uppercase;letter-spacing:.5px">Subgraphs:</span>
+      <label class="sg-tog on" data-pane="paneHurst"  style="--c:rgba(245,158,11,.9)"><span class="sg-dot" style="background:rgba(245,158,11,.9)"></span><span>Hurst</span></label>
+      <label class="sg-tog on" data-pane="paneRSI"    style="--c:#e84393"><span class="sg-dot" style="background:#e84393"></span><span>RSI</span></label>
+      <label class="sg-tog on" data-pane="paneATR"    style="--c:#f59e0b"><span class="sg-dot" style="background:#f59e0b"></span><span>ATR Stop</span></label>
+      <label class="sg-tog on" data-pane="paneADX"    style="--c:#ef4444"><span class="sg-dot" style="background:#ef4444"></span><span>ADX/DI</span></label>
+      <label class="sg-tog on" data-pane="paneVWAP"   style="--c:#0984e3"><span class="sg-dot" style="background:#0984e3"></span><span>VWAP</span></label>
+      <label class="sg-tog on" data-pane="paneVP"     style="--c:#00b894"><span class="sg-dot" style="background:#00b894"></span><span>Vol Profile</span></label>
+      <label class="sg-tog on" data-pane="paneFib"    style="--c:#f59e0b"><span class="sg-dot" style="background:#f59e0b"></span><span>Fibonacci</span></label>
+      <label class="sg-tog on" data-pane="paneGann"   style="--c:#8b5cf6"><span class="sg-dot" style="background:#8b5cf6"></span><span>Gann</span></label>
+      <label class="sg-tog on" data-pane="paneZScore" style="--c:#06b6d4"><span class="sg-dot" style="background:#06b6d4"></span><span>Z-Score</span></label>
+      <label class="sg-tog on" data-pane="paneMS"     style="--c:#9ca3af"><span class="sg-dot" style="background:#9ca3af"></span><span>Structure</span></label>
+    </div>
+
+    <!-- SHARED x-axis info bar -->
+    <div id="xhairInfo" style="display:flex;gap:16px;padding:5px 14px;background:#1e1e2e;font-family:monospace;font-size:10px;color:#9ca3af;border-bottom:1px solid #2d2d4a;flex-wrap:wrap;min-height:22px">
+      <span id="xhairTime"></span>
+      <span id="xhairO"></span><span id="xhairH"></span><span id="xhairL"></span><span id="xhairC"></span>
+    </div>
+
+    <!-- PANE: Price (main, always visible) -->
+    <div class="sg-pane" id="panePrice" style="position:relative">
+      <div class="sg-label">Price · Keltner · Forecast</div>
+      <div style="position:relative;height:320px"><canvas id="cMain"></canvas></div>
+      <div class="hurst-legend-bar" id="hurstLeg" style="padding:4px 10px;background:#1e1e2e;font-size:9px;display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid #2d2d4a"></div>
+    </div>
+
+    <!-- PANE: Hurst Cycles -->
+    <div class="sg-pane sg-sub" id="paneHurst">
+      <div class="sg-label">Hurst Cycle Phase</div>
+      <div style="position:relative;height:130px"><canvas id="cCycles"></canvas></div>
+    </div>
+
+    <!-- PANE: RSI -->
+    <div class="sg-pane sg-sub" id="paneRSI">
+      <div class="sg-label" id="rsiLabel">RSI (14)</div>
+      <div style="position:relative;height:110px"><canvas id="cRSI"></canvas></div>
+    </div>
+
+    <!-- PANE: ATR Stop -->
+    <div class="sg-pane sg-sub" id="paneATR">
+      <div class="sg-label" id="atrLabel">ATR Chandelier Stop</div>
+      <div style="position:relative;height:130px"><canvas id="cATR"></canvas></div>
+    </div>
+
+    <!-- PANE: ADX/DI -->
+    <div class="sg-pane sg-sub" id="paneADX">
+      <div class="sg-label" id="adxLabel">ADX / +DI / -DI</div>
+      <div style="position:relative;height:110px"><canvas id="cADX"></canvas></div>
+    </div>
+
+    <!-- PANE: VWAP -->
+    <div class="sg-pane sg-sub" id="paneVWAP">
+      <div class="sg-label" id="vwapLabel">VWAP + σ Bands</div>
+      <div style="position:relative;height:130px"><canvas id="cVWAP"></canvas></div>
+    </div>
+
+    <!-- PANE: Volume Profile -->
+    <div class="sg-pane sg-sub" id="paneVP">
+      <div class="sg-label" id="vpLabel">Volume Profile</div>
+      <div style="position:relative;display:grid;grid-template-columns:1fr 110px;height:130px">
+        <div style="position:relative;height:130px"><canvas id="cVP"></canvas></div>
+        <div style="position:relative;height:130px"><canvas id="cVPp"></canvas></div>
+      </div>
+    </div>
+
+    <!-- PANE: Fibonacci -->
+    <div class="sg-pane sg-sub" id="paneFib">
+      <div class="sg-label" id="fibLabel">Fibonacci Retracements</div>
+      <div style="position:relative;height:130px"><canvas id="cFib"></canvas></div>
+    </div>
+
+    <!-- PANE: Gann Square -->
+    <div class="sg-pane sg-sub" id="paneGann">
+      <div class="sg-label" id="gannLabel">Gann Square of Nine</div>
+      <div style="position:relative;height:130px"><canvas id="cGann"></canvas></div>
+    </div>
+
+    <!-- PANE: Z-Score -->
+    <div class="sg-pane sg-sub" id="paneZScore">
+      <div class="sg-label" id="zLabel">Z-Score (20)</div>
+      <div style="position:relative;height:110px"><canvas id="cZScore"></canvas></div>
+    </div>
+
+    <!-- PANE: Market Structure -->
+    <div class="sg-pane sg-sub" id="paneMS">
+      <div class="sg-label" id="msLabel">Market Structure HH/HL/LH/LL</div>
+      <div style="position:relative;height:130px"><canvas id="cMS"></canvas></div>
+    </div>
+
+  </div><!-- end chartContainer -->
+
+  <!-- Explanation panels (outside chart container, toggleable) -->
+  <div id="explainContainer" style="margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#f8f9fa;border-radius:8px;border:1px solid #dfe6e9;cursor:pointer;font-size:11px;font-weight:700;color:#636e72" onclick="document.getElementById('allExplains').style.display=document.getElementById('allExplains').style.display==='none'?'block':'none'">
+      📖 Study Explanations (click to expand/collapse all)
+    </div>
+    <div id="allExplains" style="display:none">
+
+
+      <div style="margin-top:6px">
+        <div class="panel-explain">
     <div class="pe-title">📖 How to read this chart</div>
     <div class="pe-body">
       <strong>Candles:</strong> Green = price closed higher (bullish bar), Red = closed lower (bearish bar). The wick shows the full high/low range, the body shows open-to-close range.<br><br>
@@ -965,15 +1089,9 @@ function buildModalHTML(r,sym,isBuy,isSel){
       <strong>Gann levels:</strong> Key price levels derived from Gann Square of Nine. Resistance levels (solid) and support levels (dashed) computed from the current price, swing high, and swing low.
     </div>
   </div>
-
-
-  <!-- P2: Hurst Cycle Arcs — dedicated sub-chart BELOW price -->
-  <div class="cpanel" id="pCycles">
-    <div class="phdr"><div><div class="pttl">🔄 Hurst Cycle Arcs — dotted below price</div>
-    <div class="psub" id="cycSub">Sine arcs: ½ cycle · full cycle · 2× cycle · phase extension into forecast</div></div></div>
-    <div class="ccy"><canvas id="cCycles"></canvas></div>
-  </div>
-  <div class="panel-explain">
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
     <div class="pe-title">📖 How to read Hurst Cycle Arcs</div>
     <div class="pe-body">
       <strong>What is Hurst Cycle Analysis?</strong> H.M. Hurst's principle states that price moves in nested, harmonically-related cycles. Every market has a dominant cycle and smaller (half) and larger (double) harmonics. These cycles repeat with measurable regularity.<br><br>
@@ -989,15 +1107,9 @@ function buildModalHTML(r,sym,isBuy,isSel){
       <strong>Forecast zone (right of NOW):</strong> The waves continue into the future, projecting where each cycle will be in the next N bars. When all 3 cycles align at a trough simultaneously, it historically produces the strongest buy setups.
     </div>
   </div>
-
-
-  <!-- P3: Market Structure -->
-  <div class="cpanel" id="pMS">
-    <div class="phdr"><div><div class="pttl">📐 Market Structure — HH / HL / LH / LL</div>
-    <div class="psub" id="msSub">Trend: —</div></div></div>
-    <div class="cmd"><canvas id="cMS"></canvas></div>
-  </div>
-  <div class="panel-explain">
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
     <div class="pe-title">📖 How to read Market Structure</div>
     <div class="pe-body">
       <strong>HH (Higher High):</strong> Price made a new high above the previous pivot high — bullish continuation signal.<br>
@@ -1008,15 +1120,9 @@ function buildModalHTML(r,sym,isBuy,isSel){
       <strong>Why it matters:</strong> Market structure tells you the "trend permission" for a trade. A buy signal is much higher probability when structure is HH/HL (uptrend) than when it is LH/LL (downtrend). Never trade breakouts against structure unless you have strong confirmation from multiple other indicators.
     </div>
   </div>
-
-
-  <!-- P4: RSI -->
-  <div class="cpanel" id="pRSI">
-    <div class="phdr"><div><div class="pttl">📉 RSI (14) + Divergence</div>
-    <div class="psub" id="rsiSub">RSI: —</div></div></div>
-    <div class="csm"><canvas id="cRSI"></canvas></div>
-  </div>
-  <div class="panel-explain">
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
     <div class="pe-title">📖 How to read RSI + Divergence</div>
     <div class="pe-body">
       <strong>RSI (Relative Strength Index):</strong> Measures the speed and magnitude of recent price changes on a 0–100 scale. Calculated using 14 bars by default.<br><br>
@@ -1030,15 +1136,9 @@ function buildModalHTML(r,sym,isBuy,isSel){
       Divergences are most reliable when they occur at extreme RSI levels (&lt;35 or &gt;65) and are confirmed by price structure (HH/HL or LH/LL breakdown).
     </div>
   </div>
-
-
-  <!-- P5: ATR Stop -->
-  <div class="cpanel" id="pATR">
-    <div class="phdr"><div><div class="pttl">🛡 ATR Dynamic Stop (Chandelier 2×ATR)</div>
-    <div class="psub" id="atrSub">ATR: —</div></div></div>
-    <div class="cmd"><canvas id="cATR"></canvas></div>
-  </div>
-  <div class="panel-explain">
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
     <div class="pe-title">📖 How to read the ATR Dynamic Stop (Chandelier Exit)</div>
     <div class="pe-body">
       <strong>ATR (Average True Range):</strong> Measures current market volatility — the average size of price moves over 14 bars. A large ATR means wide swings; a small ATR means tight consolidation.<br><br>
@@ -1052,15 +1152,9 @@ function buildModalHTML(r,sym,isBuy,isSel){
       <strong>Why 2×ATR?</strong> Using 1×ATR is too tight (many false exits). 3×ATR gives back too much profit. 2×ATR is the industry standard balance between staying in trends and limiting drawdown.
     </div>
   </div>
-
-
-  <!-- P6: VWAP -->
-  <div class="cpanel" id="pVWAP">
-    <div class="phdr"><div><div class="pttl">📊 VWAP + Standard Deviation Bands (±1σ, ±2σ)</div>
-    <div class="psub" id="vwapSub">VWAP: —</div></div></div>
-    <div class="cmd"><canvas id="cVWAP"></canvas></div>
-  </div>
-  <div class="panel-explain">
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
     <div class="pe-title">📖 How to read VWAP + Standard Deviation Bands</div>
     <div class="pe-body">
       <strong>VWAP (Volume-Weighted Average Price):</strong> The average price weighted by volume from the start of the session. This is the primary reference used by institutional traders, market makers, and algorithmic systems.<br><br>
@@ -1073,15 +1167,9 @@ function buildModalHTML(r,sym,isBuy,isSel){
       • <strong>±2σ bands:</strong> ~95% of price action. Extreme readings — strong mean-reversion signal when price reaches ±2σ. Also signals strong trend continuation if price <em>stays</em> beyond ±2σ.
     </div>
   </div>
-
-
-  <!-- P7: Volume Profile -->
-  <div class="cpanel" id="pVP">
-    <div class="phdr"><div><div class="pttl">📦 Volume Profile — POC + Value Area</div>
-    <div class="psub" id="vpSub">POC: —</div></div></div>
-    <div class="cvp"><div class="cvp-sub"><canvas id="cVP"></canvas></div><div class="cvp-sub"><canvas id="cVPp"></canvas></div></div>
-  </div>
-  <div class="panel-explain">
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
     <div class="pe-title">📖 How to read Volume Profile</div>
     <div class="pe-body">
       <strong>Volume Profile</strong> shows how much trading volume occurred at each price level, rather than over time. It reveals where the market spent the most energy.<br><br>
@@ -1093,7 +1181,9 @@ function buildModalHTML(r,sym,isBuy,isSel){
       <strong>The horizontal bar chart (right):</strong> Bar width = volume at that price. Tall bars = high activity nodes (strong S/R). Thin areas = low volume nodes, price passes through quickly.
     </div>
   </div>
-
+      </div>
+    </div><!-- end allExplains -->
+  </div><!-- end explainContainer -->
 
   <!-- P8: Reasoning -->
   <div class="rpanel" id="pReason">
@@ -1208,6 +1298,10 @@ function togP(id){const el=document.getElementById(id);if(el)el.style.display=el
 function renderPanels(r){
   modalCharts.forEach(c=>{try{c.destroy();}catch(e){}});
   modalCharts=[];
+  syncedCharts=[];   // reset sync registry
+  // Apply dark background globally for this render
+  Chart.defaults.color = '#9ca3af';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
 
   const N   = Math.min(r.bars.length, 60);
   const show= r.bars.slice(0, N).reverse(); // oldest first
@@ -1223,12 +1317,15 @@ function renderPanels(r){
   const pad= Math.max((pH-pL)*0.05, pH*0.001);
   const pricePad=pad;
 
-  function xAx(){return{type:'linear',min:0,max:N-1,ticks:{callback:(v,i)=>{if(i%Math.max(1,Math.floor(N/8))!==0)return'';return labels[v]||'';},font:{size:8},color:'#636e72',maxRotation:0},grid:{color:'#ecf0f1'}};}
-  function yAx(mn,mx){const p=(mx-mn)*0.04||0.5;return{min:mn-p,max:mx+p,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}};}
+  function xAx(){return{type:'linear',min:0,max:N-1,ticks:{callback:(v,i)=>{if(i%Math.max(1,Math.floor(N/8))!==0)return'';return labels[v]||'';},font:{size:8},color:'#636e72',maxRotation:0},grid:{color:'rgba(255,255,255,0.06)'}};}
+  function yAx(mn,mx){const p=(mx-mn)*0.04||0.5;return{min:mn-p,max:mx+p,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}};}
   function mkChart(id,type,datasets,opts){
     const ctx=document.getElementById(id);if(!ctx)return null;
     const ch=new Chart(ctx,{type,data:{datasets},options:{responsive:true,maintainAspectRatio:false,animation:false,...opts}});
-    modalCharts.push(ch);return ch;
+    modalCharts.push(ch);
+    // Register with crosshair sync (non-price panels pass no OHLC arrays)
+    setupSync(ch, null, null, null, null, labels);
+    return ch;
   }
 
   // ── Candle plugin ──────────────────────────────────────────────────────
@@ -1279,10 +1376,25 @@ function renderPanels(r){
     if(x % Math.max(1,Math.floor(N/8)) !== 0) return '';
     return labels[x] || '';
   }
-  function xAxFcast() {
+  function xAxFcast(showLabels=false) {
     return {type:'linear', min:0, max:N-1+fN,
-      ticks:{callback:fLabel, font:{size:8}, color:'#636e72', maxRotation:0},
-      grid:{color:'#ecf0f1'}};
+      ticks:{
+        callback: showLabels ? fLabel : ()=>'',
+        font:{size:8}, color:'#9ca3af', maxRotation:0,
+        display: showLabels
+      },
+      grid:{color:'rgba(255,255,255,0.06)'},
+      border:{color:'rgba(255,255,255,0.1)'}
+    };
+  }
+  function yAxDark(mn, mx, fmt) {
+    return {
+      min:mn, max:mx,
+      position:'right',
+      ticks:{callback: fmt || (v=>'$'+v.toFixed(2)), color:'#9ca3af', font:{size:8}, maxTicksLimit:5},
+      grid:{color:'rgba(255,255,255,0.06)'},
+      border:{color:'rgba(255,255,255,0.1)'}
+    };
   }
 
 
@@ -1357,7 +1469,7 @@ function renderPanels(r){
         const v=ctx.parsed?.y;return v!=null?`${ctx.dataset.label}: $${v.toFixed(2)}`:'';
       }}}
     },
-    scales:{x:xAxFcast(),y:{min:yMinMain,max:yMaxMain,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+    scales:{x:xAxFcast(),y:{min:yMinMain,max:yMaxMain,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:6},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}}
   };
 
   // Override x-axis max to include forecast bars (N-1+fN)
@@ -1378,6 +1490,7 @@ function renderPanels(r){
   };
   const mc=new Chart(document.getElementById('cMain'),{type:'line',data:{datasets:ds1},plugins:[candlePlugin],options:{responsive:true,maintainAspectRatio:false,animation:false,...mainChartOpts}});
   modalCharts.push(mc);
+  setupSync(mc, opens, highs, lows, closes, labels);
 
   // ── PANEL 2: Hurst Cycle Arcs ─────────────────────────────────────────
   // THREE continuous sine waves, each spanning full chart + forecast zone.
@@ -1444,13 +1557,13 @@ function renderPanels(r){
             if(v%Math.max(1,Math.floor(N/8))!==0) return '';
             return labels[v]||'';
           },font:{size:8},color:'#636e72',maxRotation:0},
-          grid:{color:'#ecf0f1'}},
+          grid:{color:'rgba(255,255,255,0.06)'}},
         y:{min:0,max:100,
           ticks:{callback:v=>v===0?'Trough':v===50?'Mid':v===100?'Peak':v+'%',
             color:'#636e72',font:{size:8},stepSize:25},
-          grid:{color:'#ecf0f1'},
+          grid:{color:'rgba(255,255,255,0.06)'},
           title:{display:true,text:'Cycle Phase: 0=Trough · 50=Mid-cross · 100=Peak',
-            font:{size:8},color:'#636e72'}}
+            font:{size:8},color:'#9ca3af'}}
       }
     });
   }
@@ -1469,7 +1582,11 @@ function renderPanels(r){
     const pl=ms.pivots.map(p=>{const bi=N-1-p.i;return(bi>=0&&bi<N)?{x:bi,y:p.price}:null;}).filter(Boolean);
     dsMS.push({label:'Structure',data:pl,borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[4,4],pointRadius:0,fill:false,parsing:false,tension:0});
   }
-
+  if(fcast) dsMS.push(fDivDs(pL-pricePad, pH+pricePad));
+  mkChart('cMS','scatter',dsMS,{
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,color:'#9ca3af',filter:i=>!i.text.startsWith('_')}}},
+    scales:{x:xAxFcast(true), y:{min:pL-pricePad,max:pH+pricePad,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}}
+  });
 
   // ── PANEL 4: RSI ──────────────────────────────────────────────────────
   // RSI: closes is oldest-first, compRSI expects oldest-first → pass directly
@@ -1485,7 +1602,23 @@ function renderPanels(r){
     {label:'Mid',  data:[{x:0,y:50},{x:N-1,y:50}],borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
   ];
   divs.forEach(d=>{dsRSI.push({label:d.type==='bullish'?'▲BullDiv':'▼BearDiv',data:[{x:d.b1,y:d.r1},{x:d.b2,y:d.r2}],borderColor:d.type==='bullish'?'rgba(0,180,140,.9)':'rgba(210,40,40,.9)',borderWidth:2.5,pointRadius:4,fill:false,parsing:false});});
-
+  // RSI forecast
+  if(fcast && rsiProj.length) {
+    const rPts  =[{x:N-1,y:rsiVals[rsiVals.length-1]},...rsiProj.map((v,i)=>({x:N+i,y:v}))];
+    const rPtsUp=[{x:N-1,y:rsiVals[rsiVals.length-1]},...rsiProjUp.map((v,i)=>({x:N+i,y:v}))];
+    const rPtsDn=[{x:N-1,y:rsiVals[rsiVals.length-1]},...rsiProjDn.map((v,i)=>({x:N+i,y:v}))];
+    dsRSI.push({label:'RSI proj',data:rPts,  borderColor:'rgba(232,67,147,.8)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+    dsRSI.push({label:'_ru',     data:rPtsUp,borderColor:'rgba(232,67,147,.35)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+    dsRSI.push({label:'_rd',     data:rPtsDn,borderColor:'rgba(232,67,147,.35)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+    dsRSI.push(fDivDs(0,100));
+    [1,2,3].forEach(i=>{if(dsRSI[i]?.data) dsRSI[i].data[1].x=N-1+fN;});
+  }
+  document.getElementById('rsiLabel').textContent='RSI(14) · '+curRSI?.toFixed(1)+
+    (curRSI>70?' OB⚠️':curRSI<30?' OS⚠️':' Neutral');
+  mkChart('cRSI','line',dsRSI,{
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,color:'#9ca3af',filter:i=>!i.text.startsWith('_')}}},
+    scales:{x:xAxFcast(), y:{min:0,max:100,position:'right',ticks:{callback:v=>v,color:'#9ca3af',font:{size:8},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}}
+  });
 
   // ── PANEL 5: ATR Stop ─────────────────────────────────────────────────
   // ATR/Chandelier: all oldest-first using 'show' (already oldest-first)
@@ -1496,11 +1629,26 @@ function renderPanels(r){
   const lsP=chandOF.long.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
   const ssP=chandOF.short.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
   const dsATR=[
-    {label:'Price',     data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'Price',     data:priceLine,borderColor:'#9ca3af',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
     {label:'Long Stop', data:lsP,  borderColor:'#00b894',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     {label:'Short Stop',data:ssP,  borderColor:'#d63031',borderWidth:2,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
   ];
-
+  const atrYmin2=Math.min(pL,...(longProj||[]).filter(v=>v),...(fcast?.lower||[]))-pricePad;
+  const atrYmax2=Math.max(pH,...(shortProj||[]).filter(v=>v),...(fcast?.upper||[]))+pricePad;
+  if(fcast && longProj.length) {
+    const lpP=[{x:N-1,y:lastLong},...longProj.map((v,i)=>({x:N+i,y:v}))];
+    const spP=[{x:N-1,y:lastShort},...shortProj.map((v,i)=>({x:N+i,y:v}))];
+    const fcP=[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+    dsATR.push({label:'Price proj',  data:fcP,borderColor:'rgba(156,163,175,.6)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+    dsATR.push({label:'Long proj',   data:lpP,borderColor:'rgba(0,184,148,.65)',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+    dsATR.push({label:'Short proj',  data:spP,borderColor:'rgba(214,48,49,.65)',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+    dsATR.push(fDivDs(atrYmin2,atrYmax2));
+  }
+  document.getElementById('atrLabel').textContent='ATR Chandelier · ATR:'+curA?.toFixed(2)+' · Long Stop:'+curSt?.toFixed(2);
+  mkChart('cATR','line',dsATR,{
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,color:'#9ca3af',filter:i=>!i.text.startsWith('_')}}},
+    scales:{x:xAxFcast(), y:{min:atrYmin2,max:atrYmax2,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}}
+  });
 
   // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
   // VWAP: compute on oldest-first 'show' for clean alignment
@@ -1511,14 +1659,27 @@ function renderPanels(r){
   // vPts: data already oldest-first from compVWAP(show)
   function vPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
   const dsVWAP=[
-    {label:'Price',data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'Price',data:priceLine,borderColor:'#9ca3af',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
     {label:'VWAP', data:vPts(vwapV),borderColor:'#0984e3',borderWidth:2,pointRadius:0,fill:false,parsing:false},
     {label:'+1σ',  data:vPts(bds.s1p),borderColor:'rgba(9,132,227,.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     {label:'-1σ',  data:vPts(bds.s1n),borderColor:'rgba(9,132,227,.5)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     {label:'+2σ',  data:vPts(bds.s2p),borderColor:'rgba(9,132,227,.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
     {label:'-2σ',  data:vPts(bds.s2n),borderColor:'rgba(9,132,227,.3)',borderWidth:1,borderDash:[2,5],pointRadius:0,fill:false,parsing:false},
   ];
-
+  const vwapYmin2=fcast?Math.min(pL,...(fcast.lower||[]))-pricePad:pL-pricePad;
+  const vwapYmax2=fcast?Math.max(pH,...(fcast.upper||[]))+pricePad:pH+pricePad;
+  if(fcast && vwapProj.length) {
+    const vwPts2  =[{x:N-1,y:lastVWAP},...vwapProj.map((v,i)=>({x:N+i,y:v}))];
+    const fcPv    =[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+    dsVWAP.push({label:'Price proj',data:fcPv,  borderColor:'rgba(156,163,175,.6)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+    dsVWAP.push({label:'VWAP proj', data:vwPts2,borderColor:'rgba(9,132,227,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+    dsVWAP.push(fDivDs(vwapYmin2,vwapYmax2));
+  }
+  document.getElementById('vwapLabel').textContent='VWAP '+f2(curVW)+' · Price '+(r.price>curVW?'ABOVE ▲':'BELOW ▼');
+  mkChart('cVWAP','line',dsVWAP,{
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,color:'#9ca3af',filter:i=>!i.text.startsWith('_')}}},
+    scales:{x:xAxFcast(), y:{min:vwapYmin2,max:vwapYmax2,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}}
+  });
 
   // ── PANEL 7: Volume Profile ───────────────────────────────────────────
   const vp=compVP(r.bars);
@@ -1540,7 +1701,7 @@ function renderPanels(r){
     }
     const vpYmin2=fcast?Math.min(pL,...(fcast.lower||[]))-pricePad:pL-pricePad;
     const vpYmax2=fcast?Math.max(pH,...(fcast.upper||[]))+pricePad:pH+pricePad;
-    mkChart('cVP','line',dsVP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},scales:{x:xAxFcast(),y:{min:vpYmin2,max:vpYmax2,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}});
+    mkChart('cVP','line',dsVP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},scales:{x:xAxFcast(),y:{min:vpYmin2,max:vpYmax2,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}});
   const vpCols=vp.prof.map(p=>p.price===vp.poc.price?'rgba(253,203,110,.9)':p.price>=vp.vaL&&p.price<=vp.vaH?'rgba(9,132,227,.55)':'rgba(160,160,160,.45)');
   mkChart('cVPp','bar',
     [{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
@@ -1638,7 +1799,7 @@ function renderPanels(r){
     }
     mkChart('cADX','line',dsADX,{
       plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},
-      scales:{x:xAxFcast(), y:{min:0,max:60,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      scales:{x:xAxFcast(), y:{min:0,max:60,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}
     });
   }
 
@@ -1674,7 +1835,7 @@ function renderPanels(r){
     }
     mkChart('cFib','line',dsFib,{
       plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7&&!i.text.startsWith('_')}}},
-      scales:{x:xAxFcast(), y:{min:fibYmin,max:fibYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      scales:{x:xAxFcast(), y:{min:fibYmin,max:fibYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}
     });
     const ftEl=document.getElementById('fibTable');
     if(ftEl){
@@ -1722,7 +1883,7 @@ function renderPanels(r){
     }
     mkChart('cGann','line',dsGann,{
       plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>i.datasetIndex<=7&&!i.text.startsWith('_')}}},
-      scales:{x:xAxFcast(), y:{min:gYmin,max:gYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      scales:{x:xAxFcast(), y:{min:gYmin,max:gYmax,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}
     });
     const gtEl=document.getElementById('gannTable');
     if(gtEl){
@@ -1761,7 +1922,7 @@ function renderPanels(r){
     const zMax = fcast ? Math.max(3, ...zProj.filter(v=>v!=null),...zProjUp.filter(v=>v!=null))+0.5 : 3;
     mkChart('cZScore','line',dsZ,{
       plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')&&i.datasetIndex<=2}}},
-      scales:{x:xAxFcast(), y:{min:zMin,max:zMax,ticks:{callback:v=>v.toFixed(1)+'σ',color:'#636e72',font:{size:8}},grid:{color:'#ecf0f1'}}}
+      scales:{x:xAxFcast(), y:{min:zMin,max:zMax,ticks:{callback:v=>v.toFixed(1)+'σ',color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}
     });
   }
 
@@ -1912,6 +2073,114 @@ document.addEventListener('click', function(e) {
   }
 });
 
+// ── SYNCHRONIZED CROSSHAIR ENGINE ────────────────────────────────────────
+let syncedCharts = [];   // all chart instances for crosshair sync
+let syncActive   = false;
+
+// Toggle subgraph pane visibility
+document.addEventListener('click', function(e) {
+  const tog = e.target.closest('.sg-tog');
+  if (!tog) return;
+  const paneId = tog.dataset.pane;
+  const pane   = document.getElementById(paneId);
+  if (!pane) return;
+  tog.classList.toggle('on');
+  pane.style.display = tog.classList.contains('on') ? '' : 'none';
+});
+
+// Sync crosshair across all panes on mousemove
+function syncCrosshair(sourceChart, x, y) {
+  if (syncActive) return;
+  syncActive = true;
+  syncedCharts.forEach(ch => {
+    if (ch === sourceChart || !ch || ch.data.datasets.length === 0) return;
+    try {
+      const rect   = ch.canvas.getBoundingClientRect();
+      const xScale = ch.scales.x;
+      if (!xScale) return;
+      // Map source x pixel → data value → target pixel
+      const srcXScale = sourceChart.scales.x;
+      if (!srcXScale) return;
+      const xVal  = srcXScale.getValueForPixel(x - sourceChart.canvas.getBoundingClientRect().left);
+      const tgtPx = xScale.getPixelForValue(xVal);
+      ch.tooltip.setActiveElements([]);
+      ch._syncX = tgtPx;   // store for crosshair plugin
+      ch.update('none');
+    } catch(e) {}
+  });
+  syncActive = false;
+}
+
+function clearCrosshair() {
+  syncedCharts.forEach(ch => {
+    if (!ch) return;
+    try { ch._syncX = null; ch.update('none'); } catch(e) {}
+  });
+  const info = document.getElementById('xhairInfo');
+  if (info) { ['xhairTime','xhairO','xhairH','xhairL','xhairC'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; }); }
+}
+
+// Vertical crosshair plugin (shared)
+// Dark canvas background for all charts
+const darkBgPlugin = {
+  id: 'darkBg',
+  beforeDraw(chart) {
+    const ctx = chart.ctx;
+    ctx.save();
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, chart.width, chart.height);
+    ctx.restore();
+  }
+};
+Chart.register(darkBgPlugin);
+
+const crosshairPlugin = {
+  id: 'xhair',
+  afterDraw(chart) {
+    const syncX = chart._syncX;
+    if (syncX == null) return;
+    const ctx   = chart.ctx;
+    const area  = chart.chartArea;
+    if (!area) return;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(180,180,180,0.5)';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath();
+    ctx.moveTo(syncX, area.top);
+    ctx.lineTo(syncX, area.bottom);
+    ctx.stroke();
+    ctx.restore();
+  }
+};
+Chart.register(crosshairPlugin);
+
+function setupSync(chartInst, opens, highs, lows, closes, labels) {
+  syncedCharts.push(chartInst);
+  chartInst.canvas.addEventListener('mousemove', function(e) {
+    const rect = chartInst.canvas.getBoundingClientRect();
+    const xPx  = e.clientX - rect.left;
+    const xs   = chartInst.scales.x;
+    if (!xs) return;
+    const xVal = xs.getValueForPixel(xPx);
+    const idx  = Math.round(xVal);
+    // Update shared info bar
+    const el = (id) => document.getElementById(id);
+    if (el('xhairTime') && idx >= 0 && idx < labels.length) {
+      el('xhairTime').textContent = labels[idx] || '';
+      el('xhairO').textContent    = opens  && opens[idx]  != null ? 'O:$'+opens[idx].toFixed(2)  : '';
+      el('xhairH').textContent    = highs  && highs[idx]  != null ? 'H:$'+highs[idx].toFixed(2)  : '';
+      el('xhairL').textContent    = lows   && lows[idx]   != null ? 'L:$'+lows[idx].toFixed(2)   : '';
+      el('xhairC').textContent    = closes && closes[idx] != null ? 'C:$'+closes[idx].toFixed(2) : '';
+    }
+    // Set crosshair on this chart and sync all others
+    chartInst._syncX = xPx;
+    chartInst.update('none');
+    syncCrosshair(chartInst, e.clientX, e.clientY);
+  });
+  chartInst.canvas.addEventListener('mouseleave', clearCrosshair);
+}
+
 function closeModal(){
   document.getElementById('modal').style.display='none';
   modalCharts.forEach(c=>{try{c.destroy();}catch(e){}});
@@ -1926,9 +2195,25 @@ testProxies();
 // ═══════ VERSION HISTORY ══════════════════════════════════════════════
 const VERSION_HISTORY = [
   {
+    version: '20260323.1904',
+    date: 'Mar 23, 2026 19:04',
+    label: 'Current',
+    changes: [
+      'Unified synchronized multi-pane chart layout — all subgraphs stacked under price action',
+      'Shared x-axis (xAxFcast) with same domain across all 11 panels',
+      'Crosshair sync engine — hover over any pane highlights same bar on ALL panels',
+      'OHLC info bar at top of chart container shows O/H/L/C for hovered bar',
+      'Dark theme throughout chart container for professional trading look',
+      'Subgraph toggle bar — show/hide any indicator pane with one click',
+      'All indicators in correct temporal alignment with price chart',
+      'Study explanations moved to collapsible section below chart container',
+      'y-axes on right side, x-axis labels only on bottom-most chart',
+    ]
+  },
+  {
     version: '20260321.0350',
     date: 'Mar 21, 2026 03:50',
-    label: 'Current',
+    label: '',
     changes: [
       'Forecast projection added to ALL charts (RSI, ATR Stop, VWAP, ADX, Z-Score, VP, Fib, Gann, MS)',
       'RSI forecast: projects RSI values from forecast price center/upper/lower',
