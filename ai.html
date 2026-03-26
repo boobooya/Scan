@@ -1369,6 +1369,91 @@ function renderPanels(r){
     return ch;
   }
 
+  // ── PANEL 1: Price + Keltner + Forecast ──────────────────────────────
+  // Declare these FIRST — pre-compute block below depends on fcast and fN
+  const fcast= compForecast(r.bars,r.fcastN,r.fcastLB);
+  const kelt = compKeltner(r.bars,20,14,1.5);
+  const hurst= compHurst(r.bars);
+  const fN   = r.fcastN;
+
+  // ── Pre-compute ALL indicator projections FIRST before drawing any panel ──
+
+  // ATR + Chandelier (needed by ATR panel)
+  const atrOF   = compATR(show);
+  const chandOF = chandelier(show, atrOF);
+  const lastATR  = atrOF[atrOF.length-1] || 0;
+  const meanATR  = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / (atrOF.filter(v=>v).length||1);
+  const lastLong  = chandOF.long[chandOF.long.length-1]  || 0;
+  const lastShort = chandOF.short[chandOF.short.length-1]|| 0;
+  const atrProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const aDecay = Math.exp(-0.05*i);
+    return lastATR*aDecay + meanATR*(1-aDecay);
+  }) : [];
+  const longProj = fcast ? fcast.center.map((v,i) => {
+    const projHigh = Math.max(...fcast.upper.slice(0,i+1).concat(r.price));
+    return projHigh - atrProj[i] * 2;
+  }) : [];
+  const shortProj = fcast ? fcast.center.map((v,i) => {
+    const projLow = Math.min(...fcast.lower.slice(0,i+1).concat(r.price));
+    return projLow + atrProj[i] * 2;
+  }) : [];
+
+  // VWAP (needed by VWAP panel)
+  const vwapV  = compVWAP(show);
+  const bds    = vwapBands(show, vwapV);
+  const curVW  = vwapV[vwapV.length-1];
+  const lastVWAP = vwapV[vwapV.length-1];
+  const vwapProj = fcast ? fcast.center.map((v,i) =>
+    (lastVWAP * N + fcast.center.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+  const vwapProjUp = fcast ? fcast.upper.map((v,i) =>
+    (lastVWAP*N + fcast.upper.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+  const vwapProjDn = fcast ? fcast.lower.map((v,i) =>
+    (lastVWAP*N + fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+
+  // Volume Profile (needed by VP panel)
+  const vp = compVP(r.bars);
+
+  // ADX (needed by ADX panel)
+  const adxData = compADX(show.slice().reverse(), 14);
+  const lastADX = adxData.adx[adxData.adx.length-1] || 25;
+  const lastPDI = adxData.pdi[adxData.pdi.length-1] || 25;
+  const lastMDI = adxData.mdi[adxData.mdi.length-1] || 25;
+  const adxProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const xDecay = Math.exp(-0.08*i); return (lastADX-25)*xDecay + 25;
+  }) : [];
+  const pdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const pBias = fcast.bias==='bullish' ? 1 : -1;
+    const pDec  = Math.exp(-0.08*i);
+    return lastPDI + pBias*(lastPDI-lastMDI)*0.3*(1-pDec);
+  }) : [];
+  const mdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const mBias = fcast.bias==='bullish' ? -1 : 1;
+    const mDec  = Math.exp(-0.08*i);
+    return lastMDI + mBias*(lastMDI-lastPDI)*0.3*(1-mDec);
+  }) : [];
+
+  // RSI (needed by RSI panel)
+  const rsiVals  = compRSI(closes);
+  const divs     = findDiv(closes, rsiVals);
+  const curRSI   = rsiVals[rsiVals.length-1];
+
+  // Extended price series for indicator projections
+  const priceExt   = fcast ? [...closes, ...fcast.center] : closes;
+  const priceExtUp = fcast ? [...closes, ...fcast.upper]  : closes;
+  const priceExtDn = fcast ? [...closes, ...fcast.lower]  : closes;
+
+  const rsiProj   = fcast ? compRSI(priceExt).slice(N)   : [];
+  const rsiProjUp = fcast ? compRSI(priceExtUp).slice(N) : [];
+  const rsiProjDn = fcast ? compRSI(priceExtDn).slice(N) : [];
+
+  // Z-Score projections
+  const zProj   = fcast ? compZScore(priceExt,20).slice(N)   : [];
+  const zProjUp = fcast ? compZScore(priceExtUp,20).slice(N) : [];
+  const zProjDn = fcast ? compZScore(priceExtDn,20).slice(N) : [];
+
+  // Market Structure
+  const ms = compMS(r.bars.slice(0,80));
+
   // ── Candle plugin ──────────────────────────────────────────────────────
   const candlePlugin={id:'cp',afterDatasetsDraw(chart){
     const xs=chart.scales.x,ys=chart.scales.y;
@@ -1391,22 +1476,12 @@ function renderPanels(r){
     ctx2.restore();
   }};
 
-  // ── PANEL 1: Price + Keltner + Forecast ──────────────────────────────
-  const fcast= compForecast(r.bars,r.fcastN,r.fcastLB);
-  const kelt = compKeltner(r.bars,20,14,1.5);
-  const hurst= compHurst(r.bars);
-  const fN   = r.fcastN;
-
   // ── Pre-compute extended price arrays for forecast zone ──────────────────
-  // These extend the historical data with the forecast center/upper/lower prices
-  // so every indicator can be projected into the forecast zone consistently.
-  const fcastXs     = Array.from({length: fN}, (_, i) => N + i);       // x positions
-  const priceExt    = fcast ? [...closes, ...fcast.center]  : closes;   // extended close
-  const priceExtUp  = fcast ? [...closes, ...fcast.upper]   : closes;   // upper bound
-  const priceExtDn  = fcast ? [...closes, ...fcast.lower]   : closes;   // lower bound
+  const fcastXs     = Array.from({length: fN}, (_, i) => N + i);
+  // NOTE: priceExt/priceExtUp/priceExtDn already declared in pre-compute block above
 
   // Forecast divider line (shared by all panels)
-  const fcastDivider = fN > 0 ? [{x:N-1, y:0}, {x:N-1, y:1e9}] : [];  // y is overridden per panel
+  const fcastDivider = fN > 0 ? [{x:N-1, y:0}, {x:N-1, y:1e9}] : [];
   function fDivDs(yMin, yMax) {
     return {label:'_fdiv', data:[{x:N-1,y:yMin},{x:N-1,y:yMax}],
       borderColor:'rgba(100,100,100,0.35)', borderWidth:1.5, borderDash:[4,3],
@@ -1630,10 +1705,6 @@ function renderPanels(r){
   });
 
   // ── PANEL 4: RSI ──────────────────────────────────────────────────────
-  // RSI: closes is oldest-first, compRSI expects oldest-first → pass directly
-  const rsiVals=compRSI(closes);
-  const divs=findDiv(closes,rsiVals);
-  const curRSI=rsiVals[rsiVals.length-1];
   document.getElementById('rsiLabel').textContent=`RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought⚠️':curRSI<30?'Oversold⚠️':'Neutral'} · ${divs.length} divergence(s)`;
   const rsiPts=rsiVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
   const dsRSI=[
@@ -1662,9 +1733,6 @@ function renderPanels(r){
   });
 
   // ── PANEL 5: ATR Stop ─────────────────────────────────────────────────
-  // ATR/Chandelier: all oldest-first using 'show' (already oldest-first)
-  const atrOF=compATR(show);
-  const chandOF=chandelier(show,atrOF);
   const curA=atrOF[atrOF.length-1],curSt=chandOF.long[chandOF.long.length-1];
   document.getElementById('atrLabel').textContent='ATR(14):'+f2(curA)+' · Long Stop:'+f2(curSt)+' · Price:'+f2(r.price);
   const lsP=chandOF.long.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
@@ -1692,10 +1760,6 @@ function renderPanels(r){
   });
 
   // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
-  // VWAP: compute on oldest-first 'show' for clean alignment
-  const vwapV = compVWAP(show);                     // oldest-first in/out
-  const bds   = vwapBands(show, vwapV);              // oldest-first in/out
-  const curVW = vwapV[vwapV.length-1];               // last=newest ✓
   document.getElementById('vwapLabel').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
   // vPts: data already oldest-first from compVWAP(show)
   function vPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
@@ -1723,7 +1787,6 @@ function renderPanels(r){
   });
 
   // ── PANEL 7: Volume Profile ───────────────────────────────────────────
-  const vp=compVP(r.bars);
   document.getElementById('vpLabel').textContent=`POC:${f2(vp.poc.price)} · VAH:${f2(vp.vaH)} · VAL:${f2(vp.vaL)}`;
   const dsVP=[
     {label:'Price',          data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
@@ -1748,82 +1811,20 @@ function renderPanels(r){
     [{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
     {indexAxis:'y',scales:{x:{ticks:{display:false},grid:{display:false}},y:{labels:vp.prof.map(p=>'$'+p.price.toFixed(1)),ticks:{font:{size:7},color:'#636e72'},grid:{display:false}}},plugins:{legend:{display:false}}});
 
-  // ── Pre-compute projected indicator values for forecast zone ─────────────
-  // RSI projected: run compRSI on extended price series, take last fN values
-  const rsiProj = fcast ? compRSI(priceExt).slice(N) : [];
-  const rsiProjUp = fcast ? compRSI(priceExtUp).slice(N) : [];
-  const rsiProjDn = fcast ? compRSI(priceExtDn).slice(N) : [];
-
-  // Z-Score projected
-  const zProj   = fcast ? compZScore(priceExt, 20).slice(N)   : [];
-  const zProjUp = fcast ? compZScore(priceExtUp, 20).slice(N) : [];
-  const zProjDn = fcast ? compZScore(priceExtDn, 20).slice(N) : [];
-
-  // ATR projected: last ATR value with slow mean-reversion toward long-run mean
-  const lastATR = atrOF[atrOF.length-1] || 0;
-  const meanATR = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / atrOF.filter(v=>v).length;
-  const atrProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const aDecay = Math.exp(-0.05*i);
-    return lastATR*aDecay + meanATR*(1-aDecay);   // ATR reverts to mean
-  }) : [];
-
-  // Chandelier projected: extend last stop value with ATR projection
-  const lastLong  = chandOF.long[chandOF.long.length-1];
-  const lastShort = chandOF.short[chandOF.short.length-1];
-  const longProj  = fcast ? fcast.center.map((v,i) => {
-    const projHigh = Math.max(...fcast.upper.slice(0,i+1).concat(r.price));
-    return projHigh - atrProj[i] * 2;
-  }) : [];
-  const shortProj = fcast ? fcast.center.map((v,i) => {
-    const projLow = Math.min(...fcast.lower.slice(0,i+1).concat(r.price));
-    return projLow + atrProj[i] * 2;
-  }) : [];
-
-  // VWAP projected: extends as the average of forecast prices (price mean-reverts to VWAP)
-  const lastVWAP = vwapV[vwapV.length-1];
-  const vwapProj = fcast ? fcast.center.map((v,i) => {
-    // VWAP drifts toward the forecast center price weighted by bar count
-    return (lastVWAP * N + fcast.center.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N + i + 1);
-  }) : [];
-  const vwapProjUp = fcast ? fcast.upper.map((v,i) =>
-    (lastVWAP*N + fcast.upper.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
-  const vwapProjDn = fcast ? fcast.lower.map((v,i) =>
-    (lastVWAP*N + fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
-
-  // ADX projected: decay toward 25 (trend weakens/strengthens toward equilibrium)
-  const lastADX = adxData ? adxData.adx[adxData.adx.length-1] : 25;
-  const lastPDI = adxData ? adxData.pdi[adxData.pdi.length-1] : 25;
-  const lastMDI = adxData ? adxData.mdi[adxData.mdi.length-1] : 25;
-  const adxProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const xDecay = Math.exp(-0.08*i);
-    return (lastADX-25)*xDecay + 25;             // ADX mean-reverts toward 25
-  }) : [];
-  const pdiProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const pBias = fcast.bias==='bullish' ? 1 : -1;
-    const pDec  = Math.exp(-0.08*i);
-    return lastPDI + pBias*(lastPDI-lastMDI)*0.3*(1-pDec);
-  }) : [];
-  const mdiProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const mBias = fcast.bias==='bullish' ? -1 : 1;
-    const mDec  = Math.exp(-0.08*i);
-    return lastMDI + mBias*(lastMDI-lastPDI)*0.3*(1-mDec);
-  }) : [];
-
   // ── PANEL: ADX + DI ─────────────────────────────────────────────────
   {
     const barsOF = show.slice().reverse();
-    const adxData = compADX(barsOF, 14);
-    const curADX = adxData.adx[adxData.adx.length-1];
-    const curPDI = adxData.pdi[adxData.pdi.length-1];
-    const curMDI = adxData.mdi[adxData.mdi.length-1];
+    const adxData2 = compADX(barsOF, 14);
+    const curADX = adxData2.adx[adxData2.adx.length-1];
+    const curPDI = adxData2.pdi[adxData2.pdi.length-1];
+    const curMDI = adxData2.mdi[adxData2.mdi.length-1];
     document.getElementById('adxLabel').textContent =
       'ADX: '+(curADX?.toFixed(1)??'—')+' ('+(curADX>=25?'Trending':'Ranging')+') · +DI: '+(curPDI?.toFixed(1)??'—')+' · -DI: '+(curMDI?.toFixed(1)??'—');
-    // compADX(barsOF) output is oldest-first — map directly, no reversal needed
     function adxPts(arr){ return arr.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)); }
     const dsADX = [
-      {label:'ADX', data:adxPts(adxData.adx), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
-      {label:'+DI', data:adxPts(adxData.pdi), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
-      {label:'-DI', data:adxPts(adxData.mdi), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'ADX', data:adxPts(adxData2.adx), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
+      {label:'+DI', data:adxPts(adxData2.pdi), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'-DI', data:adxPts(adxData2.mdi), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
       {label:'25',  data:[{x:0,y:25},{x:N-1,y:25}], borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     ];
     // ADX forecast projection
