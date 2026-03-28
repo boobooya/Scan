@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>OpenClaw AI — Breakout Scanner + AI Learning</title>
+<title>OpenClaw AI — Breakout Scanner</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6fa;min-height:100vh}
@@ -236,22 +236,20 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
 <body>
 <div class="hdr">
   <div>
-    <h1>🤖 OpenClaw AI — Breakout Scanner + Live Learning</h1>
-    <p>Yahoo Finance · Binance · Swing + Channel · Keltner · Hurst · RSI · ATR · VWAP · Fibonacci · Gann · ADX · Z-Score · <strong style="color:#a5f3fc">AI Self-Learning · Forecast · Pattern Training</strong></p>
+    <h1>🤖 OpenClaw AI — Breakout Scanner</h1>
+    <p>Yahoo Finance · Swing + Channel · Keltner · Hurst · RSI · ATR · VWAP · Fibonacci · Gann · ADX · Z-Score · <strong style="color:#a5f3fc">AI Self-Learning · Forecast · Pattern Training</strong></p>
   </div>
   <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
     <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
     <div style="font-size:14px;font-weight:700;font-family:monospace">20260324.AI</div>
     <div style="font-size:9px;opacity:0.6">▾ changelog</div>
   </div>
-  <!-- AI ENGINE STATUS BAR -->
-  <div id="aiStatusBar" style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(0,0,0,0.2);border-radius:8px;font-size:11px;flex-wrap:wrap">
-    <span id="aiDot" style="width:8px;height:8px;border-radius:50%;background:#374151;display:inline-block;flex-shrink:0"></span>
-    <span id="aiTxt" style="color:rgba(255,255,255,0.6)">AI Engine: Idle</span>
-    <span id="aiLrnBadge" style="display:none;background:#7c3aed;color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px">◈ LEARNING</span>
-    <span id="aiXP" style="color:rgba(255,255,255,0.5);font-size:10px;font-family:monospace">XP: 0</span>
-    <span id="aiLvl" style="background:rgba(255,255,255,0.15);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px">NOVICE</span>
-    <button onclick="toggleAILearn()" id="aiLearnBtn" style="background:rgba(124,58,237,0.3);color:#c4b5fd;border:1px solid rgba(124,58,237,0.5);border-radius:5px;padding:3px 9px;font-size:10px;cursor:pointer;font-weight:700">◈ AUTO-LEARN</button>
+  <div id="aiBar" style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(0,0,0,0.25);border-radius:8px;font-size:11px;flex-wrap:wrap">
+    <span id="aiDot" style="width:8px;height:8px;border-radius:50%;background:#4b5563;display:inline-block;transition:all .3s"></span>
+    <span id="aiTxt" style="color:rgba(255,255,255,0.55)">AI: Idle</span>
+    <span id="aiLvl" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:9px;font-weight:700;padding:2px 8px;border-radius:8px">NOVICE</span>
+    <span id="aiXP" style="color:rgba(255,255,255,0.4);font-size:10px">XP: 0</span>
+    <button onclick="toggleAILearn()" id="aiBtnLearn" style="background:rgba(124,58,237,0.4);color:#c4b5fd;border:1px solid rgba(124,58,237,0.6);border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;font-weight:700">◈ AUTO-LEARN</button>
   </div>
 </div>
 
@@ -372,8 +370,8 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
           <th class="c">Signal</th><th class="c">Type</th><th class="c">Option</th>
           <th class="r">Strike</th><th class="r">Stop</th><th class="c">Forecast</th>
           <th class="c">Structure</th><th class="c">Conf</th>
-          <th class="c" style="color:#7c3aed">🤖 AI Signal</th>
-          <th class="c" style="color:#7c3aed">AI Conf</th>
+          <th class="c" style="color:#7c3aed;background:#f5f3ff">🤖 AI</th>
+          <th class="c" style="color:#7c3aed;background:#f5f3ff">AI%</th>
           <th class="c">Action</th>
         </tr></thead>
         <tbody id="tBody"><tr><td colspan="15" class="est"><div class="ei">📊</div><div>Choose a timeframe and click Scan</div></td></tr></tbody>
@@ -923,8 +921,6 @@ function updateTable(){
       <td class="c">${fb}</td>
       <td class="c">${mb}</td>
       <td class="c"><span class="c${r.conf[0]}">${r.conf.toUpperCase()}</span></td>
-      <td class="c">${buildAISignalCell(r.sym)}</td>
-      <td class="c">${buildAIConfCell(r.sym)}</td>
       <td class="c"><button class="vbtn" onclick="showDetail('${r.sym}')">📊 Analyze</button></td>
     </tr>`;
   }).join('');
@@ -981,7 +977,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <label class="itog on" style="color:#0984e3" onclick="togP('pVWAP')"><span class="idot" style="background:#0984e3"></span><span class="il">📊 VWAP</span></label>
     <label class="itog on" style="color:#00b894" onclick="togP('pVP')"><span class="idot" style="background:#00b894"></span><span class="il">📦 Volume Profile</span></label>
     <label class="itog on" style="color:#c4b5fd" onclick="togP('pReason')"><span class="idot" style="background:#c4b5fd"></span><span class="il">🧠 Reasoning</span></label>
-    <label class="itog on" style="color:#7c3aed" onclick="togP('pAI')"><span class="idot" style="background:#7c3aed"></span><span class="il">🤖 AI Learning</span></label>
+    <label class="itog on" style="color:#7c3aed" onclick="togP('pAIPanel')"><span class="idot" style="background:#7c3aed"></span><span class="il">🤖 AI Learning</span></label>
     <label class="itog on" style="color:#ef4444" onclick="togP('pADX')"><span class="idot" style="background:#ef4444"></span><span class="il">📈 ADX/DI</span></label>
     <label class="itog on" style="color:#f59e0b" onclick="togP('pFib')"><span class="idot" style="background:#f59e0b"></span><span class="il">🌀 Fibonacci</span></label>
     <label class="itog on" style="color:#8b5cf6" onclick="togP('pGann')"><span class="idot" style="background:#8b5cf6"></span><span class="il">⬡ Gann Square</span></label>
@@ -1207,32 +1203,6 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div id="reasonContent">Computing…</div>
   </div>
 
-  <!-- AI LEARNING PANEL -->
-  <div id="pAI" style="background:#0f0f1e;border:1px solid #2d2d4a;border-radius:8px;padding:16px;margin-bottom:13px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:#c4b5fd">🤖 AI Learning &amp; Forecast Engine</div>
-        <div style="font-size:10px;color:#6b6b9a;margin-top:2px">Self-trained on historical patterns · Learns signal accuracy over time</div>
-      </div>
-      <button onclick="aiAnalyzeModal()" id="aiAnalyzeBtn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🤖 Run AI Analysis</button>
-    </div>
-    <div id="aiModalContent" style="color:#b0b0cc;font-size:11px;line-height:1.7">
-      <div style="text-align:center;padding:20px;color:#4a4a6a">Click "Run AI Analysis" for AI-powered deep learning analysis of this symbol</div>
-    </div>
-    <!-- AI Skill Profile -->
-    <div id="aiSkillSection" style="display:none;margin-top:12px">
-      <div style="font-size:10px;font-weight:700;color:#6b6b9a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Learned Skill Profile</div>
-      <div id="aiSkillGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
-    </div>
-    <!-- AI Learn Log -->
-    <div id="aiLearnSection" style="display:none;margin-top:12px">
-      <div style="font-size:10px;font-weight:700;color:#6b6b9a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
-        Learning Log <span id="aiLearnRunCount" style="color:#4a4a6a"></span>
-      </div>
-      <div id="aiLearnLog" style="background:#1a1a2e;border-radius:6px;padding:8px;max-height:140px;overflow-y:auto;font-size:10px;font-family:monospace;line-height:1.7"></div>
-    </div>
-  </div>
-
   <!-- ADX Panel -->
   <div class="cpanel" id="pADX">
     <div class="phdr"><div>
@@ -1320,7 +1290,29 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="csm"><canvas id="cZScore"></canvas></div>
   </div>
 
-    <div class="rec">
+  
+  <!-- AI LEARNING PANEL -->
+  <div id="pAIPanel" style="background:#f8f4ff;border:1px solid #c4b5fd;border-radius:8px;padding:16px;margin-bottom:13px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#4c1d95">🤖 AI Learning &amp; Forecast Engine</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">Self-trained on real price data · Learns signal accuracy over time</div>
+      </div>
+      <button onclick="runAIAnalysis()" id="aiRunBtn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🤖 Run AI Analysis</button>
+    </div>
+    <div id="aiPanelContent" style="color:#4b5563;font-size:11px;line-height:1.7">
+      <div style="text-align:center;padding:16px;color:#9ca3af">Learned data for <strong id="aiPanelSym" style="color:#667eea"></strong> will appear here after scanning.</div>
+    </div>
+    <div id="aiSkillsWrap" style="display:none;margin-top:10px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Skill Profile</div>
+      <div id="aiSkillsGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px"></div>
+    </div>
+    <div id="aiLogWrap" style="display:none;margin-top:10px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Learning Log <span id="aiLogCount" style="color:#9ca3af;font-weight:400"></span></div>
+      <div id="aiLogBox" style="background:#1e1e2e;color:#9ca3af;font-family:monospace;font-size:10px;padding:8px;border-radius:5px;max-height:130px;overflow-y:auto;line-height:1.7"></div>
+    </div>
+  </div>
+  <div class="rec">
     <div class="rttl">${r.stype==='both'&&isBuy?'⭐ STRONG BUY — Both signals + Forecast · ATM CALL':r.stype==='both'&&isSel?'⭐ STRONG SELL — Both signals · ATM PUT':isBuy?'🟢 BUY — ATM CALL':isSel?'🔴 SELL — ATM PUT':'🟡 NO SIGNAL — Monitor'}</div>
     <div class="rgr">
       <div class="ri"><div class="rl">Symbol</div><div class="rv">${sym}</div></div>
@@ -1369,91 +1361,6 @@ function renderPanels(r){
     return ch;
   }
 
-  // ── PANEL 1: Price + Keltner + Forecast ──────────────────────────────
-  // Declare these FIRST — pre-compute block below depends on fcast and fN
-  const fcast= compForecast(r.bars,r.fcastN,r.fcastLB);
-  const kelt = compKeltner(r.bars,20,14,1.5);
-  const hurst= compHurst(r.bars);
-  const fN   = r.fcastN;
-
-  // ── Pre-compute ALL indicator projections FIRST before drawing any panel ──
-
-  // ATR + Chandelier (needed by ATR panel)
-  const atrOF   = compATR(show);
-  const chandOF = chandelier(show, atrOF);
-  const lastATR  = atrOF[atrOF.length-1] || 0;
-  const meanATR  = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / (atrOF.filter(v=>v).length||1);
-  const lastLong  = chandOF.long[chandOF.long.length-1]  || 0;
-  const lastShort = chandOF.short[chandOF.short.length-1]|| 0;
-  const atrProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const aDecay = Math.exp(-0.05*i);
-    return lastATR*aDecay + meanATR*(1-aDecay);
-  }) : [];
-  const longProj = fcast ? fcast.center.map((v,i) => {
-    const projHigh = Math.max(...fcast.upper.slice(0,i+1).concat(r.price));
-    return projHigh - atrProj[i] * 2;
-  }) : [];
-  const shortProj = fcast ? fcast.center.map((v,i) => {
-    const projLow = Math.min(...fcast.lower.slice(0,i+1).concat(r.price));
-    return projLow + atrProj[i] * 2;
-  }) : [];
-
-  // VWAP (needed by VWAP panel)
-  const vwapV  = compVWAP(show);
-  const bds    = vwapBands(show, vwapV);
-  const curVW  = vwapV[vwapV.length-1];
-  const lastVWAP = vwapV[vwapV.length-1];
-  const vwapProj = fcast ? fcast.center.map((v,i) =>
-    (lastVWAP * N + fcast.center.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
-  const vwapProjUp = fcast ? fcast.upper.map((v,i) =>
-    (lastVWAP*N + fcast.upper.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
-  const vwapProjDn = fcast ? fcast.lower.map((v,i) =>
-    (lastVWAP*N + fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
-
-  // Volume Profile (needed by VP panel)
-  const vp = compVP(r.bars);
-
-  // ADX (needed by ADX panel)
-  const adxData = compADX(show.slice().reverse(), 14);
-  const lastADX = adxData.adx[adxData.adx.length-1] || 25;
-  const lastPDI = adxData.pdi[adxData.pdi.length-1] || 25;
-  const lastMDI = adxData.mdi[adxData.mdi.length-1] || 25;
-  const adxProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const xDecay = Math.exp(-0.08*i); return (lastADX-25)*xDecay + 25;
-  }) : [];
-  const pdiProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const pBias = fcast.bias==='bullish' ? 1 : -1;
-    const pDec  = Math.exp(-0.08*i);
-    return lastPDI + pBias*(lastPDI-lastMDI)*0.3*(1-pDec);
-  }) : [];
-  const mdiProj = fcast ? Array.from({length:fN}, (_,i) => {
-    const mBias = fcast.bias==='bullish' ? -1 : 1;
-    const mDec  = Math.exp(-0.08*i);
-    return lastMDI + mBias*(lastMDI-lastPDI)*0.3*(1-mDec);
-  }) : [];
-
-  // RSI (needed by RSI panel)
-  const rsiVals  = compRSI(closes);
-  const divs     = findDiv(closes, rsiVals);
-  const curRSI   = rsiVals[rsiVals.length-1];
-
-  // Extended price series for indicator projections
-  const priceExt   = fcast ? [...closes, ...fcast.center] : closes;
-  const priceExtUp = fcast ? [...closes, ...fcast.upper]  : closes;
-  const priceExtDn = fcast ? [...closes, ...fcast.lower]  : closes;
-
-  const rsiProj   = fcast ? compRSI(priceExt).slice(N)   : [];
-  const rsiProjUp = fcast ? compRSI(priceExtUp).slice(N) : [];
-  const rsiProjDn = fcast ? compRSI(priceExtDn).slice(N) : [];
-
-  // Z-Score projections
-  const zProj   = fcast ? compZScore(priceExt,20).slice(N)   : [];
-  const zProjUp = fcast ? compZScore(priceExtUp,20).slice(N) : [];
-  const zProjDn = fcast ? compZScore(priceExtDn,20).slice(N) : [];
-
-  // Market Structure
-  const ms = compMS(r.bars.slice(0,80));
-
   // ── Candle plugin ──────────────────────────────────────────────────────
   const candlePlugin={id:'cp',afterDatasetsDraw(chart){
     const xs=chart.scales.x,ys=chart.scales.y;
@@ -1476,12 +1383,22 @@ function renderPanels(r){
     ctx2.restore();
   }};
 
+  // ── PANEL 1: Price + Keltner + Forecast ──────────────────────────────
+  const fcast= compForecast(r.bars,r.fcastN,r.fcastLB);
+  const kelt = compKeltner(r.bars,20,14,1.5);
+  const hurst= compHurst(r.bars);
+  const fN   = r.fcastN;
+
   // ── Pre-compute extended price arrays for forecast zone ──────────────────
-  const fcastXs     = Array.from({length: fN}, (_, i) => N + i);
-  // NOTE: priceExt/priceExtUp/priceExtDn already declared in pre-compute block above
+  // These extend the historical data with the forecast center/upper/lower prices
+  // so every indicator can be projected into the forecast zone consistently.
+  const fcastXs     = Array.from({length: fN}, (_, i) => N + i);       // x positions
+  const priceExt    = fcast ? [...closes, ...fcast.center]  : closes;   // extended close
+  const priceExtUp  = fcast ? [...closes, ...fcast.upper]   : closes;   // upper bound
+  const priceExtDn  = fcast ? [...closes, ...fcast.lower]   : closes;   // lower bound
 
   // Forecast divider line (shared by all panels)
-  const fcastDivider = fN > 0 ? [{x:N-1, y:0}, {x:N-1, y:1e9}] : [];
+  const fcastDivider = fN > 0 ? [{x:N-1, y:0}, {x:N-1, y:1e9}] : [];  // y is overridden per panel
   function fDivDs(yMin, yMax) {
     return {label:'_fdiv', data:[{x:N-1,y:yMin},{x:N-1,y:yMax}],
       borderColor:'rgba(100,100,100,0.35)', borderWidth:1.5, borderDash:[4,3],
@@ -1705,6 +1622,10 @@ function renderPanels(r){
   });
 
   // ── PANEL 4: RSI ──────────────────────────────────────────────────────
+  // RSI: closes is oldest-first, compRSI expects oldest-first → pass directly
+  const rsiVals=compRSI(closes);
+  const divs=findDiv(closes,rsiVals);
+  const curRSI=rsiVals[rsiVals.length-1];
   document.getElementById('rsiLabel').textContent=`RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought⚠️':curRSI<30?'Oversold⚠️':'Neutral'} · ${divs.length} divergence(s)`;
   const rsiPts=rsiVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
   const dsRSI=[
@@ -1733,6 +1654,9 @@ function renderPanels(r){
   });
 
   // ── PANEL 5: ATR Stop ─────────────────────────────────────────────────
+  // ATR/Chandelier: all oldest-first using 'show' (already oldest-first)
+  const atrOF=compATR(show);
+  const chandOF=chandelier(show,atrOF);
   const curA=atrOF[atrOF.length-1],curSt=chandOF.long[chandOF.long.length-1];
   document.getElementById('atrLabel').textContent='ATR(14):'+f2(curA)+' · Long Stop:'+f2(curSt)+' · Price:'+f2(r.price);
   const lsP=chandOF.long.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
@@ -1760,6 +1684,10 @@ function renderPanels(r){
   });
 
   // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
+  // VWAP: compute on oldest-first 'show' for clean alignment
+  const vwapV = compVWAP(show);                     // oldest-first in/out
+  const bds   = vwapBands(show, vwapV);              // oldest-first in/out
+  const curVW = vwapV[vwapV.length-1];               // last=newest ✓
   document.getElementById('vwapLabel').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
   // vPts: data already oldest-first from compVWAP(show)
   function vPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
@@ -1787,6 +1715,7 @@ function renderPanels(r){
   });
 
   // ── PANEL 7: Volume Profile ───────────────────────────────────────────
+  const vp=compVP(r.bars);
   document.getElementById('vpLabel').textContent=`POC:${f2(vp.poc.price)} · VAH:${f2(vp.vaH)} · VAL:${f2(vp.vaL)}`;
   const dsVP=[
     {label:'Price',          data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
@@ -1811,20 +1740,82 @@ function renderPanels(r){
     [{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
     {indexAxis:'y',scales:{x:{ticks:{display:false},grid:{display:false}},y:{labels:vp.prof.map(p=>'$'+p.price.toFixed(1)),ticks:{font:{size:7},color:'#636e72'},grid:{display:false}}},plugins:{legend:{display:false}}});
 
+  // ── Pre-compute projected indicator values for forecast zone ─────────────
+  // RSI projected: run compRSI on extended price series, take last fN values
+  const rsiProj = fcast ? compRSI(priceExt).slice(N) : [];
+  const rsiProjUp = fcast ? compRSI(priceExtUp).slice(N) : [];
+  const rsiProjDn = fcast ? compRSI(priceExtDn).slice(N) : [];
+
+  // Z-Score projected
+  const zProj   = fcast ? compZScore(priceExt, 20).slice(N)   : [];
+  const zProjUp = fcast ? compZScore(priceExtUp, 20).slice(N) : [];
+  const zProjDn = fcast ? compZScore(priceExtDn, 20).slice(N) : [];
+
+  // ATR projected: last ATR value with slow mean-reversion toward long-run mean
+  const lastATR = atrOF[atrOF.length-1] || 0;
+  const meanATR = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / atrOF.filter(v=>v).length;
+  const atrProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const aDecay = Math.exp(-0.05*i);
+    return lastATR*aDecay + meanATR*(1-aDecay);   // ATR reverts to mean
+  }) : [];
+
+  // Chandelier projected: extend last stop value with ATR projection
+  const lastLong  = chandOF.long[chandOF.long.length-1];
+  const lastShort = chandOF.short[chandOF.short.length-1];
+  const longProj  = fcast ? fcast.center.map((v,i) => {
+    const projHigh = Math.max(...fcast.upper.slice(0,i+1).concat(r.price));
+    return projHigh - atrProj[i] * 2;
+  }) : [];
+  const shortProj = fcast ? fcast.center.map((v,i) => {
+    const projLow = Math.min(...fcast.lower.slice(0,i+1).concat(r.price));
+    return projLow + atrProj[i] * 2;
+  }) : [];
+
+  // VWAP projected: extends as the average of forecast prices (price mean-reverts to VWAP)
+  const lastVWAP = vwapV[vwapV.length-1];
+  const vwapProj = fcast ? fcast.center.map((v,i) => {
+    // VWAP drifts toward the forecast center price weighted by bar count
+    return (lastVWAP * N + fcast.center.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N + i + 1);
+  }) : [];
+  const vwapProjUp = fcast ? fcast.upper.map((v,i) =>
+    (lastVWAP*N + fcast.upper.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+  const vwapProjDn = fcast ? fcast.lower.map((v,i) =>
+    (lastVWAP*N + fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+
+  // ADX projected: decay toward 25 (trend weakens/strengthens toward equilibrium)
+  const lastADX = adxData ? adxData.adx[adxData.adx.length-1] : 25;
+  const lastPDI = adxData ? adxData.pdi[adxData.pdi.length-1] : 25;
+  const lastMDI = adxData ? adxData.mdi[adxData.mdi.length-1] : 25;
+  const adxProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const xDecay = Math.exp(-0.08*i);
+    return (lastADX-25)*xDecay + 25;             // ADX mean-reverts toward 25
+  }) : [];
+  const pdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const pBias = fcast.bias==='bullish' ? 1 : -1;
+    const pDec  = Math.exp(-0.08*i);
+    return lastPDI + pBias*(lastPDI-lastMDI)*0.3*(1-pDec);
+  }) : [];
+  const mdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const mBias = fcast.bias==='bullish' ? -1 : 1;
+    const mDec  = Math.exp(-0.08*i);
+    return lastMDI + mBias*(lastMDI-lastPDI)*0.3*(1-mDec);
+  }) : [];
+
   // ── PANEL: ADX + DI ─────────────────────────────────────────────────
   {
     const barsOF = show.slice().reverse();
-    const adxData2 = compADX(barsOF, 14);
-    const curADX = adxData2.adx[adxData2.adx.length-1];
-    const curPDI = adxData2.pdi[adxData2.pdi.length-1];
-    const curMDI = adxData2.mdi[adxData2.mdi.length-1];
+    const adxData = compADX(barsOF, 14);
+    const curADX = adxData.adx[adxData.adx.length-1];
+    const curPDI = adxData.pdi[adxData.pdi.length-1];
+    const curMDI = adxData.mdi[adxData.mdi.length-1];
     document.getElementById('adxLabel').textContent =
       'ADX: '+(curADX?.toFixed(1)??'—')+' ('+(curADX>=25?'Trending':'Ranging')+') · +DI: '+(curPDI?.toFixed(1)??'—')+' · -DI: '+(curMDI?.toFixed(1)??'—');
+    // compADX(barsOF) output is oldest-first — map directly, no reversal needed
     function adxPts(arr){ return arr.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)); }
     const dsADX = [
-      {label:'ADX', data:adxPts(adxData2.adx), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
-      {label:'+DI', data:adxPts(adxData2.pdi), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
-      {label:'-DI', data:adxPts(adxData2.mdi), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'ADX', data:adxPts(adxData.adx), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
+      {label:'+DI', data:adxPts(adxData.pdi), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'-DI', data:adxPts(adxData.mdi), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
       {label:'25',  data:[{x:0,y:25},{x:N-1,y:25}], borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     ];
     // ADX forecast projection
@@ -2237,534 +2228,530 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 // Auto-test proxy on load
 testProxies();
 
-// ════════════════════════════════════════════════════════════════════════
-// ██████  OPENCLAW AI ENGINE — Self-Learning, Training & Forecast
-// ════════════════════════════════════════════════════════════════════════
-// Fused into the existing scanner. Adds:
-//   • Per-symbol skill profiles (8 skills, XP, accuracy tracking)
-//   • Background self-learning on every scan result
-//   • AI analysis via Claude API on demand from modal
-//   • AI signal + confidence columns in results table
-//   • Pattern memory (learns which signals were historically correct)
-//   • Persistent memory via localStorage
-// ════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
+// ██  OPENCLAW AI ENGINE  ███████████████████████████████████████████████
+// Self-learning, pattern training, signal memory, forecast, XP system
+// Cleanly isolated — no modification to any existing scanner functions
+// ═══════════════════════════════════════════════════════════════════════
+(function() {
 
-const AI_MEM_KEY = 'openclaw-ai-scanner-v1';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+const MEM_KEY = 'openclaw-ai-v1';
+const CLAUDE  = 'claude-sonnet-4-20250514';
 
-// ── Skill definitions ──────────────────────────────────────────────────
-const AI_SKILLS = [
-  {id:'trend',    name:'TREND',    col:'#667eea'},
-  {id:'pattern',  name:'PATTERN',  col:'#764ba2'},
-  {id:'cycle',    name:'CYCLE',    col:'#00cec9'},
-  {id:'price',    name:'PRICE',    col:'#fdcb6e'},
-  {id:'sr',       name:'S/R',      col:'#e17055'},
-  {id:'volume',   name:'VOLUME',   col:'#0984e3'},
-  {id:'momentum', name:'MOMENTUM', col:'#d63031'},
-  {id:'candle',   name:'CANDLE',   col:'#00b894'},
+// ── Skill definitions ────────────────────────────────────────────────
+const SKILLS = [
+  {id:'trend',    name:'TREND',    c:'#667eea'},
+  {id:'pattern',  name:'PATTERN',  c:'#764ba2'},
+  {id:'cycle',    name:'CYCLE',    c:'#00cec9'},
+  {id:'price',    name:'PRICE',    c:'#f59e0b'},
+  {id:'sr',       name:'S/R',      c:'#e17055'},
+  {id:'volume',   name:'VOLUME',   c:'#0984e3'},
+  {id:'momentum', name:'MOM',      c:'#d63031'},
+  {id:'candle',   name:'CANDLE',   c:'#00b894'},
 ];
-function mkAISk(){ const o={}; AI_SKILLS.forEach(s=>{o[s.id]={xp:0,h:0,m:0};}); return o; }
+function mkSk(){ const o={}; SKILLS.forEach(s=>{o[s.id]={xp:0,h:0,m:0};}); return o; }
 
-// ── Per-symbol AI state ────────────────────────────────────────────────
-const AI_SS = {}; // keyed by symbol
+// ── State ────────────────────────────────────────────────────────────
+const SYM = {}; // per-symbol AI data
+let totalXP = 0, lifeXP = 0, level = 1, autoLearnOn = false, learnTimer = null;
+let _currentSym = '';
 
-function getAISym(sym){
-  if(!AI_SS[sym]) AI_SS[sym]={
-    skills:mkAISk(), learnLog:[], learnRuns:0,
-    lastSignal:'', lastSignalBias:'',
-    aiSignal:'—', aiConf:0, aiBias:'NEUTRAL',
-    patternMemory:{}, srLevels:null,
-    totalRuns:0, correctRuns:0,
+const LVLS=[
+  {min:0,    n:'NOVICE',     c:'#9ca3af'},
+  {min:300,  n:'ANALYST',    c:'#3b82f6'},
+  {min:800,  n:'TRADER',     c:'#10b981'},
+  {min:2000, n:'STRATEGIST', c:'#f59e0b'},
+  {min:5000, n:'EXPERT',     c:'#f97316'},
+  {min:12000,n:'MASTER',     c:'#8b5cf6'},
+  {min:30000,n:'ORACLE',     c:'#ef4444'},
+];
+
+function getSym(sym) {
+  if (!SYM[sym]) SYM[sym] = {
+    skills: mkSk(), log: [], runs: 0,
+    aiSig: '—', aiConf: 0, aiBias: 'NEUTRAL',
+    lastSig: '', patMem: {}, srLevels: null,
+    total: 0, correct: 0,
   };
-  return AI_SS[sym];
+  return SYM[sym];
 }
 
-// ── Master AI state ────────────────────────────────────────────────────
-const AI_MS = {
-  totalXP:0, level:1, lifeXP:0, lifeSess:0,
-  autoLearnOn:false, learnTimer:null,
-  scansLearned:0,
-};
-const AI_LVLS=[
-  {min:0,   n:'NOVICE',     c:'#636e72'},
-  {min:300, n:'ANALYST',    c:'#0984e3'},
-  {min:800, n:'TRADER',     c:'#00b894'},
-  {min:2000,n:'STRATEGIST', c:'#fdcb6e'},
-  {min:5000,n:'EXPERT',     c:'#e17055'},
-  {min:12000,n:'MASTER',    c:'#764ba2'},
-  {min:30000,n:'ORACLE',    c:'#d63031'},
-];
-
-// ── Memory save/load ────────────────────────────────────────────────────
-function aiSaveMem(){
-  try{
-    const sk={};Object.keys(AI_SS).forEach(s=>{sk[s]={skills:AI_SS[s].skills,learnRuns:AI_SS[s].learnRuns,patternMemory:AI_SS[s].patternMemory};});
-    localStorage.setItem(AI_MEM_KEY,JSON.stringify({
-      lifeXP:AI_MS.lifeXP+AI_MS.totalXP, lifeSess:AI_MS.lifeSess,
-      level:AI_MS.level, symbols:sk, savedAt:new Date().toISOString(),
-    }));
-  }catch(e){}
-}
-function aiLoadMem(){
-  try{
-    const p=JSON.parse(localStorage.getItem(AI_MEM_KEY)||'null'); if(!p)return;
-    AI_MS.lifeXP=p.lifeXP||0; AI_MS.lifeSess=(p.lifeSess||0)+1; AI_MS.level=p.level||1;
-    if(p.symbols) Object.keys(p.symbols).forEach(s=>{
-      const sym=getAISym(s);
-      if(p.symbols[s].skills) Object.assign(sym.skills,p.symbols[s].skills);
-      sym.learnRuns=p.symbols[s].learnRuns||0;
-      if(p.symbols[s].patternMemory) Object.assign(sym.patternMemory,p.symbols[s].patternMemory);
+// ── Memory ───────────────────────────────────────────────────────────
+function save() {
+  try {
+    const sk = {};
+    Object.keys(SYM).forEach(s => {
+      sk[s] = { skills: SYM[s].skills, runs: SYM[s].runs, patMem: SYM[s].patMem,
+                aiSig: SYM[s].aiSig, aiConf: SYM[s].aiConf };
     });
-    aiRefreshUI();
-  }catch(e){}
+    localStorage.setItem(MEM_KEY, JSON.stringify({
+      lifeXP: lifeXP + totalXP, level, syms: sk,
+      saved: new Date().toISOString()
+    }));
+  } catch(e) {}
+}
+function load() {
+  try {
+    const p = JSON.parse(localStorage.getItem(MEM_KEY) || 'null');
+    if (!p) return;
+    lifeXP = p.lifeXP || 0; level = p.level || 1;
+    if (p.syms) Object.keys(p.syms).forEach(s => {
+      const d = getSym(s);
+      if (p.syms[s].skills) Object.assign(d.skills, p.syms[s].skills);
+      d.runs = p.syms[s].runs || 0;
+      if (p.syms[s].patMem) Object.assign(d.patMem, p.syms[s].patMem);
+      d.aiSig  = p.syms[s].aiSig  || '—';
+      d.aiConf = p.syms[s].aiConf || 0;
+    });
+    refreshUI();
+  } catch(e) {}
 }
 
-// ── XP & levels ────────────────────────────────────────────────────────
-function aiGainXP(n){
-  AI_MS.totalXP+=n;
-  const total=AI_MS.lifeXP+AI_MS.totalXP;
-  document.getElementById('aiXP').textContent='XP: '+total.toLocaleString();
-  for(let i=AI_LVLS.length-1;i>=0;i--){
-    if(total>=AI_LVLS[i].min){
-      if(AI_MS.level!==i+1) AI_MS.level=i+1;
-      const lv=AI_LVLS[i];
-      const el=document.getElementById('aiLvl');
-      if(el){el.textContent=lv.n;el.style.background=lv.c+'33';el.style.color=lv.c;el.style.border='1px solid '+lv.c+'66';}
+// ── XP & level display ───────────────────────────────────────────────
+function gainXP(n) {
+  totalXP += n;
+  const tot = lifeXP + totalXP;
+  const xpEl = document.getElementById('aiXP');
+  if (xpEl) xpEl.textContent = 'XP: ' + tot.toLocaleString();
+  for (let i = LVLS.length - 1; i >= 0; i--) {
+    if (tot >= LVLS[i].min) {
+      if (level !== i + 1) { level = i + 1; }
+      const lv = LVLS[i];
+      const el = document.getElementById('aiLvl');
+      if (el) { el.textContent = lv.n; el.style.background = lv.c + '33'; el.style.color = lv.c; el.style.border = '1px solid ' + lv.c + '66'; }
       break;
     }
   }
 }
-function aiRefreshUI(){ aiGainXP(0); }
+function refreshUI() { gainXP(0); }
 
-// ── AI status indicator ─────────────────────────────────────────────────
-function aiSetStatus(msg, type='idle'){
-  const dot=document.getElementById('aiDot');
-  const txt=document.getElementById('aiTxt');
-  if(!dot||!txt)return;
-  txt.textContent='AI Engine: '+msg;
-  if(type==='active'){dot.style.background='#7c3aed';dot.style.boxShadow='0 0 6px #7c3aed';}
-  else if(type==='learning'){dot.style.background='#00b894';dot.style.boxShadow='0 0 6px #00b894';}
-  else if(type==='done'){dot.style.background='#0984e3';dot.style.boxShadow='0 0 6px #0984e3';}
-  else{dot.style.background='#374151';dot.style.boxShadow='none';}
+// ── Status dot ───────────────────────────────────────────────────────
+function setStatus(msg, type) {
+  const dot = document.getElementById('aiDot');
+  const txt = document.getElementById('aiTxt');
+  if (txt) txt.textContent = 'AI: ' + msg;
+  if (!dot) return;
+  const cols = { idle:'#4b5563', learning:'#10b981', active:'#8b5cf6', done:'#3b82f6' };
+  dot.style.background = cols[type] || cols.idle;
+  dot.style.boxShadow  = type !== 'idle' ? '0 0 6px ' + (cols[type] || '#fff') : 'none';
 }
 
-// ── Core learning function — runs locally, no API, on every scan result ─
-function aiLearnFromResult(r){
-  if(!r||!r.bars||r.bars.length<20)return;
-  const sym=getAISym(r.sym);
-  sym.learnRuns++;sym.totalRuns++;
-  AI_MS.scansLearned++;
-  const c=r.bars;
-  const closes=c.map(b=>b.close).slice(0,80);
-  const lc=closes[0];
-  const ts=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit'});
+// ── Core learn — runs on every scan result, no API ────────────────────
+function learnFromResult(r) {
+  if (!r || !r.bars || r.bars.length < 15) return;
+  const d = getSym(r.sym);
+  d.runs++; d.total++;
+  const ts = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit'});
 
-  // ── Trend (EMAs) ────────────────────────────────────────────────────
-  const emaFn=(arr,n)=>{const k=2/(n+1);let e=arr[arr.length-1];for(let i=arr.length-2;i>=0;i--)e=arr[i]*k+e*(1-k);return e;};
-  const e8=emaFn(closes,8),e21=emaFn(closes,21),e50=emaFn(closes,50);
-  const tDir=e8>e21?(e21>e50?'STRONG UP':'UP'):(e21<e50?'STRONG DOWN':'DOWN');
-  sym.skills.trend.xp+=tDir.includes('STRONG')?12:6;
-  if(tDir.includes('UP'))sym.skills.trend.h++;else sym.skills.trend.m++;
-  sym.learnLog.push({ts,cls:'trend',txt:`📈 TREND: ${tDir} | EMA8=${lc>e21?'above':'below'} EMA21`});
+  // bars from scanner are newest-first
+  const bars = r.bars;
+  const closes = bars.map(b => b.close);   // newest-first
+  const lc = closes[0];
 
-  // ── Support / Resistance ────────────────────────────────────────────
-  const allH=Math.max(...c.map(b=>b.high)),allL=Math.min(...c.map(b=>b.low));
-  const r20H=Math.max(...c.slice(0,20).map(b=>b.high)),r20L=Math.min(...c.slice(0,20).map(b=>b.low));
-  const pivot=(r20H+r20L+lc)/3;
-  sym.srLevels={pivot,r1:2*pivot-r20L,s1:2*pivot-r20H,ath:allH,atl:allL};
-  sym.skills.sr.xp+=8;sym.skills.sr.h++;
-  sym.learnLog.push({ts,cls:'sr',txt:`═ S/R: Pivot=${f2(pivot)} R1=${f2(2*pivot-r20L)} S1=${f2(2*pivot-r20H)}`});
+  // ── EMA trend (compute oldest-first internally) ──────────────────
+  const closesOF = closes.slice().reverse();
+  function emaFn(arr, n) {
+    const k = 2/(n+1); let e = arr[0];
+    arr.forEach(v => { e = v*k + e*(1-k); });
+    return e;
+  }
+  const e8  = emaFn(closesOF, 8);
+  const e21 = emaFn(closesOF, 21);
+  const e50 = emaFn(closesOF, 50);
+  const tDir = e8 > e21 ? (e21 > e50 ? 'STRONG UP' : 'UP') : (e21 < e50 ? 'STRONG DOWN' : 'DOWN');
+  d.skills.trend.xp += tDir.includes('STRONG') ? 12 : 6;
+  if (tDir.includes('UP')) d.skills.trend.h++; else d.skills.trend.m++;
+  addLog(d, ts, 'trend', '📈 TREND: ' + tDir + ' | EMA8=' + lc.toFixed(4) + ' vs EMA21=' + e21.toFixed(4));
 
-  // ── RSI ──────────────────────────────────────────────────────────────
-  const rsiArr=compRSI(closes.slice().reverse());
-  const curRSI=rsiArr[rsiArr.length-1]||50;
-  const rsiSig=curRSI>70?'OVERBOUGHT':curRSI<30?'OVERSOLD':'NEUTRAL';
-  sym.skills.momentum.xp+=rsiSig!=='NEUTRAL'?10:4;
-  if(rsiSig!=='NEUTRAL')sym.skills.momentum.h++;else sym.skills.momentum.m++;
-  sym.learnLog.push({ts,cls:'mom',txt:`⚡ RSI: ${curRSI.toFixed(1)} — ${rsiSig}`});
+  // ── S/R from bars ──────────────────────────────────────────────────
+  const allH = Math.max(...bars.map(b => b.high));
+  const allL = Math.min(...bars.map(b => b.low));
+  const r20H = Math.max(...bars.slice(0,20).map(b => b.high));
+  const r20L = Math.min(...bars.slice(0,20).map(b => b.low));
+  const pivot = (r20H + r20L + lc) / 3;
+  d.srLevels = { pivot, r1: 2*pivot-r20L, s1: 2*pivot-r20H, allH, allL };
+  d.skills.sr.xp += 8; d.skills.sr.h++;
+  addLog(d, ts, 'sr', '═ PIVOT=' + fmtP(pivot) + ' R1=' + fmtP(2*pivot-r20L) + ' S1=' + fmtP(2*pivot-r20H));
 
-  // ── Hurst cycle ──────────────────────────────────────────────────────
-  const hurst=compHurst(c);
-  sym.skills.cycle.xp+=hurst.dom>0?9:4;sym.skills.cycle.h++;
-  sym.learnLog.push({ts,cls:'cycle',txt:`⟳ HURST CYCLE: period=${hurst.dom} bars, phase=${(hurst.phase*100).toFixed(0)}%`});
+  // ── RSI via existing compRSI ─────────────────────────────────────
+  let rsiVal = 50;
+  try {
+    const rv = compRSI(closesOF);
+    rsiVal = rv[rv.length-1] || 50;
+  } catch(e) {}
+  const rsiSig = rsiVal > 70 ? 'OVERBOUGHT' : rsiVal < 30 ? 'OVERSOLD' : 'NEUTRAL';
+  d.skills.momentum.xp += rsiSig !== 'NEUTRAL' ? 10 : 4;
+  if (rsiSig !== 'NEUTRAL') d.skills.momentum.h++; else d.skills.momentum.m++;
+  addLog(d, ts, 'mom', '⚡ RSI≈' + rsiVal.toFixed(1) + ' — ' + rsiSig);
 
-  // ── Volume analysis ──────────────────────────────────────────────────
-  const vols=c.slice(0,20).map(b=>b.vol||0).filter(v=>v>0);
-  if(vols.length>3){
-    const avgV=vols.reduce((a,b)=>a+b,0)/vols.length;
-    const curV=c[0].vol||0;
-    const vR=(curV/avgV).toFixed(2);
-    const vSig=+vR>1.5?'HIGH VOLUME':+vR<0.7?'LOW VOLUME':'NORMAL';
-    sym.skills.volume.xp+=+vR>1.5?9:3;if(+vR>1.5)sym.skills.volume.h++;else sym.skills.volume.m++;
-    sym.learnLog.push({ts,cls:'vol',txt:`▊ VOLUME: ${vSig} (${vR}x avg)`});
+  // ── Candlestick ───────────────────────────────────────────────────
+  const [c0, c1, c2] = bars; // newest first
+  let cPat = 'None', cSig = 'N';
+  if (c0 && c1 && c2) {
+    if (c2.close < c2.open && c1.close > c1.open && c1.open < c2.close && c1.close > c2.open) { cPat='Bull Engulf'; cSig='B'; }
+    else if (c2.close > c2.open && c1.close < c1.open && c1.open > c2.close && c1.close < c2.open) { cPat='Bear Engulf'; cSig='S'; }
+    else if (Math.abs(c1.close-c1.open) < (c1.high-c1.low)*.1) { cPat='Doji'; }
+    else if (c1.close > c1.open && (c1.open-c1.low) > (c1.close-c1.open)*2) { cPat='Hammer'; cSig='B'; }
+    else if (c1.close < c1.open && (c1.high-c1.open) > (c1.open-c1.close)*2) { cPat='Shoot Star'; cSig='S'; }
+  }
+  d.skills.candle.xp += cSig !== 'N' ? 11 : 3;
+  if (cSig !== 'N') d.skills.candle.h++; else d.skills.candle.m++;
+  addLog(d, ts, 'cndl', '▮ CANDLE: ' + cPat + (cSig !== 'N' ? ' [' + (cSig==='B'?'BULL':'BEAR') + ']' : ''));
+
+  // ── Hurst via existing compHurst ────────────────────────────────
+  let hurstDom = 20;
+  try { const h = compHurst(bars); hurstDom = h.dom; } catch(e) {}
+  d.skills.cycle.xp += 8; d.skills.cycle.h++;
+  addLog(d, ts, 'cycle', '⟳ HURST CYCLE: ~' + hurstDom + ' bars');
+
+  // ── Volume ────────────────────────────────────────────────────────
+  const vols = bars.slice(0,20).map(b => b.vol||0).filter(v=>v>0);
+  if (vols.length > 3) {
+    const avgV = vols.reduce((a,b)=>a+b,0)/vols.length;
+    const vR   = ((bars[0].vol||0)/avgV).toFixed(2);
+    d.skills.volume.xp += +vR > 1.5 ? 9 : 3;
+    if (+vR > 1.5) d.skills.volume.h++; else d.skills.volume.m++;
+    addLog(d, ts, 'vol', '▊ VOL: ' + (+vR>1.5?'HIGH ':+vR<0.7?'LOW ':'NORM ') + vR + 'x avg');
   }
 
-  // ── Candlestick patterns ─────────────────────────────────────────────
-  const [c1,c2,c3]=[c[2],c[1],c[0]]; // newest-first
-  let cPat='None',cSig='NEUTRAL';
-  if(c1&&c2&&c3){
-    if(c1.close<c1.open&&c2.close>c2.open&&c2.open<c1.close&&c2.close>c1.open){cPat='Bullish Engulfing';cSig='BULL';}
-    else if(c1.close>c1.open&&c2.close<c2.open&&c2.open>c1.close&&c2.close<c1.open){cPat='Bearish Engulfing';cSig='BEAR';}
-    else if(Math.abs(c2.close-c2.open)<(c2.high-c2.low)*.1){cPat='Doji';}
-    else if(c2.close>c2.open&&(c2.open-c2.low)>(c2.close-c2.open)*2){cPat='Hammer';cSig='BULL';}
-    else if(c2.close<c2.open&&(c2.high-c2.open)>(c2.open-c2.close)*2){cPat='Shooting Star';cSig='BEAR';}
-  }
-  sym.skills.candle.xp+=cSig!=='NEUTRAL'?11:3;if(cSig!=='NEUTRAL')sym.skills.candle.h++;else sym.skills.candle.m++;
-  sym.learnLog.push({ts,cls:'cndl',txt:`▮ CANDLE: ${cPat} — ${cSig}`});
+  // ── LinReg target ────────────────────────────────────────────────
+  const n = Math.min(20, closesOF.length);
+  const rc = closesOF.slice(-n);
+  let sx=0, sy=0, sxy=0, sxx=0;
+  rc.forEach((v,i) => { sx+=i; sy+=v; sxy+=i*v; sxx+=i*i; });
+  const slope = (n*sxy-sx*sy)/(n*sxx-sx*sx) || 0;
+  const intercept = (sy-slope*sx)/n;
+  const target = intercept + slope*(n+9);
+  const projPct = ((target-lc)/lc*100).toFixed(2);
+  d.skills.price.xp += 8; d.skills.price.h++;
+  addLog(d, ts, 'price', '◎ LINREG TARGET: ' + fmtP(target) + ' (' + (projPct>0?'+':'') + projPct + '%)');
 
-  // ── LinReg projection ─────────────────────────────────────────────────
-  const regN=Math.min(20,closes.length);
-  const rc=closes.slice(0,regN).reverse().map((v,i)=>({x:i,y:v}));
-  const sx=rc.reduce((a,p)=>a+p.x,0),sy=rc.reduce((a,p)=>a+p.y,0);
-  const sxy=rc.reduce((a,p)=>a+p.x*p.y,0),sxx=rc.reduce((a,p)=>a+p.x*p.x,0);
-  const slope=(regN*sxy-sx*sy)/(regN*sxx-sx*sx);
-  const intercept=(sy-slope*sx)/regN;
-  const target=+(intercept+slope*(regN+9)).toFixed(4);
-  const projPct=((target-lc)/lc*100).toFixed(2);
-  sym.skills.price.xp+=8;sym.skills.price.h++;
-  sym.learnLog.push({ts,cls:'price',txt:`◎ LINREG TARGET: ${f2(target)} (${projPct>0?'+':''}${projPct}%)`});
+  // ── Market structure ────────────────────────────────────────────
+  d.skills.pattern.xp += r.ms && r.ms.trend !== 'ranging' ? 10 : 4;
+  if (r.ms && r.ms.trend !== 'ranging') d.skills.pattern.h++; else d.skills.pattern.m++;
+  addLog(d, ts, 'struct', '◈ STRUCTURE: ' + (r.ms ? r.ms.trend.toUpperCase() : '—'));
 
-  // ── Market structure (using existing compMS) ───────────────────────────
-  const ms=compMS(c);
-  sym.skills.pattern.xp+=ms.trend!=='ranging'?10:4;
-  if(ms.trend!=='ranging')sym.skills.pattern.h++;else sym.skills.pattern.m++;
-  sym.learnLog.push({ts,cls:'struct',txt:`◈ STRUCTURE: ${ms.trend.toUpperCase()} | Pivots: ${ms.pivots.slice(-4).map(p=>p.label).join(' → ')}`});
-
-  // ── Signal scoring ───────────────────────────────────────────────────
-  const bullScore=[
-    tDir.includes('UP'), curRSI<60&&curRSI>35, cSig==='BULL',
-    ms.trend==='uptrend', slope>0, r.dir==='buy', r.fcast?.bias==='bullish',
+  // ── Signal scoring ────────────────────────────────────────────────
+  const bullPts = [
+    tDir.includes('UP'), rsiVal < 60 && rsiVal > 35,
+    cSig === 'B', r.ms && r.ms.trend === 'uptrend',
+    slope > 0, r.dir === 'buy', r.fcast && r.fcast.bias === 'bullish',
   ].filter(Boolean).length;
-  const bearScore=[
-    tDir.includes('DOWN'), curRSI>60||curRSI<35, cSig==='BEAR',
-    ms.trend==='downtrend', slope<0, r.dir==='sell', r.fcast?.bias==='bearish',
+  const bearPts = [
+    tDir.includes('DOWN'), rsiVal > 60 || rsiVal < 30,
+    cSig === 'S', r.ms && r.ms.trend === 'downtrend',
+    slope < 0, r.dir === 'sell', r.fcast && r.fcast.bias === 'bearish',
   ].filter(Boolean).length;
-  const aiConf=Math.round(Math.max(bullScore,bearScore)/7*100);
-  let aiBias=bullScore>bearScore?'BULLISH':bearScore>bullScore?'BEARISH':'NEUTRAL';
-  let aiSignal='NEUTRAL';
-  if(bullScore>=5)aiSignal='STRONG BUY';
-  else if(bullScore>=3)aiSignal='BUY';
-  else if(bearScore>=5)aiSignal='STRONG SELL';
-  else if(bearScore>=3)aiSignal='SELL';
-  else if(r.sw.swingLow||r.ch.inCh)aiSignal='WATCH';
 
-  sym.aiSignal=aiSignal; sym.aiConf=aiConf; sym.aiBias=aiBias;
+  const conf = Math.round(Math.max(bullPts, bearPts) / 7 * 100);
+  let sig = 'NEUTRAL';
+  if      (bullPts >= 5) sig = 'STRONG BUY';
+  else if (bullPts >= 3) sig = 'BUY';
+  else if (bearPts >= 5) sig = 'STRONG SELL';
+  else if (bearPts >= 3) sig = 'SELL';
+  else if (r.sw.swingLow || r.ch.inCh) sig = 'WATCH';
 
-  // ── Pattern feedback learning ─────────────────────────────────────────
-  if(sym.lastSignal&&c.length>5){
-    const recentMove=(closes[0]-closes[4])/closes[4];
-    const wasCorrect=(sym.lastSignal.includes('BUY')&&recentMove>0)||(sym.lastSignal.includes('SELL')&&recentMove<0);
-    if(wasCorrect){sym.correctRuns++;sym.skills.pattern.xp+=15;sym.skills.pattern.h++;}
-    else sym.skills.pattern.m++;
-    const acc=sym.totalRuns>0?(sym.correctRuns/sym.totalRuns*100).toFixed(0):0;
-    sym.learnLog.push({ts,cls:wasCorrect?'ok':'dim',
-      txt:`${wasCorrect?'✓':'✗'} Signal feedback: "${sym.lastSignal}" → ${(recentMove*100).toFixed(2)}% | Lifetime ACC: ${acc}%`});
-    // Store in pattern memory for AI context
-    const key=`${sym.lastSignal}_${tDir}`;
-    if(!sym.patternMemory[key]) sym.patternMemory[key]={wins:0,losses:0};
-    if(wasCorrect) sym.patternMemory[key].wins++;else sym.patternMemory[key].losses++;
+  d.aiSig = sig; d.aiConf = conf;
+  d.aiBias = bullPts > bearPts ? 'BULLISH' : bearPts > bullPts ? 'BEARISH' : 'NEUTRAL';
+
+  // ── Pattern memory feedback ──────────────────────────────────────
+  if (d.lastSig && closes.length > 5) {
+    const move = (closes[0] - closes[4]) / closes[4];
+    const ok = (d.lastSig.includes('BUY') && move > 0) || (d.lastSig.includes('SELL') && move < 0);
+    d.skills.pattern.xp += ok ? 15 : 2;
+    if (ok) { d.correct++; d.skills.pattern.h++; } else d.skills.pattern.m++;
+    const acc = d.total > 0 ? (d.correct / d.total * 100).toFixed(0) : 0;
+    const key = d.lastSig + '_' + tDir;
+    if (!d.patMem[key]) d.patMem[key] = { w: 0, l: 0 };
+    if (ok) d.patMem[key].w++; else d.patMem[key].l++;
+    addLog(d, ts, ok ? 'ok' : 'dim', (ok?'✓':'✗') + ' "' + d.lastSig + '" → ' + (move*100).toFixed(2) + '% | ACC: ' + acc + '%');
   }
-  sym.lastSignal=aiSignal;
+  d.lastSig = sig;
 
-  // Keep log bounded
-  sym.learnLog=sym.learnLog.slice(-60);
+  addLog(d, ts,
+    d.aiBias === 'BULLISH' ? 'bull' : d.aiBias === 'BEARISH' ? 'bear' : 'neut',
+    '◈ AI: ' + sig + ' | ' + conf + '% | Bull:' + bullPts + ' Bear:' + bearPts
+  );
 
-  // Final summary log entry
-  sym.learnLog.push({ts,cls:aiBias==='BULLISH'?'bull':aiBias==='BEARISH'?'bear':'neut',
-    txt:`◈ AI VERDICT: ${aiSignal} | Conf: ${aiConf}% | Bull:${bullScore} Bear:${bearScore}`});
-
-  aiGainXP(10);
-  aiSaveMem();
+  d.log = d.log.slice(-60);
+  gainXP(10);
+  save();
+  setStatus('Learned: ' + r.sym, 'learning');
 }
 
-// ── Helper: build AI signal cell for table ──────────────────────────────
-function buildAISignalCell(sym){
-  const s=AI_SS[sym];
-  if(!s||s.aiSignal==='—') return '<span style="color:#aaa;font-size:10px">—</span>';
-  const sig=s.aiSignal;
-  const col=sig.includes('BUY')?'#155724':sig.includes('SELL')?'#721c24':sig==='WATCH'?'#856404':'#6b7280';
-  const bg=sig.includes('BUY')?'#d4edda':sig.includes('SELL')?'#f8d7da':sig==='WATCH'?'#fff3cd':'#f3f4f6';
-  return `<span style="background:${bg};color:${col};padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700">🤖 ${sig}</span>`;
-}
-function buildAIConfCell(sym){
-  const s=AI_SS[sym];
-  if(!s||!s.aiConf) return '<span style="color:#aaa;font-size:10px">—</span>';
-  const col=s.aiConf>=65?'#00b894':s.aiConf>=45?'#fdcb6e':'#636e72';
-  return `<span style="color:${col};font-weight:700;font-size:11px">${s.aiConf}%</span>`;
+function addLog(d, ts, cls, txt) {
+  d.log.push({ ts, cls, txt });
 }
 
-// ── Hook into existing scan — learn from every result ──────────────────
-// Wrap the original buildResult to also trigger AI learning
-const _origBuildResult = buildResult;
-window.buildResult = function(sym, bars, cfg, tfLabel){
-  const r = _origBuildResult(sym, bars, cfg, tfLabel);
-  // Run AI learning on the result asynchronously (non-blocking)
-  setTimeout(()=>{
-    try{
-      aiLearnFromResult(r);
-      aiSetStatus(`Learned: ${sym}`, 'learning');
-    }catch(e){}
+function fmtP(v) {
+  if (v == null || !isFinite(v)) return '—';
+  const a = Math.abs(v);
+  return a >= 10000 ? v.toFixed(0) : a >= 100 ? v.toFixed(2) : a >= 1 ? v.toFixed(4) : v.toFixed(6);
+}
+
+// ── Table cell helpers (called from updateTable patch) ────────────────
+window.aiSigCell = function(sym) {
+  const d = SYM[sym];
+  if (!d || d.aiSig === '—') return '<span style="color:#9ca3af;font-size:10px">—</span>';
+  const s = d.aiSig;
+  const col = s.includes('BUY') ? '#155724' : s.includes('SELL') ? '#721c24' : '#856404';
+  const bg  = s.includes('BUY') ? '#d4edda' : s.includes('SELL') ? '#f8d7da' : '#fff3cd';
+  return '<span style="background:' + bg + ';color:' + col + ';padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700">' + s + '</span>';
+};
+window.aiConfCell = function(sym) {
+  const d = SYM[sym];
+  if (!d || !d.aiConf) return '<span style="color:#9ca3af">—</span>';
+  const col = d.aiConf >= 65 ? '#00b894' : d.aiConf >= 45 ? '#f59e0b' : '#9ca3af';
+  return '<span style="color:' + col + ';font-weight:700;font-size:11px">' + d.aiConf + '%</span>';
+};
+
+// ── Patch updateTable to add AI columns ──────────────────────────────
+const _origUpdateTable = window.updateTable;
+window.updateTable = function() {
+  _origUpdateTable.apply(this, arguments);
+  // After table renders, inject AI cells into each row
+  const tbody = document.getElementById('tBody');
+  if (!tbody) return;
+  const rows = tbody.querySelectorAll('tr');
+  rows.forEach(tr => {
+    const cells = tr.querySelectorAll('td');
+    if (cells.length < 13) return;
+    // Check if AI cells already added
+    if (cells.length >= 15) return;
+    const sym = tr.querySelector('.sym');
+    const symName = sym ? sym.textContent.trim() : '';
+    // Insert AI sig cell before last action cell
+    const actionCell = cells[cells.length - 1];
+    const aiSigTd = document.createElement('td');
+    aiSigTd.className = 'c';
+    aiSigTd.innerHTML = aiSigCell(symName);
+    const aiConfTd = document.createElement('td');
+    aiConfTd.className = 'c';
+    aiConfTd.innerHTML = aiConfCell(symName);
+    tr.insertBefore(aiConfTd, actionCell);
+    tr.insertBefore(aiSigTd, aiConfTd);
+  });
+};
+
+// ── Patch buildResult to trigger learning after every scan ────────────
+const _origBuildResult = window.buildResult;
+window.buildResult = function(sym, bars, cfg, tfLabel) {
+  const r = _origBuildResult.apply(this, arguments);
+  setTimeout(() => {
+    try { learnFromResult(r); } catch(e) {}
   }, 0);
   return r;
 };
 
-// ── Auto-learn toggle ──────────────────────────────────────────────────
-function toggleAILearn(){
-  AI_MS.autoLearnOn=!AI_MS.autoLearnOn;
-  const btn=document.getElementById('aiLearnBtn');
-  const badge=document.getElementById('aiLrnBadge');
-  if(AI_MS.autoLearnOn){
-    btn.style.background='rgba(239,68,68,0.3)';btn.style.color='#fca5a5';btn.textContent='■ STOP LEARNING';
-    badge.style.display='inline';
-    aiSetStatus('Auto-learning active','learning');
-    runAutoLearn();
-  }else{
-    btn.style.background='rgba(124,58,237,0.3)';btn.style.color='#c4b5fd';btn.textContent='◈ AUTO-LEARN';
-    badge.style.display='none';
-    clearTimeout(AI_MS.learnTimer);
-    aiSetStatus('Idle','idle');
+// ── Patch showDetail to track current symbol and show AI data ─────────
+const _origShowDetail = window.showDetail;
+window.showDetail = function(sym) {
+  _currentSym = sym;
+  _origShowDetail.apply(this, arguments);
+  setTimeout(() => populateAIPanel(sym), 120);
+};
+
+// ── Populate AI panel in modal ────────────────────────────────────────
+function populateAIPanel(sym) {
+  const symEl = document.getElementById('aiPanelSym');
+  if (symEl) symEl.textContent = sym;
+
+  const d = SYM[sym];
+  const content = document.getElementById('aiPanelContent');
+  if (!content) return;
+
+  if (!d || d.runs === 0) {
+    content.innerHTML = '<div style="text-align:center;padding:14px;color:#9ca3af">No learned data for <strong>' + sym + '</strong> yet. Scan this symbol first.</div>';
+    return;
   }
-}
-function runAutoLearn(){
-  if(!AI_MS.autoLearnOn)return;
-  // Re-learn all symbols currently in resultMap
-  const syms=[...resultMap.keys()];
-  let idx=0;
-  function next(){
-    if(!AI_MS.autoLearnOn||idx>=syms.length){
-      if(AI_MS.autoLearnOn) AI_MS.learnTimer=setTimeout(runAutoLearn,30000);
-      return;
-    }
-    const r=resultMap.get(syms[idx++]);
-    if(r) try{aiLearnFromResult(r);}catch(e){}
-    setTimeout(next,150);
+
+  const biasCols = { BULLISH:'#155724', BEARISH:'#721c24', NEUTRAL:'#856404' };
+  const biasBgs  = { BULLISH:'#d4edda', BEARISH:'#f8d7da', NEUTRAL:'#fff3cd' };
+
+  content.innerHTML =
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">' +
+    '<span style="background:' + (biasBgs[d.aiBias]||'#f3f4f6') + ';color:' + (biasCols[d.aiBias]||'#374151') + ';padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700">' + d.aiSig + '</span>' +
+    '<span style="color:' + (d.aiConf>=60?'#00b894':d.aiConf>=40?'#f59e0b':'#9ca3af') + ';font-weight:700;font-size:13px">' + d.aiConf + '% conf</span>' +
+    '<span style="color:#6b7280;font-size:11px">' + d.runs + ' learning runs</span>' +
+    '</div>' +
+    (d.srLevels ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">' +
+    '<div style="background:#f0fdf4;border:1px solid #6ee7b7;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">SUPPORT S1</div><div style="font-weight:700;color:#059669">' + fmtP(d.srLevels.s1) + '</div></div>' +
+    '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">PIVOT</div><div style="font-weight:700;color:#d97706">' + fmtP(d.srLevels.pivot) + '</div></div>' +
+    '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">RESISTANCE R1</div><div style="font-weight:700;color:#dc2626">' + fmtP(d.srLevels.r1) + '</div></div>' +
+    '</div>' : '') +
+    (Object.keys(d.patMem).length ?
+    '<div style="font-size:10px;color:#6b7280;margin-bottom:4px;font-weight:700">PATTERN MEMORY (' + Object.keys(d.patMem).length + ' patterns)</div>' +
+    '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">' +
+    Object.entries(d.patMem).slice(0,6).map(([k,v]) => {
+      const acc = Math.round(v.w/(v.w+v.l)*100);
+      const col = acc>=60?'#d4edda':acc>=40?'#fff3cd':'#f8d7da';
+      const tc  = acc>=60?'#155724':acc>=40?'#856404':'#721c24';
+      return '<span style="background:' + col + ';color:' + tc + ';font-size:9px;padding:2px 6px;border-radius:5px">' + k.slice(0,20) + ' ' + acc + '%</span>';
+    }).join('') + '</div>' : '');
+
+  // Skills grid
+  const skWrap = document.getElementById('aiSkillsWrap');
+  const skGrid = document.getElementById('aiSkillsGrid');
+  if (skWrap && skGrid) {
+    skWrap.style.display = 'block';
+    skGrid.innerHTML = SKILLS.map(sk => {
+      const s   = d.skills[sk.id];
+      const tot = s.h + s.m || 1;
+      const acc = (s.h / tot * 100).toFixed(0);
+      const pct = Math.min(100, (s.xp % 60) / 60 * 100);
+      return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px">' +
+        '<div style="font-size:9px;color:' + sk.c + ';font-weight:700;margin-bottom:3px">' + sk.name + '</div>' +
+        '<div style="height:3px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-bottom:3px"><div style="height:100%;width:' + pct + '%;background:' + sk.c + ';border-radius:2px"></div></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:9px"><span style="color:#92400e">XP:' + s.xp + '</span><span style="color:' + (acc>=60?'#059669':'#9ca3af') + '">ACC:' + acc + '%</span></div></div>';
+    }).join('');
   }
-  next();
+
+  // Learn log
+  const logWrap = document.getElementById('aiLogWrap');
+  const logBox  = document.getElementById('aiLogBox');
+  const logCnt  = document.getElementById('aiLogCount');
+  if (logWrap && logBox) {
+    logWrap.style.display = 'block';
+    if (logCnt) logCnt.textContent = '(' + d.runs + ' runs)';
+    const LOG_COLS = {
+      trend:'#93c5fd', sr:'#fed7aa', mom:'#fca5a5', cycle:'#67e8f9',
+      vol:'#93c5fd', price:'#fde68a', struct:'#c4b5fd', cndl:'#6ee7b7',
+      ok:'#6ee7b7', dim:'#4b5563', bull:'#6ee7b7', bear:'#fca5a5', neut:'#fde68a'
+    };
+    logBox.innerHTML = d.log.slice(-25).reverse().map(l =>
+      '<div style="color:' + (LOG_COLS[l.cls]||'#9ca3af') + '"><span style="color:#374151">' + l.ts + ' </span>' + l.txt + '</div>'
+    ).join('');
+  }
 }
 
-// ── AI Analysis via Claude API (called from modal) ─────────────────────
-let _currentModalSym='';
-function aiAnalyzeModal(){
-  const btn=document.getElementById('aiAnalyzeBtn');
-  const content=document.getElementById('aiModalContent');
-  if(!_currentModalSym||!resultMap.has(_currentModalSym)){
-    content.innerHTML='<div style="color:#ef4444">No scan data available. Run a scan first.</div>';return;
-  }
-  btn.disabled=true;btn.textContent='⏳ Analyzing...';
-  content.innerHTML='<div style="color:#6b6b9a;text-align:center;padding:16px">🤖 Sending to Claude AI for deep analysis...</div>';
-  aiSetStatus('Running Claude analysis...','active');
-  runClaudeAnalysis(_currentModalSym)
-    .then(()=>{btn.disabled=false;btn.textContent='🔄 Re-analyze';aiSetStatus('Analysis complete','done');})
-    .catch(e=>{
-      content.innerHTML=`<div style="color:#ef4444">AI Error: ${e.message}</div>`;
-      btn.disabled=false;btn.textContent='🤖 Run AI Analysis';
-      aiSetStatus('Error','idle');
-    });
-}
+// ── Run AI Analysis via Claude ────────────────────────────────────────
+window.runAIAnalysis = async function() {
+  const btn = document.getElementById('aiRunBtn');
+  const content = document.getElementById('aiPanelContent');
+  const sym = _currentSym;
+  if (!sym) { if(content) content.innerHTML = '<div style="color:#ef4444">Open a symbol first.</div>'; return; }
+  const r = resultMap ? resultMap.get(sym) : null;
+  if (!r) { if(content) content.innerHTML = '<div style="color:#ef4444">No scan data. Run scan first.</div>'; return; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing...'; }
+  if (content) content.innerHTML = '<div style="color:#6b7280;text-align:center;padding:16px">🤖 Sending to Claude AI...</div>';
+  setStatus('Running Claude analysis', 'active');
 
-async function runClaudeAnalysis(sym){
-  const r=resultMap.get(sym);if(!r)throw new Error('No data');
-  const s=getAISym(sym);
-  const bars=r.bars.slice(0,25);
-  const lc=bars[0].close;
-  const barSummary=bars.slice().reverse().map((b,i)=>
-    `${i+1}. O:${b.open.toFixed(2)} H:${b.high.toFixed(2)} L:${b.low.toFixed(2)} C:${b.close.toFixed(2)} ${b.close>=b.open?'▲':'▼'}`
+  const d = getSym(sym);
+  const bars = r.bars.slice(0, 25);
+  const lc   = bars[0].close;
+  const barSum = bars.slice().reverse().map((b,i) =>
+    (i+1) + '. O:' + b.open.toFixed(2) + ' H:' + b.high.toFixed(2) + ' L:' + b.low.toFixed(2) + ' C:' + b.close.toFixed(2) + (b.close>=b.open?' ▲':' ▼')
   ).join('\n');
-  // Build pattern memory context
-  const memCtx=Object.entries(s.patternMemory).slice(0,5).map(([k,v])=>
-    `${k}: ${v.wins}W/${v.losses}L (${((v.wins/(v.wins+v.losses))*100).toFixed(0)}% acc)`
+  const memCtx = Object.entries(d.patMem).slice(0,5).map(([k,v]) =>
+    k + ':' + v.w + 'W/' + v.l + 'L(' + ((v.w/(v.w+v.l))*100).toFixed(0) + '%)'
   ).join(', ');
-  // Skill context
-  const skCtx=Object.entries(s.skills).map(([k,v])=>{
-    const tot=v.h+v.m||1;return `${k}:${(v.h/tot*100).toFixed(0)}%`;
+  const skCtx = Object.entries(d.skills).map(([k,v]) => {
+    const t = v.h+v.m||1; return k+':'+(v.h/t*100).toFixed(0)+'%';
   }).join(' ');
 
-  const prompt=`You are OpenClaw AI, a self-learning trading analysis system. 
-Analyze ${sym} with FULL depth. Use the learned context below.
+  const prompt = 'OpenClaw AI analysis for ' + sym + '\n' +
+    'TF: ' + r.tfLabel + ' | Price: $' + lc.toFixed(2) + '\n' +
+    'Scanner: ' + r.dir + ' (' + r.stype + ') conf:' + r.conf + '\n' +
+    'Forecast: ' + (r.fcast ? r.fcast.bias + ' ' + r.fcast.biasPct + '%' : '—') + '\n' +
+    'Structure: ' + (r.ms ? r.ms.trend : '—') + '\n' +
+    'Pattern memory: ' + (memCtx || 'none') + '\n' +
+    'Skill accuracy: ' + skCtx + '\n\n' +
+    'Last 25 bars (oldest→newest):\n' + barSum + '\n\n' +
+    'Return ONLY this JSON (no markdown):\n' +
+    '{"verdict":"STRONG BUY|BUY|WATCH|NEUTRAL|SELL|STRONG SELL","confidence":0-100,"bias":"BULLISH|BEARISH|NEUTRAL","summary":"2 sentences","findings":["f1","f2","f3"],"bull_target":0,"bear_target":0,"stop":0,"reasoning":"paragraph"}';
 
-SYMBOL: ${sym} | TF: ${r.tfLabel} | Current Price: $${lc.toFixed(2)}
-Scanner Signal: ${r.dir.toUpperCase()} (${r.stype}) | Conf: ${r.conf.toUpperCase()}
-Forecast: ${r.fcast?.bias||'—'} ${r.fcast?.biasPct||''}% | Structure: ${r.ms.trend}
-Swing: ${r.sw.signal} | Channel: ${r.ch.signal}${r.ch.inCh?' (inside channel)':''}
-
-LEARNED PATTERN MEMORY: ${memCtx||'none yet'}
-SKILL ACCURACY: ${skCtx}
-
-REAL MARKET DATA (last 25 bars, oldest→newest):
-${barSummary}
-
-Provide comprehensive AI analysis. Return ONLY this JSON:
-{
-  "verdict": "STRONG BUY|BUY|WATCH BULL|NEUTRAL|WATCH BEAR|SELL|STRONG SELL",
-  "confidence": 0-100,
-  "bias": "BULLISH|BEARISH|NEUTRAL",
-  "summary": "2-3 sentence plain English analysis",
-  "keyFindings": ["finding 1","finding 2","finding 3","finding 4"],
-  "priceTargets": {"bull": X, "bear": X, "stop": X},
-  "skills": {
-    "trend":    {"signal":"UP|DOWN|SIDEWAYS","strength":"STRONG|MODERATE|WEAK","xp":5},
-    "pattern":  {"signal":"name","reliability":"HIGH|MEDIUM|LOW","xp":5},
-    "cycle":    {"phase":"EARLY|MID|LATE","period":N,"xp":4},
-    "price":    {"target":X,"confidence":"HIGH|MEDIUM|LOW","xp":5},
-    "sr":       {"support":X,"resistance":X,"xp":5},
-    "volume":   {"signal":"HIGH|NORMAL|LOW","trend":"INCREASING|STABLE|DECREASING","xp":4},
-    "momentum": {"rsi":N,"macd":"BULL|BEAR|NEUTRAL","xp":5},
-    "candle":   {"pattern":"name","signal":"BULL|BEAR|NEUTRAL","xp":5}
-  },
-  "reasoning": "Detailed multi-paragraph technical reasoning covering all indicators",
-  "learnedInsights": "What patterns learned from memory apply here"
-}`;
-
-  const resp=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:2000,messages:[{role:'user',content:prompt}]})
-  });
-  if(!resp.ok) throw new Error('API '+resp.status);
-  const data=await resp.json();
-  const txt=data.content.map(b=>b.text||'').join('');
-  const a=JSON.parse(txt.replace(/```json|```/g,'').trim());
-
-  // Apply AI skill XPs
-  if(a.skills){
-    Object.entries(a.skills).forEach(([skId,skData])=>{
-      if(s.skills[skId]&&skData.xp){
-        s.skills[skId].xp+=skData.xp;
-        if(skData.signal&&(skData.signal==='UP'||skData.signal==='BULL'))s.skills[skId].h++;
-        else if(skData.signal&&(skData.signal==='DOWN'||skData.signal==='BEAR'))s.skills[skId].m++;
-      }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: CLAUDE, max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
     });
-  }
+    if (!res.ok) throw new Error('API ' + res.status);
+    const data = await res.json();
+    const txt  = data.content.map(b => b.text || '').join('');
+    const a    = JSON.parse(txt.replace(/```json|```/g, '').trim());
 
-  // Update AI signal
-  s.aiSignal=a.verdict||s.aiSignal;
-  s.aiConf=a.confidence||s.aiConf;
-  s.aiBias=a.bias||s.aiBias;
-  s.learnLog.push({ts:new Date().toLocaleTimeString('en-US',{hour12:false}),cls:'ai',
-    txt:`🤖 CLAUDE: ${a.verdict} (${a.confidence}%) — ${a.summary?.slice(0,80)||''}`});
+    d.aiSig  = a.verdict  || d.aiSig;
+    d.aiConf = a.confidence || d.aiConf;
+    d.aiBias = a.bias     || d.aiBias;
+    const ts = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit'});
+    addLog(d, ts, 'ai', '🤖 CLAUDE: ' + a.verdict + ' (' + a.confidence + '%) — ' + (a.summary||'').slice(0,60));
+    gainXP(30); save();
 
-  aiGainXP(30);
-  aiSaveMem();
-  updateTable(); // refresh table with new AI signal
+    const vc = a.verdict.includes('BUY') ? '#155724' : a.verdict.includes('SELL') ? '#721c24' : '#856404';
+    const vb = a.verdict.includes('BUY') ? '#d4edda' : a.verdict.includes('SELL') ? '#f8d7da' : '#fff3cd';
+    content.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">' +
+      '<span style="background:' + vb + ';color:' + vc + ';padding:5px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid ' + vc + '44">🤖 ' + a.verdict + '</span>' +
+      '<span style="color:' + (a.confidence>=60?'#00b894':a.confidence>=40?'#f59e0b':'#9ca3af') + ';font-weight:700">' + a.confidence + '%</span>' +
+      '<span style="color:#6b7280">' + a.bias + '</span></div>' +
+      '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px;margin-bottom:8px;font-size:11px;line-height:1.8;color:#374151">' + (a.summary||'') + '</div>' +
+      (a.findings&&a.findings.length ? '<div style="margin-bottom:8px">' + a.findings.map(f=>'<div style="display:flex;gap:6px;font-size:11px;color:#4b5563;margin-bottom:3px"><span style="color:#667eea">•</span>' + f + '</div>').join('') + '</div>' : '') +
+      (a.bull_target||a.bear_target||a.stop ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">' +
+      '<div style="background:#f0fdf4;border:1px solid #6ee7b7;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">BULL TARGET</div><div style="font-weight:700;color:#059669">$' + (a.bull_target||0).toFixed(2) + '</div></div>' +
+      '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">BEAR TARGET</div><div style="font-weight:700;color:#dc2626">$' + (a.bear_target||0).toFixed(2) + '</div></div>' +
+      '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">STOP LOSS</div><div style="font-weight:700;color:#d97706">$' + (a.stop||0).toFixed(2) + '</div></div></div>' : '') +
+      (a.reasoning ? '<div style="background:#f3f4f6;border-radius:5px;padding:10px;font-size:10px;line-height:1.8;color:#6b7280">' + a.reasoning + '</div>' : '');
 
-  // Render in modal
-  renderAIModalContent(a, s);
-}
-
-function renderAIModalContent(a, symState){
-  const verdictColors={
-    'STRONG BUY':'#155724','BUY':'#155724','WATCH BULL':'#856404',
-    'NEUTRAL':'#636e72','WATCH BEAR':'#856404','SELL':'#721c24','STRONG SELL':'#721c24'
-  };
-  const verdictBg={
-    'STRONG BUY':'#d4edda','BUY':'#d4edda','WATCH BULL':'#fff3cd',
-    'NEUTRAL':'#f3f4f6','WATCH BEAR':'#fff3cd','SELL':'#f8d7da','STRONG SELL':'#f8d7da'
-  };
-  const vc=verdictColors[a.verdict]||'#636e72';
-  const vb=verdictBg[a.verdict]||'#f3f4f6';
-
-  document.getElementById('aiModalContent').innerHTML=`
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-      <div style="background:${vb};color:${vc};padding:6px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid ${vc}33">🤖 ${a.verdict}</div>
-      <div style="font-size:12px;color:${a.confidence>=60?'#00b894':a.confidence>=40?'#fdcb6e':'#636e72'};font-weight:700">${a.confidence}% confidence</div>
-      <div style="font-size:11px;color:#636e72">${a.bias}</div>
-    </div>
-    <div style="background:#252540;border-radius:6px;padding:11px;margin-bottom:10px;font-size:11px;line-height:1.8;color:#b0b0cc">${a.summary||''}</div>
-    ${a.keyFindings?.length?`
-    <div style="margin-bottom:10px">
-      <div style="font-size:10px;font-weight:700;color:#6b6b9a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Key Findings</div>
-      ${a.keyFindings.map(f=>`<div style="display:flex;gap:7px;font-size:11px;color:#b0b0cc;margin-bottom:4px"><span style="color:#667eea;flex-shrink:0">•</span>${f}</div>`).join('')}
-    </div>`:''}
-    ${a.priceTargets?`
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
-      <div style="background:#1a2a1a;border:1px solid #22543d;border-radius:6px;padding:8px;text-align:center"><div style="font-size:9px;color:#6b6b9a">Bull Target</div><div style="font-size:14px;font-weight:700;color:#00b894">${f2(a.priceTargets.bull)}</div></div>
-      <div style="background:#2a1a1a;border:1px solid #742a2a;border-radius:6px;padding:8px;text-align:center"><div style="font-size:9px;color:#6b6b9a">Bear Target</div><div style="font-size:14px;font-weight:700;color:#d63031">${f2(a.priceTargets.bear)}</div></div>
-      <div style="background:#2a2a1a;border:1px solid #744210;border-radius:6px;padding:8px;text-align:center"><div style="font-size:9px;color:#6b6b9a">Stop Loss</div><div style="font-size:14px;font-weight:700;color:#fdcb6e">${f2(a.priceTargets.stop)}</div></div>
-    </div>`:''}
-    ${a.reasoning?`
-    <div style="background:#1e1e2e;border:1px solid #2d2d4a;border-radius:6px;padding:10px;font-size:10px;line-height:1.8;color:#9ca3af;margin-bottom:8px">
-      <div style="font-size:9px;font-weight:700;color:#6b6b9a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Detailed Reasoning</div>
-      ${a.reasoning}
-    </div>`:''}
-    ${a.learnedInsights?`
-    <div style="background:#1a1a2e;border:1px solid #4c1d95;border-radius:6px;padding:10px;font-size:10px;line-height:1.7;color:#c4b5fd">
-      <div style="font-size:9px;font-weight:700;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">🧠 From Learned Pattern Memory</div>
-      ${a.learnedInsights}
-    </div>`:''}
-  `;
-
-  // Show skill grid
-  const skillSection=document.getElementById('aiSkillSection');
-  const skillGrid=document.getElementById('aiSkillGrid');
-  if(skillSection&&skillGrid){
-    skillSection.style.display='block';
-    skillGrid.innerHTML=AI_SKILLS.map(sd=>{
-      const sk=symState.skills[sd.id];
-      const tot=sk.h+sk.m||1; const acc=(sk.h/tot*100).toFixed(0);
-      const pct=Math.min(100,(sk.xp%60)/60*100);
-      return`<div style="background:#1a1a2e;border:1px solid #2d2d4a;border-radius:4px;padding:7px">
-        <div style="font-size:9px;color:${sd.col};margin-bottom:3px;font-weight:700">${sd.name}</div>
-        <div style="height:3px;background:#2d2d4a;border-radius:2px;overflow:hidden;margin-bottom:3px">
-          <div style="height:100%;width:${pct}%;background:${sd.col};border-radius:2px"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:9px">
-          <span style="color:#fdcb6e">XP:${sk.xp}</span>
-          <span style="color:${acc>=60?'#00b894':'#636e72'}">ACC:${acc}%</span>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  // Show learn log
-  const learnSection=document.getElementById('aiLearnSection');
-  const learnLog=document.getElementById('aiLearnLog');
-  const learnCount=document.getElementById('aiLearnRunCount');
-  if(learnSection&&learnLog){
-    learnSection.style.display='block';
-    if(learnCount) learnCount.textContent=`(${symState.learnRuns} learning runs)`;
-    learnLog.innerHTML=symState.learnLog.slice(-30).reverse().map(l=>{
-      const cls={trend:'#667eea',sr:'#e17055',mom:'#d63031',cycle:'#00cec9',vol:'#0984e3',
-                 price:'#fdcb6e',struct:'#764ba2',cndl:'#00b894',ai:'#c4b5fd',ok:'#00b894',dim:'#4a4a6a',
-                 bull:'#00b894',bear:'#d63031',neut:'#fdcb6e'}[l.cls]||'#636e72';
-      return`<div style="color:${cls}"><span style="color:#4a4a6a">${l.ts} </span>${l.txt}</div>`;
-    }).join('');
-  }
-}
-
-// ── Patch showDetail to track current symbol ────────────────────────────
-const _origShowDetail = showDetail;
-window.showDetail = function(sym){
-  _currentModalSym = sym;
-  _origShowDetail(sym);
-  // Auto-populate AI panel with existing learned data if available
-  const s=AI_SS[sym];
-  if(s&&s.learnLog.length>0){
-    setTimeout(()=>{
-      const learnSection=document.getElementById('aiLearnSection');
-      const learnLog=document.getElementById('aiLearnLog');
-      const learnCount=document.getElementById('aiLearnRunCount');
-      if(learnSection&&learnLog){
-        learnSection.style.display='block';
-        if(learnCount) learnCount.textContent=`(${s.learnRuns} learning runs)`;
-        learnLog.innerHTML=s.learnLog.slice(-20).reverse().map(l=>{
-          const cls={trend:'#667eea',sr:'#e17055',mom:'#d63031',cycle:'#00cec9',vol:'#0984e3',
-                     price:'#fdcb6e',struct:'#764ba2',cndl:'#00b894',ai:'#c4b5fd',ok:'#00b894',
-                     dim:'#4a4a6a',bull:'#00b894',bear:'#d63031',neut:'#fdcb6e'}[l.cls]||'#636e72';
-          return`<div style="color:${cls}"><span style="color:#4a4a6a">${l.ts} </span>${l.txt}</div>`;
-        }).join('');
-      }
-    },150);
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-analyze'; }
+    setStatus('Analysis done', 'done');
+    // refresh table AI cells
+    if (window._origUpdateTable) { /* table already rendered */ }
+    updateTable();
+  } catch(e) {
+    if (content) content.innerHTML = '<div style="color:#ef4444;padding:10px">AI Error: ' + e.message + '</div>';
+    if (btn) { btn.disabled = false; btn.textContent = '🤖 Run AI Analysis'; }
+    setStatus('Error', 'idle');
   }
 };
 
-// ── Initialize AI engine ────────────────────────────────────────────────
-aiLoadMem();
-aiSetStatus('Ready — will learn from every scan', 'done');
-aiRefreshUI();
+// ── AUTO-LEARN toggle ─────────────────────────────────────────────────
+window.toggleAILearn = function() {
+  autoLearnOn = !autoLearnOn;
+  const btn = document.getElementById('aiBtnLearn');
+  if (autoLearnOn) {
+    if (btn) { btn.textContent = '■ STOP LEARN'; btn.style.background = 'rgba(239,68,68,0.4)'; btn.style.color = '#fca5a5'; }
+    setStatus('Auto-learning on', 'learning');
+    runAutoLearn();
+  } else {
+    if (btn) { btn.textContent = '◈ AUTO-LEARN'; btn.style.background = 'rgba(124,58,237,0.4)'; btn.style.color = '#c4b5fd'; }
+    clearTimeout(learnTimer);
+    setStatus('Idle', 'idle');
+  }
+};
 
-// ════════════════════════════════════════════════════════════════════════
+function runAutoLearn() {
+  if (!autoLearnOn) return;
+  if (typeof resultMap !== 'undefined') {
+    const entries = [...resultMap.values()];
+    let i = 0;
+    function next() {
+      if (!autoLearnOn || i >= entries.length) {
+        save();
+        if (autoLearnOn) learnTimer = setTimeout(runAutoLearn, 30000);
+        return;
+      }
+      try { learnFromResult(entries[i++]); } catch(e) {}
+      setTimeout(next, 100);
+    }
+    next();
+  } else {
+    learnTimer = setTimeout(runAutoLearn, 5000);
+  }
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────
+load();
+setStatus('Ready', 'done');
+console.log('OpenClaw AI Engine loaded');
+
+})(); // end IIFE
+// ═══════════════════════════════════════════════════════════════════════
 // END OPENCLAW AI ENGINE
-// ════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════
 
 // ═══════ VERSION HISTORY ══════════════════════════════════════════════
 const VERSION_HISTORY = [
