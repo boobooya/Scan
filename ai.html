@@ -83,6 +83,12 @@ table{width:100%;border-collapse:collapse}
 thead{background:#f8f9fa;position:sticky;top:0;z-index:10}
 th{padding:9px 11px;text-align:left;font-size:10px;font-weight:700;color:#636e72;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid #dfe6e9;white-space:nowrap}
 th.r{text-align:right}th.c{text-align:center}
+th.sortable{cursor:pointer;user-select:none;transition:color .12s,background .12s}
+th.sortable:hover{color:#667eea;background:#eef0ff}
+th.sort-asc{color:#667eea;background:#eef0ff}
+th.sort-asc::after{content:' ▲';font-size:9px;opacity:.8}
+th.sort-desc{color:#667eea;background:#eef0ff}
+th.sort-desc::after{content:' ▼';font-size:9px;opacity:.8}
 tbody tr{border-bottom:1px solid #ecf0f1;transition:background .12s}
 tbody tr:hover{background:#f8f9fa}
 td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
@@ -366,12 +372,20 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
     <div class="twrap">
       <table>
         <thead><tr>
-          <th>Symbol</th><th class="c">TF</th><th class="r">Price</th><th class="r">Chg%</th>
-          <th class="c">Signal</th><th class="c">Type</th><th class="c">Option</th>
-          <th class="r">Strike</th><th class="r">Stop</th><th class="c">Forecast</th>
-          <th class="c">Structure</th><th class="c">Conf</th>
-          <th class="c" style="color:#7c3aed;background:#f5f3ff">🤖 AI</th>
-          <th class="c" style="color:#7c3aed;background:#f5f3ff">AI%</th>
+          <th class="sortable" onclick="sortTable('sym')">Symbol</th>
+          <th class="c sortable" onclick="sortTable('tf')">TF</th>
+          <th class="r sortable" onclick="sortTable('price')">Price</th>
+          <th class="r sortable" onclick="sortTable('chg')">Chg%</th>
+          <th class="c sortable" onclick="sortTable('signal')">Signal</th>
+          <th class="c sortable" onclick="sortTable('type')">Type</th>
+          <th class="c">Option</th>
+          <th class="r sortable" onclick="sortTable('strike')">Strike</th>
+          <th class="r sortable" onclick="sortTable('stop')">Stop</th>
+          <th class="c sortable" onclick="sortTable('forecast')">Forecast</th>
+          <th class="c sortable" onclick="sortTable('structure')">Structure</th>
+          <th class="c sortable" onclick="sortTable('conf')">Conf</th>
+          <th class="c sortable" style="color:#7c3aed;background:#f5f3ff" onclick="sortTable('ai')">🤖 AI</th>
+          <th class="c sortable" style="color:#7c3aed;background:#f5f3ff" onclick="sortTable('aiconf')">AI%</th>
           <th class="c">Action</th>
         </tr></thead>
         <tbody id="tBody"><tr><td colspan="15" class="est"><div class="ei">📊</div><div>Choose a timeframe and click Scan</div></td></tr></tbody>
@@ -492,6 +506,54 @@ let activeTF='5m';
 let resultMap=new Map();
 let curFilter='all';
 let modalCharts=[];
+
+// ── Sort state ────────────────────────────────────────────────────────
+let sortCol='signal';   // default: sort by signal strength
+let sortDir=1;          // 1=asc, -1=desc
+
+function sortTable(col){
+  if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
+  // Update header classes
+  document.querySelectorAll('th.sortable').forEach(th=>{
+    th.classList.remove('sort-asc','sort-desc');
+  });
+  // Find the clicked th by its onclick
+  document.querySelectorAll('th.sortable').forEach(th=>{
+    const oc=th.getAttribute('onclick')||'';
+    if(oc.includes("'"+col+"'")){
+      th.classList.add(sortDir===1?'sort-asc':'sort-desc');
+    }
+  });
+  updateTable();
+}
+
+// Return a numeric sort key for each column
+function sortKey(r, col){
+  const sigOrder={buy:0,'buy+both':-1,sell:2,neutral:3};
+  switch(col){
+    case 'sym':       return r.sym;
+    case 'tf':        return r.tfLabel||'';
+    case 'price':     return r.price||0;
+    case 'chg':       return r.chgPct||0;
+    case 'signal':    return r.stype==='both'?-1:r.dir==='buy'?0:r.dir==='sell'?2:3;
+    case 'type':      return r.stype==='both'?0:r.stype==='swing'?1:r.stype==='channel'?2:3;
+    case 'strike':    return r.strike||0;
+    case 'stop':      return r.stop||0;
+    case 'forecast':  return r.fcast?parseFloat(r.fcast.biasPct)||0:0;
+    case 'structure': return r.ms?.trend==='uptrend'?0:r.ms?.trend==='downtrend'?2:1;
+    case 'conf':      return r.conf==='high'?0:r.conf==='medium'?1:2;
+    case 'ai':{
+      const d=typeof AI_SS!=='undefined'?AI_SS[r.sym]:null;
+      const s=d?.aiSig||'—';
+      return s.includes('STRONG BUY')?0:s==='BUY'?1:s==='WATCH'?2:s==='NEUTRAL'?3:s==='SELL'?4:s.includes('STRONG SELL')?5:6;
+    }
+    case 'aiconf':{
+      const d=typeof AI_SS!=='undefined'?AI_SS[r.sym]:null;
+      return d?.aiConf||0;
+    }
+    default: return 0;
+  }
+}
 
 // ═══════ MATH HELPERS ═══════════════════════════════════════════════════
 function ema(arr,p){const k=2/(p+1);let e=arr[0];const out=[e];for(let i=1;i<arr.length;i++){e=arr[i]*k+e*(1-k);out.push(e);}return out;}
@@ -958,7 +1020,17 @@ function updateTable(){
   if(!all.length){rc.style.display='none';return;}
   const fmap={all:()=>true,buy:r=>r.dir==='buy',sell:r=>r.dir==='sell',swing:r=>r.stype==='swing',channel:r=>r.stype==='channel',both:r=>r.stype==='both',neutral:r=>r.dir==='neutral'};
   const filtered=all.filter(fmap[curFilter]||fmap.all);
-  const sorted=[...filtered].sort((a,b)=>{const o={both:0,buy:1,sell:2,neutral:3};return(o[a.stype==='both'?'both':a.dir]||3)-(o[b.stype==='both'?'both':b.dir]||3)||a.sym.localeCompare(b.sym);});
+
+  // Sort by active column + direction
+  const sorted=[...filtered].sort((a,b)=>{
+    const ka=sortKey(a,sortCol), kb=sortKey(b,sortCol);
+    let cmp=0;
+    if(typeof ka==='string') cmp=ka.localeCompare(kb);
+    else cmp=ka-kb;
+    if(cmp===0) cmp=a.sym.localeCompare(b.sym); // secondary: symbol
+    return cmp*sortDir;
+  });
+
   rc.style.display='block';
   const nB=all.filter(r=>r.dir==='buy').length,nS=all.filter(r=>r.dir==='sell').length;
   const nSw=all.filter(r=>r.stype==='swing').length,nCh=all.filter(r=>r.stype==='channel').length;
@@ -983,6 +1055,8 @@ function updateTable(){
       <td class="c">${fb}</td>
       <td class="c">${mb}</td>
       <td class="c"><span class="c${r.conf[0]}">${r.conf.toUpperCase()}</span></td>
+      <td class="c">${typeof aiSigCell==='function'?aiSigCell(r.sym):'—'}</td>
+      <td class="c">${typeof aiConfCell==='function'?aiConfCell(r.sym):'—'}</td>
       <td class="c"><button class="vbtn" onclick="showDetail('${r.sym}')">📊 Analyze</button></td>
     </tr>`;
   }).join('');
@@ -2533,34 +2607,6 @@ window.aiConfCell = function(sym) {
   return '<span style="color:' + col + ';font-weight:700;font-size:11px">' + d.aiConf + '%</span>';
 };
 
-// ── Patch updateTable to add AI columns ──────────────────────────────
-const _origUpdateTable = window.updateTable;
-window.updateTable = function() {
-  _origUpdateTable.apply(this, arguments);
-  // After table renders, inject AI cells into each row
-  const tbody = document.getElementById('tBody');
-  if (!tbody) return;
-  const rows = tbody.querySelectorAll('tr');
-  rows.forEach(tr => {
-    const cells = tr.querySelectorAll('td');
-    if (cells.length < 13) return;
-    // Check if AI cells already added
-    if (cells.length >= 15) return;
-    const sym = tr.querySelector('.sym');
-    const symName = sym ? sym.textContent.trim() : '';
-    // Insert AI sig cell before last action cell
-    const actionCell = cells[cells.length - 1];
-    const aiSigTd = document.createElement('td');
-    aiSigTd.className = 'c';
-    aiSigTd.innerHTML = aiSigCell(symName);
-    const aiConfTd = document.createElement('td');
-    aiConfTd.className = 'c';
-    aiConfTd.innerHTML = aiConfCell(symName);
-    tr.insertBefore(aiConfTd, actionCell);
-    tr.insertBefore(aiSigTd, aiConfTd);
-  });
-};
-
 // ── Patch buildResult to trigger learning after every scan ────────────
 const _origBuildResult = window.buildResult;
 window.buildResult = function(sym, bars, cfg, tfLabel) {
@@ -2727,7 +2773,6 @@ window.runAIAnalysis = async function() {
     if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-analyze'; }
     setStatus('Analysis done', 'done');
     // refresh table AI cells
-    if (window._origUpdateTable) { /* table already rendered */ }
     updateTable();
   } catch(e) {
     if (content) content.innerHTML = '<div style="color:#ef4444;padding:10px">AI Error: ' + e.message + '</div>';
