@@ -32,6 +32,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tf-btn{padding:6px 12px;border:2px solid #dfe6e9;border-radius:6px;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#636e72;transition:all .15s}
 .tf-btn:hover{border-color:#667eea;color:#667eea}
 .tf-btn.on{background:#667eea;color:#fff;border-color:#667eea}
+.modal-tf-btn{padding:3px 9px;border:1px solid #2d2d4a;border-radius:5px;background:#1e1e2e;
+  font-size:10px;font-weight:700;cursor:pointer;color:#6b6b9a;transition:all .12s;font-family:inherit}
+.modal-tf-btn:hover{border-color:#667eea;color:#e0e0f0}
+.modal-tf-btn.on{background:#667eea;color:#fff;border-color:#667eea}
 .tf-info{padding:7px 12px;border-radius:6px;background:#f0f4ff;border:1px solid #c7d2fe;font-size:11px;color:#4338ca;margin-bottom:12px}
 .ctrl{display:grid;gap:12px;align-items:end;grid-template-columns:1fr 105px 105px auto}
 label{display:block;font-weight:600;margin-bottom:5px;font-size:10px;color:#636e72;text-transform:uppercase;letter-spacing:.3px}
@@ -291,8 +295,11 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
     <div class="tf-row">
       <span class="tf-lbl">⏱ Timeframe:</span>
       <div class="tf-btns" id="tfBtns">
+        <button class="tf-btn"     onclick="setTF('1m',this)">1 Min</button>
+        <button class="tf-btn"     onclick="setTF('3m',this)">3 Min</button>
         <button class="tf-btn on"  onclick="setTF('5m',this)">5 Min</button>
         <button class="tf-btn"     onclick="setTF('15m',this)">15 Min</button>
+        <button class="tf-btn"     onclick="setTF('30m',this)">30 Min</button>
         <button class="tf-btn"     onclick="setTF('1h',this)">1 Hour</button>
         <button class="tf-btn"     onclick="setTF('2h',this)">2 Hours</button>
         <button class="tf-btn"     onclick="setTF('4h',this)">4 Hours</button>
@@ -411,14 +418,17 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
 <script>
 // ═══════ TIMEFRAME CONFIG ════════════════════════════════════════════════
 const YF_TF={
-  '5m': {interval:'5m', range:'1d', label:'5 Min',  unit:'minute', info:'range=1d · ~78 bars'},
-  '15m':{interval:'15m',range:'5d', label:'15 Min', unit:'minute', info:'range=5d · ~130 bars'},
-  '1h': {interval:'1h', range:'1mo',label:'1 Hour', unit:'hour',   info:'range=1mo · ~160 bars'},
-  '2h': {interval:'2h', range:'3mo',label:'2 Hours',unit:'hour',   info:'range=3mo · ~90 bars'},
-  '4h': {interval:'4h', range:'6mo',label:'4 Hours',unit:'hour',   info:'range=6mo · ~90 bars'},
-  '1d': {interval:'1d', range:'2y', label:'Daily',  unit:'day',    info:'range=2y · ~500 bars'},
-  '1wk':{interval:'1wk',range:'5y', label:'Weekly', unit:'week',   info:'range=5y · ~260 bars'},
-  '1mo':{interval:'1mo',range:'10y',label:'Monthly',unit:'month',  info:'range=10y · ~120 bars'},
+  '1m': {interval:'1m', range:'1d',  label:'1 Min',   unit:'minute', info:'range=1d · ~390 bars · Scalping'},
+  '3m': {interval:'2m', range:'5d',  label:'3 Min',   unit:'minute', info:'range=5d · ~200 bars · Scalping (2m proxy)'},
+  '5m': {interval:'5m', range:'1d',  label:'5 Min',   unit:'minute', info:'range=1d · ~78 bars · Day trading'},
+  '15m':{interval:'15m',range:'5d',  label:'15 Min',  unit:'minute', info:'range=5d · ~130 bars · Day trading'},
+  '30m':{interval:'30m',range:'1mo', label:'30 Min',  unit:'minute', info:'range=1mo · ~100 bars · Swing'},
+  '1h': {interval:'1h', range:'1mo', label:'1 Hour',  unit:'hour',   info:'range=1mo · ~160 bars · Swing'},
+  '2h': {interval:'2h', range:'3mo', label:'2 Hours', unit:'hour',   info:'range=3mo · ~90 bars · Swing'},
+  '4h': {interval:'4h', range:'6mo', label:'4 Hours', unit:'hour',   info:'range=6mo · ~90 bars · Position'},
+  '1d': {interval:'1d', range:'2y',  label:'Daily',   unit:'day',    info:'range=2y · ~500 bars · Position'},
+  '1wk':{interval:'1wk',range:'5y',  label:'Weekly',  unit:'week',   info:'range=5y · ~260 bars · Investor'},
+  '1mo':{interval:'1mo',range:'10y', label:'Monthly', unit:'month',  info:'range=10y · ~120 bars · Macro'},
 };
 
 const PRESETS={
@@ -1063,14 +1073,66 @@ function updateTable(){
 }
 
 // ═══════ MODAL ═══════════════════════════════════════════════════════════
+// Current modal state
+let _modalSym = '';
+let _modalTF  = '';     // active TF for main chart panel
+let _modalMiniCharts = []; // mini chart instances
+
 function showDetail(sym){
   const r=resultMap.get(sym);if(!r)return;
+  _modalSym = sym;
+  _modalTF  = activeTF; // start with the scanned TF
   const isBuy=r.dir==='buy',isSel=r.dir==='sell';
   document.getElementById('mTitle').textContent=`${sym} — ${r.tfLabel} Full Analysis`;
   document.getElementById('mSub').textContent=`Yahoo Finance · ${r.tfLabel} · ${r.time}`;
   document.getElementById('mBody').innerHTML=buildModalHTML(r,sym,isBuy,isSel);
   document.getElementById('modal').style.display='block';
-  setTimeout(()=>renderPanels(r),100);
+  // Mark the current TF button as active
+  _setModalTFActive(activeTF);
+  setTimeout(()=>{
+    renderPanels(r);
+    loadMiniCharts(sym, r);
+  },100);
+}
+
+function _setModalTFActive(tf){
+  document.querySelectorAll('.modal-tf-btn').forEach(b=>{
+    b.classList.toggle('on', b.dataset.tf===tf);
+  });
+  const lbl=document.getElementById('modalTFLabel');
+  if(lbl) lbl.textContent = (YF_TF[tf]?.label||tf) + ' · main chart';
+}
+
+// Switch main analysis to a different TF
+async function switchModalTF(tf, btn){
+  if(!_modalSym) return;
+  _modalTF = tf;
+  _setModalTFActive(tf);
+  const loading=document.getElementById('modalTFLoading');
+  if(loading) loading.style.display='inline';
+  try{
+    const bars = await fetchYF(_modalSym, tf);
+    if(!bars||bars.length<5){alert('Not enough data for '+YF_TF[tf]?.label);return;}
+    const cfg={
+      swingL:+document.getElementById('swingL').value,
+      swingR:+document.getElementById('swingR').value,
+      chanBars:+document.getElementById('chanBars').value,
+      chanW:+document.getElementById('chanW').value,
+      fcastN:+document.getElementById('fcastN').value,
+      fcastLB:+document.getElementById('fcastLB').value,
+    };
+    const r = buildResult(_modalSym, bars, cfg, YF_TF[tf]?.label||tf);
+    document.getElementById('mTitle').textContent=`${_modalSym} — ${YF_TF[tf]?.label||tf} Full Analysis`;
+    document.getElementById('mSub').textContent=`Yahoo Finance · ${YF_TF[tf]?.label||tf} · ${bars[0].time}`;
+    // Re-render all indicator panels with new data
+    modalCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
+    modalCharts=[];syncedCharts=[];
+    renderPanels(r);
+  }catch(e){
+    alert('Failed to load '+tf+': '+e.message);
+  }finally{
+    if(loading) loading.style.display='none';
+  }
 }
 
 function buildModalHTML(r,sym,isBuy,isSel){
@@ -1122,6 +1184,54 @@ function buildModalHTML(r,sym,isBuy,isSel){
 
   <!-- UNIFIED SYNCHRONIZED CHART PANES -->
   <div id="chartContainer" style="background:#1a1a2e;border-radius:10px;overflow:hidden;margin-bottom:14px;border:1px solid #2d2d4a">
+
+    <!-- MODAL TIMEFRAME SWITCHER -->
+    <div style="display:flex;align-items:center;gap:5px;padding:8px 12px;background:#1e1e2e;border-bottom:1px solid #2d2d4a;flex-wrap:wrap">
+      <span style="font-size:10px;font-weight:700;color:#6b6b9a;margin-right:4px;text-transform:uppercase;letter-spacing:.5px">Analysis TF:</span>
+      <button class="modal-tf-btn" data-tf="1m"  onclick="switchModalTF('1m',this)">1m</button>
+      <button class="modal-tf-btn" data-tf="3m"  onclick="switchModalTF('3m',this)">3m</button>
+      <button class="modal-tf-btn" data-tf="5m"  onclick="switchModalTF('5m',this)">5m</button>
+      <button class="modal-tf-btn" data-tf="15m" onclick="switchModalTF('15m',this)">15m</button>
+      <button class="modal-tf-btn" data-tf="30m" onclick="switchModalTF('30m',this)">30m</button>
+      <button class="modal-tf-btn" data-tf="1h"  onclick="switchModalTF('1h',this)">1h</button>
+      <button class="modal-tf-btn" data-tf="2h"  onclick="switchModalTF('2h',this)">2h</button>
+      <button class="modal-tf-btn" data-tf="4h"  onclick="switchModalTF('4h',this)">4h</button>
+      <button class="modal-tf-btn" data-tf="1d"  onclick="switchModalTF('1d',this)">1D</button>
+      <button class="modal-tf-btn" data-tf="1wk" onclick="switchModalTF('1wk',this)">1W</button>
+      <button class="modal-tf-btn" data-tf="1mo" onclick="switchModalTF('1mo',this)">1M</button>
+      <span id="modalTFLoading" style="display:none;font-size:10px;color:#6b6b9a;margin-left:8px">⏳ Loading…</span>
+      <span id="modalTFLabel" style="margin-left:auto;font-size:10px;color:#6b6b9a"></span>
+    </div>
+
+    <!-- MULTI-TF MINI CHARTS: 15m and 1h side-by-side context -->
+    <div id="paneMultiTF" style="background:#1a1a2e;border-bottom:1px solid #2d2d4a">
+      <div style="display:flex;align-items:center;gap:8px;padding:4px 12px;background:#252540;border-bottom:1px solid #2d2d4a">
+        <span style="font-size:9px;font-weight:700;color:#6b6b9a;text-transform:uppercase;letter-spacing:.5px">Multi-Timeframe Context</span>
+        <label class="sg-tog on" data-pane="pane15m"><span class="sg-dot" style="background:#38bdf8"></span><span>15 Min</span></label>
+        <label class="sg-tog on" data-pane="pane1h"><span class="sg-dot" style="background:#a78bfa"></span><span>1 Hour</span></label>
+        <label class="sg-tog on" data-pane="pane1d"><span class="sg-dot" style="background:#34d399"></span><span>Daily</span></label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #2d2d4a">
+        <div id="pane15m" style="border-right:1px solid #2d2d4a">
+          <div style="font-size:9px;font-weight:700;color:#38bdf8;padding:4px 10px;background:#1e1e2e;border-bottom:1px solid #2d2d4a">
+            15 MIN <span id="mini15mSig" style="margin-left:8px;font-weight:400;color:#9ca3af"></span>
+          </div>
+          <div style="position:relative;height:160px"><canvas id="cMini15m"></canvas></div>
+        </div>
+        <div id="pane1h" style="border-right:1px solid #2d2d4a">
+          <div style="font-size:9px;font-weight:700;color:#a78bfa;padding:4px 10px;background:#1e1e2e;border-bottom:1px solid #2d2d4a">
+            1 HOUR <span id="mini1hSig" style="margin-left:8px;font-weight:400;color:#9ca3af"></span>
+          </div>
+          <div style="position:relative;height:160px"><canvas id="cMini1h"></canvas></div>
+        </div>
+        <div id="pane1d">
+          <div style="font-size:9px;font-weight:700;color:#34d399;padding:4px 10px;background:#1e1e2e;border-bottom:1px solid #2d2d4a">
+            DAILY <span id="mini1dSig" style="margin-left:8px;font-weight:400;color:#9ca3af"></span>
+          </div>
+          <div style="position:relative;height:160px"><canvas id="cMini1d"></canvas></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Toggle bar for subgraphs -->
     <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#252540;border-bottom:1px solid #2d2d4a;flex-wrap:wrap">
@@ -2315,11 +2425,131 @@ function setupSync(chartInst, opens, highs, lows, closes, labels) {
   chartInst.canvas.addEventListener('mouseleave', clearCrosshair);
 }
 
+
+// ─── MINI CHART HELPERS (15m / 1h / 1d context charts) ──────────────────────
+async function loadMiniCharts(sym, mainR){
+  // Destroy old mini charts
+  _modalMiniCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
+  _modalMiniCharts=[];
+
+  const configs = [
+    {tf:'15m', canvasId:'cMini15m', sigId:'mini15mSig', col:'#38bdf8'},
+    {tf:'1h',  canvasId:'cMini1h',  sigId:'mini1hSig',  col:'#a78bfa'},
+    {tf:'1d',  canvasId:'cMini1d',  sigId:'mini1dSig',  col:'#34d399'},
+  ];
+
+  // Load all 3 in parallel
+  const results = await Promise.allSettled(
+    configs.map(cfg => fetchYF(sym, cfg.tf).then(bars=>({...cfg, bars})))
+  );
+
+  results.forEach(res=>{
+    if(res.status!=='fulfilled'||!res.value.bars||res.value.bars.length<5) return;
+    const {tf, canvasId, sigId, col, bars} = res.value;
+    drawMiniChart(canvasId, bars, col, mainR, sigId, tf);
+  });
+}
+
+function drawMiniChart(canvasId, bars, lineCol, mainR, sigId, tf){
+  const canvas = document.getElementById(canvasId);
+  if(!canvas) return;
+
+  const N = Math.min(bars.length, 50);
+  const show = bars.slice(0, N).reverse(); // oldest-first
+  const opens  = show.map(b=>b.open);
+  const highs  = show.map(b=>b.high);
+  const lows   = show.map(b=>b.low);
+  const closes = show.map(b=>b.close);
+  const labels = show.map(b=>b.time||'');
+
+  const pH = Math.max(...highs), pL = Math.min(...lows);
+  const pad = Math.max((pH-pL)*0.06, pH*0.001);
+
+  // Quick signal for this TF
+  const lc = closes[closes.length-1];
+  const emaFn=(arr,n)=>{const k=2/(n+1);let e=arr[0];arr.forEach(v=>{e=v*k+e*(1-k);});return e;};
+  const e8=emaFn(closes,8), e21=emaFn(closes,21);
+  const rsiArr = compRSI(closes);
+  const rsi = rsiArr[rsiArr.length-1]||50;
+  const dir = e8>e21 ? (rsi<70?'↑ BULL':'↑ OB') : (rsi>30?'↓ BEAR':'↓ OS');
+  const dirCol = dir.includes('↑') ? '#34d399' : '#f87171';
+  const sigEl = document.getElementById(sigId);
+  if(sigEl){ sigEl.textContent = dir + ' | RSI ' + rsi.toFixed(0) + ' | ' + lc.toFixed(4); sigEl.style.color = dirCol; }
+
+  // Candle plugin for mini chart
+  const miniCandlePlugin = {
+    id:'mcp'+canvasId,
+    afterDatasetsDraw(chart){
+      const xs=chart.scales.x, ys=chart.scales.y;
+      if(!xs||!ys)return;
+      const ctx2=chart.ctx, area=chart.chartArea;
+      const cw=Math.max(1.5,Math.min(10,(area.right-area.left)/N*0.6)), hw=cw/2;
+      ctx2.save();
+      for(let i=0;i<N;i++){
+        const px=xs.getPixelForValue(i);
+        const po=ys.getPixelForValue(opens[i]), ph2=ys.getPixelForValue(highs[i]);
+        const pl=ys.getPixelForValue(lows[i]),  pc=ys.getPixelForValue(closes[i]);
+        if([px,po,ph2,pl,pc].some(isNaN))continue;
+        const bull=closes[i]>=opens[i], col=bull?'#34d399':'#f87171';
+        ctx2.strokeStyle=col; ctx2.lineWidth=1;
+        ctx2.beginPath(); ctx2.moveTo(px,ph2); ctx2.lineTo(px,pl); ctx2.stroke();
+        const top=Math.min(po,pc), ht=Math.max(Math.abs(pc-po),1);
+        ctx2.fillStyle=bull?'rgba(52,211,153,.8)':'rgba(248,113,113,.8)';
+        ctx2.fillRect(px-hw,top,cw,ht);
+        ctx2.strokeStyle=bull?'#059669':'#dc2626'; ctx2.lineWidth=.5;
+        ctx2.strokeRect(px-hw,top,cw,ht);
+      }
+      ctx2.restore();
+    }
+  };
+
+  // EMA lines
+  const ema8pts  = closes.map((v,i)=>({x:i,y:emaFn(closes.slice(0,i+1),8)}));
+  const ema21pts = closes.map((v,i)=>({x:i,y:emaFn(closes.slice(0,i+1),21)}));
+  // Anchor dataset (invisible, just to force y-range)
+  const ancDs = {label:'__a__',data:closes.map((v,i)=>({x:i,y:v})),borderColor:'transparent',pointRadius:0,fill:false,parsing:false};
+
+  const ch = new Chart(canvas, {
+    type:'line',
+    data:{ datasets:[
+      ancDs,
+      {label:'EMA8', data:ema8pts, borderColor:'rgba(251,191,36,.8)',borderWidth:1.2,pointRadius:0,fill:false,parsing:false},
+      {label:'EMA21',data:ema21pts,borderColor:'rgba(167,139,250,.7)',borderWidth:1.2,pointRadius:0,fill:false,parsing:false},
+    ]},
+    plugins:[miniCandlePlugin],
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            title: ctx=>labels[ctx[0]?.dataIndex]||'',
+            label: ctx=>{
+              const i=ctx.dataIndex;
+              return `O:${opens[i]?.toFixed(4)} H:${highs[i]?.toFixed(4)} L:${lows[i]?.toFixed(4)} C:${closes[i]?.toFixed(4)}`;
+            }
+          }
+        }
+      },
+      scales:{
+        x:{type:'linear',min:0,max:N-1,
+          ticks:{callback:(v)=>{if(v%Math.max(1,Math.floor(N/5))!==0)return'';return labels[Math.round(v)]||'';},font:{size:7},color:'#4b5563',maxRotation:0},
+          grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.06)'}},
+        y:{min:pL-pad, max:pH+pad, position:'right',
+          ticks:{callback:v=>v.toFixed(Math.abs(v)>100?1:Math.abs(v)>1?2:4),color:'#4b5563',font:{size:7},maxTicksLimit:4},
+          grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.06)'}}
+      }
+    }
+  });
+  _modalMiniCharts.push(ch);
+}
+// ─── END MINI CHART HELPERS ──────────────────────────────────────────────────
 function closeModal(){
   document.getElementById('modal').style.display='none';
   modalCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
-  modalCharts=[];
-  syncedCharts=[];
+  modalCharts=[]; syncedCharts=[];
+  _modalMiniCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
+  _modalMiniCharts=[];
   // Restore light theme defaults
   Chart.defaults.color = '#636e72';
   Chart.defaults.borderColor = '#e0e0e0';
@@ -2620,7 +2850,7 @@ window.buildResult = function(sym, bars, cfg, tfLabel) {
 // ── Patch showDetail to track current symbol and show AI data ─────────
 const _origShowDetail = window.showDetail;
 window.showDetail = function(sym) {
-  _currentSym = sym;
+  _currentSym = sym; _modalSym = sym;
   _origShowDetail.apply(this, arguments);
   setTimeout(() => populateAIPanel(sym), 120);
 };
