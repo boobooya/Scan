@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDGE FINDER — Undervalued Strike Scanner</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #080c10;
+    --panel: #0d1318;
+    --panel2: #111820;
+    --border: #1e2d3d;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --accent4: #ff2d6b;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+    --gold: #f0b429;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 15px;
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(0,229,255,0.04) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(255,107,53,0.04) 0%, transparent 60%);
+  }
+
+  .mono { font-family: 'Share Tech Mono', monospace; }
+
+  /* HEADER */
+  header {
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(0,229,255,0.02);
+  }
+  .logo {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px rgba(0,229,255,0.5);
+  }
+  .logo span { color: var(--accent2); }
+  .tagline {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent3);
+    box-shadow: 0 0 8px var(--accent3);
+    animation: pulse 2s infinite;
+    margin-left: auto;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; } 50% { opacity:0.4; }
+  }
+
+  /* LAYOUT */
+  .container { padding: 20px 24px; max-width: 1400px; margin: 0 auto; }
+
+  /* INPUT PANEL */
+  .input-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  input, select {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    padding: 9px 12px;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  select option { background: var(--panel2); }
+
+  .btn-run {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 12px 36px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-run::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .btn-run:hover::before { opacity: 0.1; }
+  .btn-run:hover { box-shadow: 0 0 20px rgba(0,229,255,0.3); }
+  .btn-run:active { transform: scale(0.98); }
+
+  /* SCORE DISPLAY */
+  .score-banner {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+  }
+  .score-banner.visible { display: grid; }
+  .score-cell {
+    background: var(--panel);
+    padding: 16px 20px;
+  }
+  .score-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .score-val { font-family: 'Share Tech Mono', monospace; font-size: 26px; }
+  .score-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .c-green { color: var(--accent3); }
+  .c-red { color: var(--accent4); }
+  .c-cyan { color: var(--accent); }
+  .c-orange { color: var(--accent2); }
+  .c-gold { color: var(--gold); }
+  .c-muted { color: var(--muted); }
+
+  /* SIGNAL GRID */
+  .signals-grid {
+    display: none;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .signals-grid.visible { display: grid; }
+
+  .signal-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 16px 20px;
+  }
+  .signal-card.highlight { border-color: rgba(0,229,255,0.4); }
+
+  .signal-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(30,45,61,0.5);
+    font-size: 13px;
+  }
+  .signal-row:last-child { border-bottom: none; }
+  .signal-name { color: var(--muted); font-size: 12px; letter-spacing: 1px; }
+  .signal-val { font-family: 'Share Tech Mono', monospace; }
+  .badge {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .badge-bull { background: rgba(57,255,20,0.12); color: var(--accent3); border: 1px solid rgba(57,255,20,0.3); }
+  .badge-bear { background: rgba(255,45,107,0.12); color: var(--accent4); border: 1px solid rgba(255,45,107,0.3); }
+  .badge-neutral { background: rgba(240,180,41,0.12); color: var(--gold); border: 1px solid rgba(240,180,41,0.3); }
+  .badge-hot { background: rgba(0,229,255,0.12); color: var(--accent); border: 1px solid rgba(0,229,255,0.3); }
+
+  /* STRIKES TABLE */
+  .strikes-panel {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--accent2);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .strikes-panel.visible { display: block; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { border-bottom: 1px solid var(--border); }
+  th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 8px 12px;
+    font-weight: 400;
+  }
+  tbody tr {
+    border-bottom: 1px solid rgba(30,45,61,0.4);
+    transition: background 0.15s;
+  }
+  tbody tr:hover { background: rgba(0,229,255,0.03); }
+  tbody tr.top-pick { background: rgba(0,229,255,0.04); border-left: 2px solid var(--accent); }
+  tbody tr.top-pick td:first-child { padding-left: 10px; }
+  td {
+    padding: 10px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+  }
+  .edge-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .edge-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  /* FORMULA PANEL */
+  .formula-panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .formula-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 16px 20px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    color: #7a9ab0;
+  }
+  .formula-box .kw { color: var(--accent); }
+  .formula-box .val { color: var(--accent2); }
+  .formula-box .comment { color: #3d5060; }
+  .formula-box .fn { color: var(--gold); }
+  .formula-box .ok { color: var(--accent3); }
+
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+  }
+
+  .info-tip {
+    font-size: 11px;
+    color: var(--muted);
+    border-left: 2px solid var(--border);
+    padding-left: 10px;
+    margin-top: 10px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 900px) {
+    .grid-4 { grid-template-columns: repeat(2,1fr); }
+    .grid-3 { grid-template-columns: repeat(2,1fr); }
+    .signals-grid { grid-template-columns: 1fr; }
+    .score-banner { grid-template-columns: repeat(2,1fr); }
+  }
+  @media (max-width: 600px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+    .score-banner { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">EDGE<span>FINDER</span></div>
+    <div class="tagline">Undervalued Option Strike Scanner — v2.0</div>
+  </div>
+  <div class="status-dot"></div>
+</header>
+
+<div class="container">
+
+  <!-- FORMULA REFERENCE -->
+  <div class="formula-panel">
+    <div class="section-title">Composite Scoring Formula</div>
+    <div class="formula-box">
+<span class="comment">// ─────────────────────────────────────────────────────────────────────</span>
+<span class="comment">// EDGE SCORE = Weighted sum of 8 signal components (0–100 each)</span>
+<span class="comment">// Higher score = more undervalued / higher probability edge</span>
+<span class="comment">// ─────────────────────────────────────────────────────────────────────</span>
+
+<span class="kw">EDGE_SCORE</span> = (
+  <span class="fn">W1</span> × <span class="ok">CONSOLIDATION_SCORE</span>    <span class="comment">// 15-bar+ contraction → IV not priced for move</span>
+  <span class="fn">W2</span> × <span class="ok">KC_BAND_SCORE</span>           <span class="comment">// Price hugging Keltner band 4–8 bars → coiled</span>
+  <span class="fn">W3</span> × <span class="ok">EXPECTED_MOVE_SCORE</span>      <span class="comment">// Low EM relative to hist volatility → cheap</span>
+  <span class="fn">W4</span> × <span class="ok">GAMMA_LEVEL_SCORE</span>        <span class="comment">// Far gamma walls away → price free to travel</span>
+  <span class="fn">W5</span> × <span class="ok">IV_RANK_SCORE</span>           <span class="comment">// IV Rank < 30 → premiums suppressed</span>
+  <span class="fn">W6</span> × <span class="ok">IV_SKEW_SCORE</span>           <span class="comment">// Flat/inverted skew → directional cheapness</span>
+  <span class="fn">W7</span> × <span class="ok">OI_MOMENTUM_SCORE</span>       <span class="comment">// Rising OI at strike → informed accumulation</span>
+  <span class="fn">W8</span> × <span class="ok">TIME_VALUE_SCORE</span>        <span class="comment">// Theta decay curve position → buy sweet spot</span>
+) / <span class="val">SUM(W1..W8)</span>
+
+<span class="comment">// ── Signal Definitions ────────────────────────────────────────────────</span>
+<span class="ok">CONSOLIDATION_SCORE</span>  = <span class="fn">f</span>( ATR_contraction, HV_contraction, bars_since_breakout )
+<span class="ok">KC_BAND_SCORE</span>        = <span class="fn">f</span>( price_vs_upper_band, price_vs_lower_band, bars_touching )
+<span class="ok">EXPECTED_MOVE_SCORE</span>  = <span class="fn">f</span>( EM/price, EM_vs_HV, growing_EM_wings )
+<span class="ok">GAMMA_LEVEL_SCORE</span>    = <span class="fn">f</span>( distance_to_nearest_gamma_wall, net_gamma_exposure )
+<span class="ok">IV_RANK_SCORE</span>        = <span class="fn">f</span>( IV_Rank_52w, IV_vs_HV_ratio )
+<span class="ok">IV_SKEW_SCORE</span>        = <span class="fn">f</span>( 25d_risk_reversal, skew_direction )
+<span class="ok">OI_MOMENTUM_SCORE</span>   = <span class="fn">f</span>( delta_OI_3d, volume_to_OI_ratio, call_put_imbalance )
+<span class="ok">TIME_VALUE_SCORE</span>     = <span class="fn">f</span>( DTE, theta_to_premium_ratio, gamma_per_dollar )
+
+<span class="comment">// ── Strike Selection Logic ────────────────────────────────────────────</span>
+<span class="ok">TARGET_STRIKES</span> = {
+  <span class="kw">CALL</span>: current_price + (EM_upper × <span class="val">0.8</span> .. <span class="val">1.2</span>)  <span class="comment">// upper EM boundary ±buffer</span>
+  <span class="kw">PUT</span>:  current_price - (EM_lower × <span class="val">0.8</span> .. <span class="val">1.2</span>)  <span class="comment">// lower EM boundary ±buffer</span>
+  <span class="kw">FILTER</span>: EDGE_SCORE > <span class="val">60</span>, delta ∈ [<span class="val">0.15</span>, <span class="val">0.40</span>], DTE ∈ [<span class="val">21</span>, <span class="val">60</span>]
+}
+    </div>
+  </div>
+
+  <!-- INPUT PANEL -->
+  <div class="input-panel">
+    <div class="section-title">Market Inputs</div>
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="field">
+        <label>Stock Price ($)</label>
+        <input type="number" id="stockPrice" value="185.50" step="0.01">
+      </div>
+      <div class="field">
+        <label>IV Rank (0–100)</label>
+        <input type="number" id="ivRank" value="22" min="0" max="100">
+      </div>
+      <div class="field">
+        <label>IV (Annual %)</label>
+        <input type="number" id="iv" value="28" min="1" max="200">
+      </div>
+      <div class="field">
+        <label>Historical Vol (HV20)</label>
+        <input type="number" id="hv" value="35" min="1" max="200">
+      </div>
+    </div>
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="field">
+        <label>Keltner Upper Band</label>
+        <input type="number" id="kcUpper" value="192.40" step="0.01">
+      </div>
+      <div class="field">
+        <label>Keltner Mid (EMA)</label>
+        <input type="number" id="kcMid" value="186.10" step="0.01">
+      </div>
+      <div class="field">
+        <label>Keltner Lower Band</label>
+        <input type="number" id="kcLower" value="179.80" step="0.01">
+      </div>
+      <div class="field">
+        <label>Bars Touching Band</label>
+        <input type="number" id="barsTouching" value="6" min="1" max="50">
+      </div>
+    </div>
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="field">
+        <label>Consolidation Bars</label>
+        <input type="number" id="consBars" value="18" min="1" max="100">
+      </div>
+      <div class="field">
+        <label>ATR Contraction %</label>
+        <input type="number" id="atrContraction" value="42" min="0" max="100">
+      </div>
+      <div class="field">
+        <label>DTE (Days to Exp.)</label>
+        <input type="number" id="dte" value="35" min="1" max="180">
+      </div>
+      <div class="field">
+        <label>Risk-Free Rate (%)</label>
+        <input type="number" id="rfr" value="5.25" step="0.01">
+      </div>
+    </div>
+    <div class="grid-4" style="margin-bottom:16px;">
+      <div class="field">
+        <label>Nearest Gamma Wall ↑ ($)</label>
+        <input type="number" id="gammaUp" value="200.00" step="0.5">
+      </div>
+      <div class="field">
+        <label>Nearest Gamma Wall ↓ ($)</label>
+        <input type="number" id="gammaDown" value="175.00" step="0.5">
+      </div>
+      <div class="field">
+        <label>OI Growth 3-day (%)</label>
+        <input type="number" id="oiGrowth" value="18" min="-100" max="500">
+      </div>
+      <div class="field">
+        <label>25Δ Risk Reversal (%)</label>
+        <input type="number" id="riskReversal" value="-2.5" step="0.1">
+      </div>
+    </div>
+    <div class="controls-row">
+      <button class="btn-run" onclick="runScanner()">▶ RUN SCANNER</button>
+      <div class="info-tip">
+        Consolidation ≥15 bars + Keltner band touch 4–8 bars + Low IV Rank + Far gamma walls = structural edge.<br>
+        Scanner scores each candidate strike on 8 independent signals and ranks by composite EDGE score.
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORE BANNER -->
+  <div class="score-banner" id="scoreBanner">
+    <div class="score-cell">
+      <div class="score-label">Edge Score</div>
+      <div class="score-val c-cyan" id="edgeScore">—</div>
+      <div class="score-sub" id="edgeRating">—</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-label">Expected Move</div>
+      <div class="score-val c-gold" id="emDisplay">—</div>
+      <div class="score-sub" id="emRange">—</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-label">IV vs HV Ratio</div>
+      <div class="score-val" id="ivHvRatio">—</div>
+      <div class="score-sub">Below 1.0 = cheap</div>
+    </div>
+    <div class="score-cell">
+      <div class="score-label">Setup Bias</div>
+      <div class="score-val" id="setupBias">—</div>
+      <div class="score-sub" id="setupDesc">—</div>
+    </div>
+  </div>
+
+  <!-- SIGNAL CARDS -->
+  <div class="signals-grid" id="signalsGrid">
+    <div class="signal-card highlight">
+      <div class="section-title">Price Structure</div>
+      <div class="signal-row"><span class="signal-name">Consolidation Score</span><span class="signal-val" id="s_cons">—</span></div>
+      <div class="signal-row"><span class="signal-name">Bars in Range</span><span class="signal-val" id="s_bars">—</span></div>
+      <div class="signal-row"><span class="signal-name">ATR Contraction</span><span class="signal-val" id="s_atr">—</span></div>
+      <div class="signal-row"><span class="signal-name">KC Band Position</span><span class="signal-val" id="s_kcpos">—</span></div>
+      <div class="signal-row"><span class="signal-name">KC Score</span><span class="signal-val" id="s_kcscore">—</span></div>
+    </div>
+    <div class="signal-card">
+      <div class="section-title">Volatility Surface</div>
+      <div class="signal-row"><span class="signal-name">IV Rank Score</span><span class="signal-val" id="s_ivrank">—</span></div>
+      <div class="signal-row"><span class="signal-name">IV vs HV Premium</span><span class="signal-val" id="s_ivhv">—</span></div>
+      <div class="signal-row"><span class="signal-name">Expected Move</span><span class="signal-val" id="s_em">—</span></div>
+      <div class="signal-row"><span class="signal-name">Skew Direction</span><span class="signal-val" id="s_skew">—</span></div>
+      <div class="signal-row"><span class="signal-name">Vol Score</span><span class="signal-val" id="s_volscore">—</span></div>
+    </div>
+    <div class="signal-card">
+      <div class="section-title">Gamma / Flow</div>
+      <div class="signal-row"><span class="signal-name">Gamma Wall ↑ Distance</span><span class="signal-val" id="s_gup">—</span></div>
+      <div class="signal-row"><span class="signal-name">Gamma Wall ↓ Distance</span><span class="signal-val" id="s_gdown">—</span></div>
+      <div class="signal-row"><span class="signal-name">Net Gamma Bias</span><span class="signal-val" id="s_gbias">—</span></div>
+      <div class="signal-row"><span class="signal-name">OI Momentum</span><span class="signal-val" id="s_oi">—</span></div>
+      <div class="signal-row"><span class="signal-name">Gamma Score</span><span class="signal-val" id="s_gscore">—</span></div>
+    </div>
+    <div class="signal-card">
+      <div class="section-title">Time Value</div>
+      <div class="signal-row"><span class="signal-name">DTE</span><span class="signal-val" id="s_dte">—</span></div>
+      <div class="signal-row"><span class="signal-name">Theta Zone</span><span class="signal-val" id="s_tzone">—</span></div>
+      <div class="signal-row"><span class="signal-name">Gamma/Dollar Sweet Spot</span><span class="signal-val" id="s_gd">—</span></div>
+      <div class="signal-row"><span class="signal-name">Time Score</span><span class="signal-val" id="s_tscore">—</span></div>
+      <div class="signal-row"><span class="signal-name">Composite Rating</span><span class="signal-val" id="s_rating">—</span></div>
+    </div>
+  </div>
+
+  <!-- STRIKE TABLE -->
+  <div class="strikes-panel" id="strikesPanel">
+    <div class="section-title">Candidate Strikes — Ranked by Edge Score</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Type</th>
+          <th>Strike</th>
+          <th>Delta</th>
+          <th>Est. Premium</th>
+          <th>Theta/Day</th>
+          <th>Break-Even</th>
+          <th>EM Coverage</th>
+          <th>Edge Score</th>
+          <th>Signal</th>
+        </tr>
+      </thead>
+      <tbody id="strikesBody"></tbody>
+    </table>
+    <div class="info-tip" style="margin-top:14px;">
+      ★ Top picks highlighted in cyan. Edge Score > 70 = strong setup. EM Coverage = how much of the expected move the strike captures.
+      Always verify live chain data. Estimated premiums use Black-Scholes approximation — use as relative comparison only.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── Black-Scholes ────────────────────────────────────────────────────────────
+function normCDF(x) {
+  const a1=0.254829592, a2=-0.284496736, a3=1.421413741, a4=-1.453152027, a5=1.061405429, p=0.3275911;
+  const sign = x < 0 ? -1 : 1;
+  x = Math.abs(x) / Math.sqrt(2);
+  const t = 1.0/(1.0+p*x);
+  const y = 1.0 - (((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return 0.5*(1.0+sign*y);
+}
+
+function bsCall(S, K, T, r, sigma) {
+  if (T <= 0) return Math.max(S - K, 0);
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  const d2 = d1 - sigma*Math.sqrt(T);
+  return S*normCDF(d1) - K*Math.exp(-r*T)*normCDF(d2);
+}
+
+function bsPut(S, K, T, r, sigma) {
+  if (T <= 0) return Math.max(K - S, 0);
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  const d2 = d1 - sigma*Math.sqrt(T);
+  return K*Math.exp(-r*T)*normCDF(-d2) - S*normCDF(-d1);
+}
+
+function bsDelta(S, K, T, r, sigma, type) {
+  if (T <= 0) return type === 'call' ? (S > K ? 1 : 0) : (S < K ? -1 : 0);
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  return type === 'call' ? normCDF(d1) : normCDF(d1) - 1;
+}
+
+function bsTheta(S, K, T, r, sigma, type) {
+  if (T <= 0) return 0;
+  const d1 = (Math.log(S/K) + (r + 0.5*sigma*sigma)*T) / (sigma*Math.sqrt(T));
+  const d2 = d1 - sigma*Math.sqrt(T);
+  const nd1 = Math.exp(-0.5*d1*d1) / Math.sqrt(2*Math.PI);
+  if (type === 'call') {
+    return (-(S*nd1*sigma)/(2*Math.sqrt(T)) - r*K*Math.exp(-r*T)*normCDF(d2)) / 365;
+  } else {
+    return (-(S*nd1*sigma)/(2*Math.sqrt(T)) + r*K*Math.exp(-r*T)*normCDF(-d2)) / 365;
+  }
+}
+
+// ─── Scoring Functions ────────────────────────────────────────────────────────
+function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
+
+function scoreConsolidation(bars, atrContPct) {
+  // bars: 15+ = full credit; ATR contraction 30%+ adds weight
+  const barScore = clamp((bars - 5) / 20, 0, 1);
+  const atrScore = clamp(atrContPct / 60, 0, 1);
+  return Math.round(clamp((barScore * 0.6 + atrScore * 0.4) * 100, 0, 100));
+}
+
+function scoreKC(price, upper, mid, lower, barsTouching) {
+  // Reward price at band (not outside), reward ≥4 bars touching
+  const upperDist = Math.abs(price - upper) / (upper - lower);
+  const lowerDist = Math.abs(price - lower) / (upper - lower);
+  const midDist = Math.abs(price - mid) / (upper - lower);
+  const minDist = Math.min(upperDist, lowerDist, midDist);
+  const bandProx = clamp(1 - minDist * 3, 0, 1); // within 33% of band = good
+  const barsScore = clamp((barsTouching - 1) / 9, 0, 1);
+  const score = (bandProx * 0.5 + barsScore * 0.5) * 100;
+  let pos = 'Middle';
+  if (Math.abs(price - upper) < Math.abs(price - lower) && Math.abs(price - upper) < Math.abs(price - mid)) pos = 'Upper';
+  else if (Math.abs(price - lower) < Math.abs(price - upper) && Math.abs(price - lower) < Math.abs(price - mid)) pos = 'Lower';
+  return { score: Math.round(clamp(score, 0, 100)), pos };
+}
+
+function scoreIVRank(ivRank) {
+  // IV Rank < 20 = very cheap, 20-35 = cheap, 35+ = less edge
+  if (ivRank < 10) return 100;
+  if (ivRank < 20) return 90;
+  if (ivRank < 30) return 75;
+  if (ivRank < 40) return 55;
+  if (ivRank < 50) return 35;
+  return clamp(Math.round(100 - ivRank), 0, 30);
+}
+
+function scoreIVvsHV(iv, hv) {
+  const ratio = iv / hv;
+  // ratio < 0.8 = very cheap, < 1.0 = cheap, > 1.2 = expensive
+  if (ratio < 0.7) return 100;
+  if (ratio < 0.85) return 85;
+  if (ratio < 1.0) return 68;
+  if (ratio < 1.15) return 45;
+  return Math.round(clamp(100 - (ratio - 1) * 120, 0, 40));
+}
+
+function scoreGammaWalls(price, gUp, gDown) {
+  const upDist = ((gUp - price) / price) * 100;
+  const downDist = ((price - gDown) / price) * 100;
+  // Farther walls = price can move freely = more edge
+  const upScore = clamp(upDist * 4, 0, 100);
+  const downScore = clamp(downDist * 4, 0, 100);
+  const avg = (upScore + downScore) / 2;
+  const bias = upDist > downDist ? 'Upside Free' : 'Downside Free';
+  return { score: Math.round(avg), upDist: upDist.toFixed(1), downDist: downDist.toFixed(1), bias };
+}
+
+function scoreOI(oiGrowth) {
+  if (oiGrowth > 40) return 95;
+  if (oiGrowth > 20) return 80;
+  if (oiGrowth > 10) return 65;
+  if (oiGrowth > 0) return 50;
+  if (oiGrowth > -10) return 35;
+  return 20;
+}
+
+function scoreSkew(rr) {
+  // Near-zero skew = symmetric cheap options; large neg skew = puts expensive
+  const absRR = Math.abs(rr);
+  if (absRR < 1) return 90; // flat skew = fair pricing
+  if (absRR < 2) return 75;
+  if (absRR < 4) return 55;
+  if (absRR < 6) return 35;
+  return 20;
+}
+
+function scoreDTE(dte) {
+  // Sweet spot 21–55 DTE: max gamma/theta ratio
+  if (dte >= 21 && dte <= 35) return 100;
+  if (dte >= 36 && dte <= 55) return 85;
+  if (dte >= 14 && dte <= 20) return 65;
+  if (dte >= 56 && dte <= 90) return 55;
+  if (dte < 14) return 20;
+  return 35;
+}
+
+// ─── Main Runner ──────────────────────────────────────────────────────────────
+function runScanner() {
+  const S      = parseFloat(document.getElementById('stockPrice').value);
+  const ivRank = parseFloat(document.getElementById('ivRank').value);
+  const iv     = parseFloat(document.getElementById('iv').value) / 100;
+  const hv     = parseFloat(document.getElementById('hv').value) / 100;
+  const kcU    = parseFloat(document.getElementById('kcUpper').value);
+  const kcM    = parseFloat(document.getElementById('kcMid').value);
+  const kcL    = parseFloat(document.getElementById('kcLower').value);
+  const barsT  = parseInt(document.getElementById('barsTouching').value);
+  const consB  = parseInt(document.getElementById('consBars').value);
+  const atrC   = parseFloat(document.getElementById('atrContraction').value);
+  const dte    = parseInt(document.getElementById('dte').value);
+  const rfr    = parseFloat(document.getElementById('rfr').value) / 100;
+  const gUp    = parseFloat(document.getElementById('gammaUp').value);
+  const gDown  = parseFloat(document.getElementById('gammaDown').value);
+  const oiG    = parseFloat(document.getElementById('oiGrowth').value);
+  const rr     = parseFloat(document.getElementById('riskReversal').value);
+
+  const T = dte / 365;
+
+  // Expected Move (weekly basis scaled to DTE)
+  const emBase = S * iv * Math.sqrt(T);
+
+  // ── Component Scores ──
+  const consScore  = scoreConsolidation(consB, atrC);
+  const kcResult   = scoreKC(S, kcU, kcM, kcL, barsT);
+  const ivRScore   = scoreIVRank(ivRank);
+  const ivHvScore  = scoreIVvsHV(iv * 100, hv * 100);
+  const gResult    = scoreGammaWalls(S, gUp, gDown);
+  const oiScore    = scoreOI(oiG);
+  const skewScore  = scoreSkew(rr);
+  const dteScore   = scoreDTE(dte);
+
+  // Weighted composite (weights reflect your strategy priorities)
+  const weights = [0.20, 0.15, 0.15, 0.12, 0.15, 0.08, 0.08, 0.07];
+  const scores  = [consScore, kcResult.score, ivRScore, ivHvScore, gResult.score, oiScore, skewScore, dteScore];
+  const edgeScore = Math.round(scores.reduce((sum, s, i) => sum + s * weights[i], 0));
+
+  const ivHvRatio = (iv / hv).toFixed(2);
+  let rating = edgeScore >= 80 ? '🔥 EXCEPTIONAL EDGE' :
+               edgeScore >= 70 ? '⚡ STRONG SETUP' :
+               edgeScore >= 60 ? '✓ GOOD EDGE' :
+               edgeScore >= 50 ? '~ MODERATE' : '✗ WEAK';
+  let ratingColor = edgeScore >= 70 ? 'c-green' : edgeScore >= 55 ? 'c-gold' : 'c-muted';
+
+  // Bias based on KC position + gamma walls
+  let bias = '—';
+  let biasDesc = '';
+  if (kcResult.pos === 'Upper') { bias = '📈 BREAKOUT'; biasDesc = 'Price at upper KC → bias CALLS'; }
+  else if (kcResult.pos === 'Lower') { bias = '📉 BREAKDOWN'; biasDesc = 'Price at lower KC → bias PUTS'; }
+  else { bias = '↔ NEUTRAL'; biasDesc = 'Middle band → consider STRADDLE'; }
+
+  // Update Score Banner
+  const banner = document.getElementById('scoreBanner');
+  banner.classList.add('visible');
+  document.getElementById('edgeScore').textContent = edgeScore + ' / 100';
+  document.getElementById('edgeScore').className = 'score-val ' + ratingColor;
+  document.getElementById('edgeRating').textContent = rating;
+  document.getElementById('emDisplay').textContent = '$' + emBase.toFixed(2);
+  document.getElementById('emRange').textContent = `$${(S - emBase).toFixed(2)} – $${(S + emBase).toFixed(2)}`;
+  document.getElementById('ivHvRatio').textContent = ivHvRatio;
+  document.getElementById('ivHvRatio').className = 'score-val ' + (ivHvRatio < 1 ? 'c-green' : ivHvRatio < 1.15 ? 'c-gold' : 'c-red');
+  document.getElementById('setupBias').textContent = bias;
+  document.getElementById('setupDesc').textContent = biasDesc;
+
+  // Update Signal Cards
+  document.getElementById('signalsGrid').classList.add('visible');
+
+  const fmt = v => `<span class="${v >= 70 ? 'c-green' : v >= 50 ? 'c-gold' : 'c-red'}">${v}</span>`;
+
+  document.getElementById('s_cons').innerHTML = fmt(consScore);
+  document.getElementById('s_bars').textContent = consB + ' bars';
+  document.getElementById('s_atr').textContent = atrC + '% contracted';
+  document.getElementById('s_kcpos').textContent = kcResult.pos + ' Band';
+  document.getElementById('s_kcscore').innerHTML = fmt(kcResult.score);
+
+  document.getElementById('s_ivrank').innerHTML = fmt(ivRScore);
+  document.getElementById('s_ivhv').innerHTML = `<span class="${ivHvRatio < 1 ? 'c-green' : 'c-red'}">${ivHvRatio}×</span>`;
+  document.getElementById('s_em').textContent = '$' + emBase.toFixed(2) + ' (' + ((emBase / S) * 100).toFixed(1) + '%)';
+  document.getElementById('s_skew').textContent = rr + '%  ' + (Math.abs(rr) < 2 ? '≈ Flat' : rr < 0 ? 'Put Skew' : 'Call Skew');
+  document.getElementById('s_volscore').innerHTML = fmt(Math.round((ivRScore + ivHvScore + skewScore) / 3));
+
+  document.getElementById('s_gup').textContent = gResult.upDist + '% above';
+  document.getElementById('s_gdown').textContent = gResult.downDist + '% below';
+  document.getElementById('s_gbias').textContent = gResult.bias;
+  document.getElementById('s_oi').innerHTML = `<span class="${oiG > 10 ? 'c-green' : oiG > 0 ? 'c-gold' : 'c-red'}">${oiG > 0 ? '+' : ''}${oiG}%</span>`;
+  document.getElementById('s_gscore').innerHTML = fmt(Math.round((gResult.score + oiScore) / 2));
+
+  document.getElementById('s_dte').textContent = dte + ' days';
+  document.getElementById('s_tzone').textContent = dte >= 21 && dte <= 55 ? '✓ Sweet Zone' : dte < 21 ? '⚠ Too Short' : '~ Long Dated';
+  document.getElementById('s_gd').textContent = dte >= 21 && dte <= 45 ? 'Optimal' : 'Suboptimal';
+  document.getElementById('s_tscore').innerHTML = fmt(dteScore);
+  document.getElementById('s_rating').innerHTML = `<span class="${ratingColor}" style="font-size:14px">${rating}</span>`;
+
+  // ── Generate Candidate Strikes ──
+  const strikesPanel = document.getElementById('strikesPanel');
+  strikesPanel.classList.add('visible');
+  const tbody = document.getElementById('strikesBody');
+  tbody.innerHTML = '';
+
+  // Build strike list around EM boundaries
+  const candidates = [];
+  const step = S > 300 ? 5 : S > 100 ? 2.5 : 1;
+  const emLow = 0.7, emHigh = 1.3;
+
+  for (let mult = emLow; mult <= emHigh; mult += 0.1) {
+    // CALL strikes above price
+    const Kc = Math.round((S + emBase * mult) / step) * step;
+    const delta_c = bsDelta(S, Kc, T, rfr, iv, 'call');
+    if (delta_c >= 0.12 && delta_c <= 0.45) {
+      const prem_c = bsCall(S, Kc, T, rfr, iv);
+      const theta_c = bsTheta(S, Kc, T, rfr, iv, 'call');
+      const be_c = Kc + prem_c;
+      const emCov = ((Kc - S) / emBase * 100).toFixed(0);
+      const strikeEdge = Math.round(edgeScore * (1 - Math.abs(delta_c - 0.25) * 0.8));
+      candidates.push({ type: 'CALL', strike: Kc, delta: delta_c, prem: prem_c, theta: theta_c, be: be_c, emCov, edge: strikeEdge });
+    }
+
+    // PUT strikes below price
+    const Kp = Math.round((S - emBase * mult) / step) * step;
+    const delta_p = bsDelta(S, Kp, T, rfr, iv, 'put');
+    if (delta_p <= -0.12 && delta_p >= -0.45) {
+      const prem_p = bsPut(S, Kp, T, rfr, iv);
+      const theta_p = bsTheta(S, Kp, T, rfr, iv, 'put');
+      const be_p = Kp - prem_p;
+      const emCov = ((S - Kp) / emBase * 100).toFixed(0);
+      const strikeEdge = Math.round(edgeScore * (1 - Math.abs(delta_p + 0.25) * 0.8));
+      candidates.push({ type: 'PUT', strike: Kp, delta: delta_p, prem: prem_p, theta: theta_p, be: be_p, emCov, edge: strikeEdge });
+    }
+  }
+
+  // Deduplicate by strike+type, sort by edge desc
+  const seen = new Set();
+  const unique = candidates.filter(c => {
+    const k = c.type + c.strike;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).sort((a, b) => b.edge - a.edge).slice(0, 10);
+
+  unique.forEach((c, i) => {
+    const isTop = i < 3;
+    const tr = document.createElement('tr');
+    if (isTop) tr.className = 'top-pick';
+    const typeColor = c.type === 'CALL' ? 'c-green' : 'c-red';
+    const edgeColor = c.edge >= 70 ? '#39ff14' : c.edge >= 55 ? '#f0b429' : '#4a6070';
+    const edgePct = c.edge;
+    tr.innerHTML = `
+      <td class="c-muted">${i < 3 ? '★' : i + 1}</td>
+      <td><span class="${typeColor}">${c.type}</span></td>
+      <td>${c.strike.toFixed(2)}</td>
+      <td>${c.delta.toFixed(3)}</td>
+      <td class="c-gold">$${c.prem.toFixed(2)}</td>
+      <td class="c-red">$${Math.abs(c.theta).toFixed(3)}/d</td>
+      <td>$${c.be.toFixed(2)}</td>
+      <td class="c-cyan">${c.emCov}%</td>
+      <td>
+        <span style="color:${edgeColor}">${c.edge}</span>
+        <div class="edge-bar"><div class="edge-fill" style="width:${edgePct}%;background:${edgeColor}"></div></div>
+      </td>
+      <td><span class="badge ${c.edge >= 70 ? 'badge-hot' : c.edge >= 55 ? 'badge-neutral' : 'badge-bear'}">${c.edge >= 70 ? 'STRONG' : c.edge >= 55 ? 'FAIR' : 'WEAK'}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+</script>
+</body>
+</html>
