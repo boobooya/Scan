@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORACLE — AI Prediction Market Forecaster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:ital,wght@0,100..900;1,100..900&family=Bebas+Neue&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;1,6..72,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0a0a0e;
+  --paper: #f4f1eb;
+  --paper2: #ede9e0;
+  --paper3: #e5e0d5;
+  --line: rgba(10,10,14,0.12);
+  --line2: rgba(10,10,14,0.22);
+  --accent: #c8401a;
+  --accent2: #e8581f;
+  --blue: #1a4fc8;
+  --green: #1a7a3c;
+  --amber: #c87a1a;
+  --muted: rgba(10,10,14,0.45);
+  --mono: 'Azeret Mono', monospace;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'Newsreader', serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--body);
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Grain texture overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 9999;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+}
+
+/* Horizontal rules everywhere */
+.rule { border: none; border-top: 1px solid var(--line2); }
+.rule-heavy { border: none; border-top: 2px solid var(--ink); }
+
+/* ── HEADER ── */
+header {
+  border-bottom: 2px solid var(--ink);
+  background: var(--paper);
+  position: sticky; top: 0; z-index: 100;
+}
+
+.header-top {
+  display: flex; align-items: stretch;
+  border-bottom: 1px solid var(--line2);
+}
+
+.header-logo {
+  padding: 14px 24px;
+  border-right: 1px solid var(--line2);
+  display: flex; flex-direction: column; justify-content: center;
+}
+
+.logo-word {
+  font-family: var(--display);
+  font-size: 42px; line-height: 0.9;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.logo-sub {
+  font-family: var(--mono);
+  font-size: 8px; letter-spacing: 0.18em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.header-stats {
+  display: flex; flex: 1;
+}
+
+.hstat {
+  flex: 1;
+  padding: 10px 20px;
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; justify-content: center;
+}
+
+.hstat:last-child { border-right: none; }
+
+.hstat-label {
+  font-family: var(--mono);
+  font-size: 8px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 2px;
+}
+
+.hstat-value {
+  font-family: var(--display);
+  font-size: 26px; line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.header-actions {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 20px;
+  border-left: 1px solid var(--line2);
+}
+
+.ticker-bar {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 6px 24px;
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.1em;
+  overflow: hidden; white-space: nowrap;
+}
+
+.ticker-inner {
+  display: inline-block;
+  animation: ticker 40s linear infinite;
+}
+
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ── BUTTONS ── */
+.btn {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 8px 18px;
+  cursor: pointer;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+
+.btn:hover { background: var(--ink); color: var(--paper); }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+.btn-primary:hover { background: var(--accent2); border-color: var(--accent2); }
+
+.btn-sm { padding: 4px 10px; font-size: 10px; }
+
+/* ── SETUP SCREEN ── */
+#setupScreen {
+  max-width: 600px;
+  margin: 60px auto;
+  padding: 0 24px;
+}
+
+.setup-title {
+  font-family: var(--display);
+  font-size: 64px; line-height: 0.9;
+  letter-spacing: 0.03em;
+  margin-bottom: 8px;
+}
+
+.setup-desc {
+  font-size: 16px; color: var(--muted);
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: 32px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 24px;
+}
+
+.setup-field { margin-bottom: 20px; }
+
+.setup-label {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 6px; display: block;
+}
+
+.setup-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line2);
+  background: white;
+  font-family: var(--mono);
+  font-size: 13px; color: var(--ink);
+  outline: none;
+}
+
+.setup-input:focus { border-color: var(--accent); }
+
+.setup-note {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--muted);
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.setup-features {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 28px;
+}
+
+.setup-feature {
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: var(--paper2);
+}
+
+.sf-icon { font-size: 20px; margin-bottom: 6px; }
+.sf-title { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.sf-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* ── MAIN APP ── */
+#mainApp { display: none; }
+
+/* ── LAYOUT ── */
+.app-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  min-height: calc(100vh - 120px);
+  border-top: 1px solid var(--line2);
+}
+
+/* ── FEED COLUMN ── */
+.feed-col { border-right: 1px solid var(--line2); }
+
+.col-header {
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--line2);
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--paper2);
+}
+
+.col-title {
+  font-family: var(--mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+.filters { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.filt {
+  font-family: var(--mono);
+  font-size: 9px; letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border: 1px solid var(--line2);
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.12s;
+}
+
+.filt:hover, .filt.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+/* ── MARKET CARD ── */
+.mcard {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 0.12s;
+  position: relative;
+}
+
+.mcard:hover { background: var(--paper2); }
+
+.mcard.sel {
+  background: var(--paper2);
+  border-left: 3px solid var(--accent);
+  padding-left: 21px;
+}
+
+.mcard-top {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 8px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border: 1px solid;
+}
+
+.tag-poly { border-color: var(--blue); color: var(--blue); }
+.tag-kalshi { border-color: var(--accent); color: var(--accent); }
+.tag-demo { border-color: var(--amber); color: var(--amber); }
+.tag-cat { border-color: var(--line2); color: var(--muted); }
+
+.sig-badge {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 2px 7px;
+}
+
+.sig-badge.bullish { background: var(--green); color: white; }
+.sig-badge.bearish { background: var(--accent); color: white; }
+.sig-badge.neutral { background: var(--muted); color: var(--paper); }
+
+.mcard-q {
+  font-size: 15px; font-weight: 300;
+  line-height: 1.45; color: var(--ink);
+  margin-bottom: 12px;
+}
+
+.mcard-nums {
+  display: flex; align-items: baseline; gap: 14px;
+}
+
+.num-grp { display: flex; flex-direction: column; gap: 1px; }
+
+.num-lbl {
+  font-family: var(--mono);
+  font-size: 8px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--muted);
+}
+
+.num-val {
+  font-family: var(--display);
+  font-size: 30px; line-height: 1; letter-spacing: 0.02em;
+}
+
+.arrow-sep { font-size: 18px; color: var(--muted); align-self: center; }
+
+.delta-pill {
+  font-family: var(--mono);
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px;
+  align-self: center;
+}
+
+.delta-pill.up { background: rgba(26,122,60,0.12); color: var(--green); }
+.delta-pill.dn { background: rgba(200,64,26,0.1); color: var(--accent); }
+.delta-pill.fl { background: var(--paper3); color: var(--muted); }
+
+.prob-track {
+  height: 2px;
+  background: var(--line);
+  margin-top: 10px;
+  position: relative;
+}
+
+.prob-fill {
+  height: 100%;
+  background: var(--muted);
+  transition: width 0.6s;
+}
+
+.prob-marker {
+  position: absolute; top: -3px;
+  width: 2px; height: 8px;
+  background: var(--accent);
+}
+
+/* ── DETAIL PANEL ── */
+.detail-col {
+  position: sticky; top: 120px;
+  height: calc(100vh - 120px);
+  overflow-y: auto;
+  background: var(--paper);
+}
+
+.detail-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  height: 100%; gap: 10px;
+  color: var(--muted);
+  padding: 40px;
+  text-align: center;
+}
+
+.empty-glyph {
+  font-family: var(--display);
+  font-size: 80px; line-height: 1;
+  opacity: 0.15; color: var(--ink);
+}
+
+.empty-txt {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.detail-inner { padding: 0; }
+
+.detail-section {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dsec-title {
+  font-family: var(--mono);
+  font-size: 8px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.detail-q {
+  font-size: 16px; font-weight: 300;
+  line-height: 1.5; color: var(--ink);
+}
+
+/* Sparkline */
+.spark-wrap {
+  background: var(--paper2);
+  border: 1px solid var(--line);
+  padding: 14px;
+}
+
+canvas#spark {
+  width: 100%; height: 90px; display: block;
+}
+
+/* Forecast bars */
+.fbar-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 9px;
+}
+
+.fbar-label {
+  font-family: var(--mono);
+  font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--muted);
+  width: 72px; flex-shrink: 0;
+}
+
+.fbar-track { flex: 1; height: 8px; background: var(--line); position: relative; }
+.fbar-fill { height: 100%; transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+.fbar-pct { font-family: var(--mono); font-size: 11px; font-weight: 700; width: 38px; text-align: right; }
+
+/* AI insight */
+.ai-box {
+  background: white;
+  border: 1px solid var(--line2);
+  border-left: 3px solid var(--ink);
+  padding: 14px;
+}
+
+.ai-header {
+  font-family: var(--mono);
+  font-size: 8px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--muted);
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.ai-conf {
+  margin-left: auto;
+  padding: 1px 6px;
+  font-size: 8px;
+  background: var(--ink); color: var(--paper);
+}
+
+.ai-text {
+  font-size: 13px; font-weight: 300;
+  line-height: 1.65; font-style: italic;
+  color: var(--ink);
+}
+
+.ai-risk {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 10px; color: var(--amber);
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+/* CI track */
+.ci-wrap { padding: 4px 0; }
+.ci-track {
+  position: relative; height: 20px;
+  background: var(--paper3);
+  border: 1px solid var(--line);
+  margin-bottom: 6px;
+}
+.ci-95 { position: absolute; height: 100%; background: rgba(10,10,14,0.08); }
+.ci-68 { position: absolute; height: 100%; background: rgba(10,10,14,0.18); }
+.ci-pin { position: absolute; top: 0; width: 2px; height: 100%; background: var(--accent); }
+.ci-axis {
+  display: flex; justify-content: space-between;
+  font-family: var(--mono); font-size: 9px; color: var(--muted);
+}
+
+/* Features grid */
+.feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.feat-row {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.feat-row:nth-child(odd) { padding-right: 14px; border-right: 1px solid var(--line); }
+.feat-row:nth-child(even) { padding-left: 14px; }
+.feat-name { font-family: var(--mono); font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+.feat-val { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+
+/* Model panel */
+.model-box {
+  background: var(--ink); color: var(--paper);
+  padding: 16px 22px;
+}
+.model-title {
+  font-family: var(--display);
+  font-size: 20px; letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+.model-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  font-family: var(--mono); font-size: 10px;
+}
+.model-row:last-child { border-bottom: none; }
+.model-k { color: rgba(255,255,255,0.5); }
+.model-v { color: var(--paper); font-weight: 600; }
+
+/* Log */
+.log-box { max-height: 160px; overflow-y: auto; }
+.log-entry {
+  display: flex; gap: 8px; padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono); font-size: 9px; color: var(--muted);
+}
+.log-t { flex-shrink: 0; }
+.log-badge {
+  flex-shrink: 0; padding: 1px 5px;
+  font-size: 8px; font-weight: 700; text-transform: uppercase;
+}
+.log-badge.fetch { background: var(--blue); color: white; }
+.log-badge.model { background: var(--green); color: white; }
+.log-badge.ai { background: var(--accent); color: white; }
+.log-badge.error { background: darkred; color: white; }
+.log-badge.init { background: var(--amber); color: white; }
+
+/* Loading */
+.spinner {
+  width: 24px; height: 24px;
+  border: 2px solid var(--line2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-row {
+  padding: 40px 24px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
+  color: var(--muted); font-family: var(--mono); font-size: 11px;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(60px);
+  background: var(--ink); color: var(--paper);
+  padding: 10px 24px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+  transition: transform 0.3s; z-index: 9000;
+  white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Progress bar for training */
+.training-overlay {
+  position: fixed; inset: 0; z-index: 8000;
+  background: rgba(10,10,14,0.85);
+  display: flex; align-items: center; justify-content: center;
+  display: none;
+}
+.training-box {
+  background: var(--paper);
+  padding: 40px 48px;
+  text-align: center;
+  border: 2px solid var(--ink);
+  min-width: 340px;
+}
+.training-title {
+  font-family: var(--display);
+  font-size: 36px; letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.training-sub {
+  font-family: var(--mono);
+  font-size: 10px; color: var(--muted);
+  letter-spacing: 0.1em; margin-bottom: 24px;
+}
+.progress-track {
+  height: 4px; background: var(--line2);
+  margin-bottom: 12px; overflow: hidden;
+}
+.progress-fill {
+  height: 100%; background: var(--accent);
+  width: 0%; transition: width 0.3s;
+}
+.progress-label {
+  font-family: var(--mono); font-size: 10px; color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .app-grid { grid-template-columns: 1fr; }
+  .detail-col { position: static; height: auto; }
+  .header-stats { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header id="appHeader" style="display:none">
+  <div class="header-top">
+    <div class="header-logo">
+      <div class="logo-word">ORACLE</div>
+      <div class="logo-sub">AI Prediction Market Forecaster</div>
+    </div>
+    <div class="header-stats">
+      <div class="hstat">
+        <div class="hstat-label">Markets</div>
+        <div class="hstat-value" id="hMarkets">—</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-label">Accuracy</div>
+        <div class="hstat-value" id="hAccuracy">—</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-label">Training Pairs</div>
+        <div class="hstat-value" id="hPairs">—</div>
+      </div>
+      <div class="hstat">
+        <div class="hstat-label">Last Fetch</div>
+        <div class="hstat-value" id="hFetch" style="font-size:16px;padding-top:4px">—</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-sm" onclick="retrain()">↺ Retrain</button>
+      <button class="btn btn-primary btn-sm" onclick="fetchData()">↓ Fetch</button>
+      <button class="btn btn-sm" onclick="exportData()">↑ Export</button>
+    </div>
+  </div>
+  <div class="ticker-bar"><span class="ticker-inner" id="tickerInner">Loading markets…</span></div>
+</header>
+
+<!-- ── SETUP SCREEN ── -->
+<div id="setupScreen">
+  <div class="setup-title">ORACLE</div>
+  <p class="setup-desc">
+    Autonomous AI forecaster for Kalshi &amp; Polymarket prediction markets.<br>
+    Fetches live data, trains a statistical ensemble, and generates probability forecasts — all in your browser.
+  </p>
+
+  <div class="setup-features">
+    <div class="setup-feature">
+      <div class="sf-icon">📡</div>
+      <div class="sf-title">Live Data</div>
+      <div class="sf-desc">Pulls from Kalshi &amp; Polymarket public APIs every refresh cycle</div>
+    </div>
+    <div class="setup-feature">
+      <div class="sf-icon">🧠</div>
+      <div class="sf-title">ML Engine</div>
+      <div class="sf-desc">Walk-forward trained ensemble: trend, momentum, mean-reversion, Bollinger</div>
+    </div>
+    <div class="setup-feature">
+      <div class="sf-icon">⚡</div>
+      <div class="sf-title">AI Reasoning</div>
+      <div class="sf-desc">Claude Sonnet adds qualitative analysis on top-volume markets</div>
+    </div>
+    <div class="setup-feature">
+      <div class="sf-icon">💾</div>
+      <div class="sf-title">Persistent Memory</div>
+      <div class="sf-desc">Saves all data to localStorage — improves with every run</div>
+    </div>
+  </div>
+
+  <div class="setup-field">
+    <label class="setup-label">Anthropic API Key</label>
+    <input type="password" id="apiKeyInput" class="setup-input" placeholder="sk-ant-api03-…">
+    <div class="setup-note">
+      Required for AI qualitative analysis layer. The statistical ML model works without it.<br>
+      Your key is stored only in this browser's localStorage — never sent anywhere except api.anthropic.com.
+    </div>
+  </div>
+
+  <div class="setup-field">
+    <label class="setup-label">Auto-refresh interval</label>
+    <select id="intervalInput" class="setup-input" style="cursor:pointer">
+      <option value="0">Manual only</option>
+      <option value="15" selected>Every 15 minutes</option>
+      <option value="30">Every 30 minutes</option>
+      <option value="60">Every hour</option>
+    </select>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="btn btn-primary" onclick="startApp()">Launch ORACLE →</button>
+    <button class="btn" onclick="loadDemo()">Demo Mode (no API)</button>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="mainApp">
+  <div class="app-grid">
+    <!-- Feed -->
+    <div class="feed-col">
+      <div class="col-header">
+        <div class="col-title">Live Forecasts</div>
+        <div class="filters">
+          <button class="filt on" onclick="setFilt('all',this)">All</button>
+          <button class="filt" onclick="setFilt('bullish',this)">▲ Up</button>
+          <button class="filt" onclick="setFilt('bearish',this)">▼ Down</button>
+          <button class="filt" onclick="setFilt('Polymarket',this)">Poly</button>
+          <button class="filt" onclick="setFilt('Kalshi',this)">Kalshi</button>
+        </div>
+      </div>
+      <div id="feedEl">
+        <div class="loading-row"><div class="spinner"></div><span>Loading…</span></div>
+      </div>
+    </div>
+
+    <!-- Detail -->
+    <div class="detail-col" id="detailCol">
+      <div class="detail-empty">
+        <div class="empty-glyph">◎</div>
+        <div class="empty-txt">Select a market to inspect</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Training overlay -->
+<div class="training-overlay" id="trainOverlay">
+  <div class="training-box">
+    <div class="training-title">TRAINING</div>
+    <div class="training-sub" id="trainSub">Initializing model…</div>
+    <div class="progress-track"><div class="progress-fill" id="trainProg"></div></div>
+    <div class="progress-label" id="trainLabel">0%</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+let STATE = {
+  apiKey: '',
+  markets: {},      // id → market object with history[]
+  forecasts: {},    // id → forecast object
+  model: null,
+  log: [],
+  selectedId: null,
+  filter: 'all',
+  demoMode: false,
+  intervalMins: 15,
+  intervalTimer: null,
+};
+
+const LS_KEY = 'oracle_v2';
+
+function save() {
+  try {
+    const payload = {
+      apiKey: STATE.apiKey,
+      markets: STATE.markets,
+      forecasts: STATE.forecasts,
+      model: STATE.model,
+      log: STATE.log.slice(0, 200),
+      intervalMins: STATE.intervalMins,
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(payload));
+  } catch(e) { console.warn('Save failed (storage full?)', e); }
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    STATE.apiKey = d.apiKey || '';
+    STATE.markets = d.markets || {};
+    STATE.forecasts = d.forecasts || {};
+    STATE.model = d.model || null;
+    STATE.log = d.log || [];
+    STATE.intervalMins = d.intervalMins || 15;
+  } catch {}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+const pct = (v, d=1) => (v*100).toFixed(d) + '%';
+const clamp = (v, lo=0.01, hi=0.99) => Math.max(lo, Math.min(hi, v));
+const fmtAge = (iso) => {
+  if (!iso) return '—';
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 2) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1440) return `${Math.round(mins/60)}h ago`;
+  return `${Math.round(mins/1440)}d ago`;
+};
+
+function toast(msg, dur=3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+function addLog(type, msg) {
+  STATE.log.unshift({ type, msg, ts: new Date().toISOString() });
+  STATE.log = STATE.log.slice(0, 200);
+}
+
+function setProgress(pct, label) {
+  document.getElementById('trainProg').style.width = pct + '%';
+  document.getElementById('trainLabel').textContent = label;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEMO DATA GENERATOR
+// ═══════════════════════════════════════════════════════════════
+function generateDemoMarkets() {
+  const specs = [
+    { q: 'Will the Fed cut rates before July 2026?', cat: 'Economics', src: 'Kalshi', prob: 0.62 },
+    { q: 'Will Bitcoin exceed $120,000 in 2026?', cat: 'Crypto', src: 'Polymarket', prob: 0.41 },
+    { q: 'Will the S&P 500 hit 6,500 by end of 2026?', cat: 'Finance', src: 'Kalshi', prob: 0.55 },
+    { q: 'Will there be a US recession in 2026?', cat: 'Economics', src: 'Polymarket', prob: 0.28 },
+    { q: 'Will AI pass the bar exam with 90%+ accuracy?', cat: 'Technology', src: 'Polymarket', prob: 0.67 },
+    { q: 'Will SpaceX Starship complete an orbital mission?', cat: 'Technology', src: 'Kalshi', prob: 0.81 },
+    { q: 'Will inflation drop below 2% by Q3 2026?', cat: 'Economics', src: 'Polymarket', prob: 0.44 },
+    { q: 'Will Nvidia remain the most valuable company?', cat: 'Finance', src: 'Kalshi', prob: 0.52 },
+    { q: 'Will a major AI regulation bill pass in the US?', cat: 'Politics', src: 'Polymarket', prob: 0.33 },
+    { q: 'Will Ethereum ETF inflows exceed $5B in 2026?', cat: 'Crypto', src: 'Kalshi', prob: 0.48 },
+    { q: 'Will Apple release an AR/VR headset revision?', cat: 'Technology', src: 'Polymarket', prob: 0.72 },
+    { q: 'Will US unemployment exceed 5% in 2026?', cat: 'Economics', src: 'Kalshi', prob: 0.22 },
+  ];
+
+  const now = Date.now() / 1000;
+  const markets = {};
+
+  specs.forEach((s, i) => {
+    const history = [];
+    let p = s.prob + (Math.random() - 0.5) * 0.2;
+    p = clamp(p, 0.05, 0.95);
+    for (let d = 90; d >= 0; d--) {
+      p = clamp(p + (Math.random() - 0.5) * 0.04 + (s.prob - p) * 0.05);
+      history.push({ t: now - d * 86400, p });
+    }
+    const id = `demo_${i}`;
+    markets[id] = {
+      id, source: s.src, question: s.q, category: s.cat,
+      probability: history[history.length - 1].p,
+      volume: Math.floor(Math.random() * 800000 + 20000),
+      liquidity: Math.floor(Math.random() * 120000 + 8000),
+      endDate: new Date(Date.now() + (60 + Math.random() * 200) * 86400000).toISOString(),
+      fetchedAt: new Date().toISOString(),
+      history,
+    };
+  });
+
+  return markets;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FEATURE ENGINEERING
+// ═══════════════════════════════════════════════════════════════
+function features(history) {
+  if (!history || history.length < 4) return null;
+  const ps = history.map(h => h.p);
+  const n = ps.length;
+  const last = ps[n - 1];
+
+  const mean = arr => arr.reduce((s, v) => s + v, 0) / arr.length;
+  const std = arr => { const m = mean(arr); return Math.sqrt(arr.reduce((s,v) => s + (v-m)**2, 0) / arr.length); };
+
+  const w7  = ps.slice(-7);
+  const w14 = ps.slice(-14);
+  const w30 = ps.slice(-30);
+
+  const mean7  = mean(w7);
+  const mean14 = mean(w14.length ? w14 : w7);
+  const mean30 = mean(w30.length ? w30 : w14);
+  const std14  = std(w14.length ? w14 : w7);
+
+  const momentum = n >= 7  ? last - ps[n - 7]  : 0;
+  const accel    = n >= 14 ? (last - ps[Math.max(0,n-7)]) - (ps[Math.max(0,n-7)] - ps[Math.max(0,n-14)]) : 0;
+
+  // OLS slope on last 30
+  const win = ps.slice(-30);
+  const xs = win.map((_, i) => i);
+  const xm = mean(xs), ym = mean(win);
+  const num = xs.reduce((s, x, i) => s + (x - xm) * (win[i] - ym), 0);
+  const den = xs.reduce((s, x) => s + (x - xm) ** 2, 0);
+  const slope = den ? num / den : 0;
+  const trendSlope = slope * win.length;
+
+  const meanReversion = 0.5 - last;
+  const upper = mean14 + 2 * std14;
+  const lower = mean14 - 2 * std14;
+  const bbPos = (upper - lower) > 0.001 ? (last - lower) / (upper - lower) : 0.5;
+  const velocity = n >= 3 ? (last - ps[n - 3]) / 3 : 0;
+
+  return { last, mean7, mean14, mean30, std14, momentum, accel, trendSlope, meanReversion, bbPos, velocity, n };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ML MODEL — WALK-FORWARD TRAINING
+// ═══════════════════════════════════════════════════════════════
+async function trainModel() {
+  const markets = Object.values(STATE.markets);
+  const pairs = [];
+
+  markets.forEach(m => {
+    const h = m.history || [];
+    if (h.length < 20) return;
+    for (let i = 14; i < h.length - 7; i++) {
+      const f = features(h.slice(0, i));
+      const future = h[i + 7]?.p;
+      if (!f || future == null) continue;
+      pairs.push({ f, future });
+    }
+  });
+
+  if (pairs.length < 5) {
+    return { weights: { trend: 0.35, mean: 0.30, momentum: 0.20, reversion: 0.15 }, trainedOn: 0, accuracy: 0 };
+  }
+
+  const sigs = ['trend', 'mean', 'momentum', 'reversion'];
+  const scores = { trend: 0, mean: 0, momentum: 0, reversion: 0 };
+
+  pairs.forEach(({ f, future }) => {
+    const dir = future > f.last ? 1 : -1;
+    if (Math.sign(f.trendSlope) === dir) scores.trend++;
+    if (Math.sign(f.mean7 - f.mean14) === dir) scores.mean++;
+    if (Math.sign(f.momentum) === dir) scores.momentum++;
+    if (Math.sign(f.meanReversion) === dir) scores.reversion++;
+  });
+
+  const total = Object.values(scores).reduce((s, v) => s + v, 0) || 1;
+  const weights = {};
+  sigs.forEach(k => weights[k] = scores[k] / total);
+
+  let correct = 0;
+  pairs.forEach(({ f, future }) => {
+    const pred = applyWeights(f, weights);
+    if ((pred > f.last) === (future > f.last)) correct++;
+  });
+
+  return {
+    weights,
+    trainedOn: pairs.length,
+    accuracy: +(correct / pairs.length * 100).toFixed(1),
+    trainedAt: new Date().toISOString(),
+  };
+}
+
+function applyWeights(f, w) {
+  const trend = f.last + f.trendSlope * w.trend;
+  const meanS = f.mean14 * w.mean + f.last * (1 - w.mean);
+  const mom   = f.last + f.momentum * 0.5 * w.momentum;
+  const rev   = f.last + f.meanReversion * 0.15 * w.reversion;
+  const wSum  = w.trend + w.mean + w.momentum + w.reversion || 1;
+  return clamp((trend * w.trend + meanS * w.mean + mom * w.momentum + rev * w.reversion) / wSum);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AI LAYER — CLAUDE API
+// ═══════════════════════════════════════════════════════════════
+async function getAI(market, f, statForecast) {
+  if (!STATE.apiKey || STATE.demoMode) {
+    // Demo AI: fake insight
+    const signals = ['bullish', 'bearish', 'neutral'];
+    const signal = statForecast > f.last + 0.02 ? 'bullish' : statForecast < f.last - 0.02 ? 'bearish' : 'neutral';
+    return {
+      summary: `Statistical indicators suggest ${signal === 'bullish' ? 'upward' : signal === 'bearish' ? 'downward' : 'sideways'} pressure on this market. The ${f.momentum > 0 ? 'positive' : 'negative'} momentum and current Bollinger position support the model's forecast direction.`,
+      forecast: clamp(statForecast + (Math.random() - 0.5) * 0.04),
+      confidence: ['low','medium','high'][Math.floor(Math.random() * 3)],
+      keyRisk: 'Unexpected macro events could rapidly shift sentiment.',
+      signal,
+    };
+  }
+
+  const prompt = `You are an expert prediction market analyst. Analyze this market and give a structured forecast.
+
+Market: "${market.question}"
+Category: ${market.category} | Source: ${market.source}
+Current probability: ${pct(f.last)}
+Statistical model 7-day forecast: ${pct(statForecast)}
+
+Technical indicators:
+- 7-day momentum: ${f.momentum >= 0 ? '+' : ''}${pct(f.momentum, 2)}
+- 14-day volatility: ${pct(f.std14, 2)}
+- Bollinger position: ${(f.bbPos * 100).toFixed(0)}% (0=oversold, 100=overbought)
+- Trend slope (30d): ${f.trendSlope >= 0 ? '+' : ''}${pct(f.trendSlope, 2)}
+- Mean reversion signal: ${pct(f.meanReversion, 2)} from center
+
+Respond ONLY with valid JSON, no markdown, no explanation:
+{"summary":"2 sentences on market dynamics","forecast":0.XX,"confidence":"low|medium|high","keyRisk":"one sentence","signal":"bullish|bearish|neutral"}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': STATE.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '{}';
+    return JSON.parse(text.replace(/```json|```/g, '').trim());
+  } catch (e) {
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA FETCHER — KALSHI + POLYMARKET PUBLIC APIs
+// ═══════════════════════════════════════════════════════════════
+async function fetchLiveData() {
+  const results = {};
+
+  // Polymarket gamma API
+  try {
+    const r = await fetch('https://gamma-api.polymarket.com/markets?limit=20&active=true&order=volume&ascending=false', {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      (data || []).slice(0, 20).forEach(m => {
+        const id = `poly_${m.id || m.conditionId}`;
+        const prob = parseFloat(m.outcomePrices?.[0] || m.bestBid || 0.5);
+        const existing = STATE.markets[id];
+        const history = existing?.history || [];
+        history.push({ t: Date.now() / 1000, p: clamp(prob) });
+        results[id] = {
+          id, source: 'Polymarket',
+          question: m.question || 'Unknown market',
+          category: m.category || 'General',
+          probability: clamp(prob),
+          volume: parseFloat(m.volumeNum || m.volume || 0),
+          liquidity: parseFloat(m.liquidityNum || m.liquidity || 0),
+          endDate: m.endDate || m.end_date_iso,
+          fetchedAt: new Date().toISOString(),
+          history: history.slice(-500),
+        };
+      });
+      addLog('fetch', `Polymarket: ${Object.keys(results).length} markets`);
+    }
+  } catch (e) {
+    addLog('error', 'Polymarket fetch failed: ' + e.message);
+  }
+
+  // Kalshi public API
+  try {
+    const r = await fetch('https://trading-api.kalshi.com/trade-api/v2/markets?limit=20&status=open', {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const before = Object.keys(results).length;
+      (data.markets || []).slice(0, 20).forEach(m => {
+        const id = `kalshi_${m.ticker}`;
+        const prob = clamp(parseFloat(m.last_price || m.yes_bid || 50) / 100);
+        const existing = STATE.markets[id];
+        const history = existing?.history || [];
+        history.push({ t: Date.now() / 1000, p: prob });
+        results[id] = {
+          id, source: 'Kalshi', ticker: m.ticker,
+          question: m.title || 'Unknown market',
+          category: m.category || 'General',
+          probability: prob,
+          volume: parseFloat(m.volume || 0),
+          liquidity: parseFloat(m.open_interest || 0),
+          endDate: m.close_time,
+          fetchedAt: new Date().toISOString(),
+          history: history.slice(-500),
+        };
+      });
+      addLog('fetch', `Kalshi: ${Object.keys(results).length - before} markets`);
+    }
+  } catch (e) {
+    addLog('error', 'Kalshi fetch failed: ' + e.message);
+  }
+
+  return results;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FORECAST CYCLE
+// ═══════════════════════════════════════════════════════════════
+async function runForecastCycle(showOverlay = true) {
+  if (showOverlay) {
+    document.getElementById('trainOverlay').style.display = 'flex';
+  }
+
+  const markets = Object.values(STATE.markets);
+  if (!markets.length) {
+    if (showOverlay) document.getElementById('trainOverlay').style.display = 'none';
+    return;
+  }
+
+  // Train model
+  document.getElementById('trainSub').textContent = 'Training ensemble model…';
+  setProgress(10, '10%');
+  await new Promise(r => setTimeout(r, 80));
+
+  const model = await trainModel();
+  STATE.model = model;
+
+  setProgress(40, '40%');
+  addLog('model', `Trained on ${model.trainedOn} pairs | accuracy: ${model.accuracy}%`);
+
+  // Pick top markets for AI (by volume, max 4)
+  const sorted = [...markets].sort((a, b) => (b.volume || 0) - (a.volume || 0));
+  const aiTargets = new Set(sorted.slice(0, 4).map(m => m.id));
+
+  const forecasts = {};
+  let done = 0;
+
+  for (const market of markets) {
+    const f = features(market.history);
+    if (!f) { done++; continue; }
+
+    const statForecast = applyWeights(f, model.weights);
+    let ai = null;
+
+    if (aiTargets.has(market.id)) {
+      document.getElementById('trainSub').textContent = `AI: "${market.question.slice(0,40)}…"`;
+      ai = await getAI(market, f, statForecast);
+      if (ai) addLog('ai', `AI insight: ${market.question.slice(0,40)}…`);
+    }
+
+    const ensemble = ai?.forecast ? clamp(statForecast * 0.5 + ai.forecast * 0.5) : statForecast;
+    const ci95 = f.std14 * 1.96;
+    const ci68 = f.std14;
+
+    forecasts[market.id] = {
+      marketId: market.id,
+      question: market.question,
+      source: market.source,
+      category: market.category,
+      currentProb: f.last,
+      forecast7d: ensemble,
+      statForecast,
+      ai,
+      ci: {
+        l95: Math.max(0, ensemble - ci95), u95: Math.min(1, ensemble + ci95),
+        l68: Math.max(0, ensemble - ci68), u68: Math.min(1, ensemble + ci68),
+      },
+      features: f,
+      signal: ai?.signal || (ensemble > f.last + 0.025 ? 'bullish' : ensemble < f.last - 0.025 ? 'bearish' : 'neutral'),
+      modelAccuracy: model.accuracy,
+      forecastedAt: new Date().toISOString(),
+    };
+
+    done++;
+    const prog = 40 + Math.round((done / markets.length) * 60);
+    setProgress(prog, prog + '%');
+    if (done % 3 === 0) await new Promise(r => setTimeout(r, 10));
+  }
+
+  STATE.forecasts = forecasts;
+  setProgress(100, '100%');
+  await new Promise(r => setTimeout(r, 200));
+
+  if (showOverlay) document.getElementById('trainOverlay').style.display = 'none';
+
+  save();
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FETCH FLOW (user action or auto)
+// ═══════════════════════════════════════════════════════════════
+async function fetchData() {
+  toast('⟳ Fetching live market data…');
+  document.getElementById('trainOverlay').style.display = 'flex';
+  document.getElementById('trainSub').textContent = 'Fetching Kalshi + Polymarket…';
+  setProgress(5, '5%');
+
+  const live = await fetchLiveData();
+  const liveCount = Object.keys(live).length;
+
+  if (liveCount > 0) {
+    STATE.markets = { ...STATE.markets, ...live };
+    toast(`✓ Fetched ${liveCount} markets`);
+  } else {
+    toast('⚠ APIs unreachable — using existing data');
+    // If no data at all, use demo
+    if (!Object.keys(STATE.markets).length) {
+      STATE.markets = generateDemoMarkets();
+      STATE.demoMode = true;
+      addLog('init', 'Loaded demo markets (APIs unavailable)');
+    }
+  }
+
+  addLog('fetch', `Fetch complete: ${Object.keys(STATE.markets).length} total markets`);
+  await runForecastCycle(false);
+  document.getElementById('trainOverlay').style.display = 'none';
+}
+
+async function retrain() {
+  toast('↺ Retraining model…');
+  await runForecastCycle(true);
+  toast('✓ Model retrained');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderAll() {
+  updateHeader();
+  renderFeed();
+  updateTicker();
+  if (STATE.selectedId && STATE.forecasts[STATE.selectedId]) {
+    renderDetail(STATE.forecasts[STATE.selectedId]);
+  }
+}
+
+function updateHeader() {
+  document.getElementById('hMarkets').textContent = Object.keys(STATE.markets).length || '—';
+  document.getElementById('hAccuracy').textContent = STATE.model?.accuracy ? STATE.model.accuracy + '%' : '—';
+  document.getElementById('hPairs').textContent = STATE.model?.trainedOn ? STATE.model.trainedOn.toLocaleString() : '—';
+  const lastFetch = Object.values(STATE.markets)[0]?.fetchedAt;
+  document.getElementById('hFetch').textContent = fmtAge(lastFetch);
+}
+
+function updateTicker() {
+  const fc = Object.values(STATE.forecasts);
+  if (!fc.length) return;
+  const items = fc.slice(0, 12).map(f => {
+    const d = f.forecast7d - f.currentProb;
+    const sym = d > 0.01 ? '▲' : d < -0.01 ? '▼' : '■';
+    return `${sym} ${f.question.slice(0,45)} ${pct(f.currentProb)} → ${pct(f.forecast7d)}`;
+  });
+  const str = items.join('   ·   ');
+  const el = document.getElementById('tickerInner');
+  el.textContent = str + '   ·   ' + str;
+}
+
+function filteredForecasts() {
+  const all = Object.values(STATE.forecasts);
+  if (STATE.filter === 'all') return all;
+  if (STATE.filter === 'bullish') return all.filter(f => f.signal === 'bullish');
+  if (STATE.filter === 'bearish') return all.filter(f => f.signal === 'bearish');
+  return all.filter(f => f.source === STATE.filter);
+}
+
+function renderFeed() {
+  const el = document.getElementById('feedEl');
+  const items = filteredForecasts();
+
+  if (!items.length) {
+    el.innerHTML = `<div class="loading-row">No markets match this filter</div>`;
+    return;
+  }
+
+  el.innerHTML = items.map(f => {
+    const delta = f.forecast7d - f.currentProb;
+    const dClass = delta > 0.01 ? 'up' : delta < -0.01 ? 'dn' : 'fl';
+    const dStr = (delta >= 0 ? '+' : '') + pct(delta, 1);
+    const srcClass = f.source === 'Polymarket' ? 'poly' : f.source === 'Kalshi' ? 'kalshi' : 'demo';
+    const curPct = (f.currentProb * 100).toFixed(0);
+    const fcPct = (f.forecast7d * 100).toFixed(0);
+    const fcColor = f.forecast7d > 0.65 ? 'var(--green)' : f.forecast7d < 0.35 ? 'var(--accent)' : 'var(--ink)';
+
+    return `<div class="mcard ${STATE.selectedId === f.marketId ? 'sel' : ''}"
+      onclick="selMarket('${f.marketId}')">
+      <div class="mcard-top">
+        <span class="tag tag-${srcClass}">${f.source}</span>
+        <span class="tag tag-cat">${f.category}</span>
+        <span class="sig-badge ${f.signal}">${f.signal}</span>
+      </div>
+      <div class="mcard-q">${f.question}</div>
+      <div class="mcard-nums">
+        <div class="num-grp">
+          <div class="num-lbl">Current</div>
+          <div class="num-val">${curPct}%</div>
+        </div>
+        <div class="arrow-sep">→</div>
+        <div class="num-grp">
+          <div class="num-lbl">7-Day Forecast</div>
+          <div class="num-val" style="color:${fcColor}">${fcPct}%</div>
+        </div>
+        <span class="delta-pill ${dClass}">${dStr}</span>
+      </div>
+      <div class="prob-track">
+        <div class="prob-fill" style="width:${curPct}%"></div>
+        <div class="prob-marker" style="left:${fcPct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilt(f, btn) {
+  STATE.filter = f;
+  document.querySelectorAll('.filt').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderFeed();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DETAIL PANEL
+// ═══════════════════════════════════════════════════════════════
+function selMarket(id) {
+  STATE.selectedId = id;
+  renderFeed();
+  const f = STATE.forecasts[id];
+  if (f) renderDetail(f);
+}
+
+function renderDetail(f) {
+  const col = document.getElementById('detailCol');
+  const srcClass = f.source === 'Polymarket' ? 'poly' : f.source === 'Kalshi' ? 'kalshi' : 'demo';
+  const market = STATE.markets[f.marketId] || {};
+  const history = market.history || [];
+  const fcColor = f.forecast7d > 0.65 ? 'var(--green)' : f.forecast7d < 0.35 ? 'var(--accent)' : 'var(--blue)';
+
+  const aiHTML = f.ai ? `
+    <div class="detail-section">
+      <div class="dsec-title">AI Analysis</div>
+      <div class="ai-box">
+        <div class="ai-header">Claude Sonnet <span class="ai-conf">${f.ai.confidence || '?'} confidence</span></div>
+        <div class="ai-text">${f.ai.summary || ''}</div>
+        ${f.ai.keyRisk ? `<div class="ai-risk">⚠ Risk: ${f.ai.keyRisk}</div>` : ''}
+      </div>
+    </div>` : '';
+
+  const wts = STATE.model?.weights || {};
+
+  col.innerHTML = `<div class="detail-inner">
+    <div class="detail-section">
+      <div class="dsec-title" style="margin-bottom:6px">
+        <span class="tag tag-${srcClass}" style="margin-right:6px">${f.source}</span>
+        <span class="tag tag-cat">${f.category}</span>
+      </div>
+      <div class="detail-q">${f.question}</div>
+    </div>
+
+    <div class="detail-section">
+      <div class="dsec-title">Historical Probability</div>
+      <div class="spark-wrap">
+        <canvas id="spark" width="314" height="90"></canvas>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="dsec-title">Forecast Breakdown (7-Day)</div>
+      <div class="fbar-row">
+        <div class="fbar-label">Current</div>
+        <div class="fbar-track"><div class="fbar-fill" style="width:${f.currentProb*100}%;background:var(--muted)"></div></div>
+        <div class="fbar-pct">${pct(f.currentProb)}</div>
+      </div>
+      <div class="fbar-row">
+        <div class="fbar-label">Statistical</div>
+        <div class="fbar-track"><div class="fbar-fill" style="width:${f.statForecast*100}%;background:var(--blue)"></div></div>
+        <div class="fbar-pct" style="color:var(--blue)">${pct(f.statForecast)}</div>
+      </div>
+      ${f.ai?.forecast ? `<div class="fbar-row">
+        <div class="fbar-label">AI Model</div>
+        <div class="fbar-track"><div class="fbar-fill" style="width:${f.ai.forecast*100}%;background:var(--amber)"></div></div>
+        <div class="fbar-pct" style="color:var(--amber)">${pct(f.ai.forecast)}</div>
+      </div>` : ''}
+      <div class="fbar-row">
+        <div class="fbar-label">Ensemble</div>
+        <div class="fbar-track"><div class="fbar-fill" style="width:${f.forecast7d*100}%;background:${fcColor}"></div></div>
+        <div class="fbar-pct" style="color:${fcColor};font-size:13px">${pct(f.forecast7d)}</div>
+      </div>
+    </div>
+
+    ${aiHTML}
+
+    <div class="detail-section">
+      <div class="dsec-title">Confidence Interval</div>
+      <div class="ci-wrap">
+        <div class="ci-track">
+          <div class="ci-95" style="left:${f.ci.l95*100}%;width:${(f.ci.u95-f.ci.l95)*100}%"></div>
+          <div class="ci-68" style="left:${f.ci.l68*100}%;width:${(f.ci.u68-f.ci.l68)*100}%"></div>
+          <div class="ci-pin" style="left:${f.forecast7d*100}%"></div>
+        </div>
+        <div class="ci-axis">
+          <span>0%</span>
+          <span>68%: ${pct(f.ci.l68,0)}–${pct(f.ci.u68,0)}</span>
+          <span>100%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="dsec-title">Model Features</div>
+      <div class="feat-grid">
+        <div class="feat-row">
+          <div class="feat-name">7d Momentum</div>
+          <div class="feat-val" style="color:${f.features.momentum>=0?'var(--green)':'var(--accent)'}">
+            ${f.features.momentum >= 0 ? '+' : ''}${pct(f.features.momentum, 2)}</div>
+        </div>
+        <div class="feat-row">
+          <div class="feat-name">14d Volatility</div>
+          <div class="feat-val">${pct(f.features.std14, 2)}</div>
+        </div>
+        <div class="feat-row">
+          <div class="feat-name">BB Position</div>
+          <div class="feat-val">${(f.features.bbPos*100).toFixed(0)}%</div>
+        </div>
+        <div class="feat-row">
+          <div class="feat-name">Trend Slope</div>
+          <div class="feat-val" style="color:${f.features.trendSlope>=0?'var(--green)':'var(--accent)'}">
+            ${f.features.trendSlope >= 0 ? '+' : ''}${pct(f.features.trendSlope, 2)}</div>
+        </div>
+        <div class="feat-row">
+          <div class="feat-name">Data Points</div>
+          <div class="feat-val">${f.features.n}</div>
+        </div>
+        <div class="feat-row">
+          <div class="feat-name">Accuracy</div>
+          <div class="feat-val" style="color:var(--blue)">${f.modelAccuracy}%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="model-box">
+      <div class="model-title">MODEL WEIGHTS</div>
+      <div class="model-row"><span class="model-k">Trend</span><span class="model-v">${((wts.trend||0)*100).toFixed(1)}%</span></div>
+      <div class="model-row"><span class="model-k">Mean Reversion</span><span class="model-v">${((wts.mean||0)*100).toFixed(1)}%</span></div>
+      <div class="model-row"><span class="model-k">Momentum</span><span class="model-v">${((wts.momentum||0)*100).toFixed(1)}%</span></div>
+      <div class="model-row"><span class="model-k">Reversion</span><span class="model-v">${((wts.reversion||0)*100).toFixed(1)}%</span></div>
+      <div class="model-row"><span class="model-k">Training Pairs</span><span class="model-v">${(STATE.model?.trainedOn||0).toLocaleString()}</span></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="dsec-title">Cycle Log</div>
+      <div class="log-box">${STATE.log.slice(0,20).map(e => `
+        <div class="log-entry">
+          <span class="log-t">${new Date(e.ts).toLocaleTimeString()}</span>
+          <span class="log-badge ${e.type}">${e.type}</span>
+          <span>${e.msg}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+
+    <div style="padding:14px 22px;font-family:var(--mono);font-size:9px;color:var(--muted)">
+      Forecast generated ${fmtAge(f.forecastedAt)} · Data: ${f.source}
+    </div>
+  </div>`;
+
+  // Draw sparkline
+  requestAnimationFrame(() => drawSpark(history));
+}
+
+function drawSpark(history) {
+  const canvas = document.getElementById('spark');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.offsetWidth || 314;
+  const H = 90;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const pts = history.slice(-90);
+  if (pts.length < 2) return;
+
+  const ps = pts.map(p => p.p);
+  const lo = Math.min(...ps), hi = Math.max(...ps);
+  const range = hi - lo || 0.05;
+  const pad = { t: 6, b: 18, l: 6, r: 6 };
+  const iW = W - pad.l - pad.r;
+  const iH = H - pad.t - pad.b;
+
+  const sx = i => pad.l + (i / (pts.length - 1)) * iW;
+  const sy = p => pad.t + iH - ((p - lo) / range) * iH;
+
+  // grid
+  ctx.strokeStyle = 'rgba(10,10,14,0.06)';
+  ctx.lineWidth = 1;
+  [0.25, 0.5, 0.75].forEach(v => {
+    const y = pad.t + iH - ((v - lo) / range) * iH;
+    if (y >= pad.t && y <= pad.t + iH) {
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    }
+  });
+
+  // fill
+  const grad = ctx.createLinearGradient(0, pad.t, 0, pad.t + iH);
+  grad.addColorStop(0, 'rgba(200,64,26,0.18)');
+  grad.addColorStop(1, 'rgba(200,64,26,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(sx(0), pad.t + iH);
+  pts.forEach((p, i) => ctx.lineTo(sx(i), sy(p.p)));
+  ctx.lineTo(sx(pts.length - 1), pad.t + iH);
+  ctx.closePath(); ctx.fill();
+
+  // line
+  ctx.strokeStyle = 'rgba(200,64,26,0.85)';
+  ctx.lineWidth = 1.5; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  pts.forEach((p, i) => i === 0 ? ctx.moveTo(sx(i), sy(p.p)) : ctx.lineTo(sx(i), sy(p.p)));
+  ctx.stroke();
+
+  // dot
+  const last = pts[pts.length - 1];
+  ctx.fillStyle = 'var(--accent)';
+  ctx.beginPath();
+  ctx.arc(sx(pts.length - 1), sy(last.p), 3, 0, Math.PI * 2);
+  ctx.fill();
+
+  // labels
+  ctx.fillStyle = 'rgba(10,10,14,0.4)';
+  ctx.font = `9px 'Azeret Mono', monospace`;
+  ctx.textAlign = 'left'; ctx.fillText(`${(lo*100).toFixed(0)}%`, pad.l, H - 2);
+  ctx.textAlign = 'right'; ctx.fillText(`${(hi*100).toFixed(0)}%`, W - pad.r, H - 2);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════════════════
+function exportData() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    markets: STATE.markets,
+    forecasts: STATE.forecasts,
+    model: STATE.model,
+    log: STATE.log,
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `oracle-export-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  toast('✓ Data exported');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETUP / LAUNCH
+// ═══════════════════════════════════════════════════════════════
+function showApp() {
+  document.getElementById('setupScreen').style.display = 'none';
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('appHeader').style.display = 'block';
+}
+
+async function startApp() {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  const interval = parseInt(document.getElementById('intervalInput').value);
+  STATE.apiKey = key;
+  STATE.intervalMins = interval;
+
+  if (key) {
+    localStorage.setItem('oracle_apikey', key);
+  }
+
+  showApp();
+  await fetchData();
+  scheduleAuto();
+}
+
+async function loadDemo() {
+  STATE.demoMode = true;
+  STATE.intervalMins = parseInt(document.getElementById('intervalInput').value);
+  showApp();
+
+  if (!Object.keys(STATE.markets).length) {
+    STATE.markets = generateDemoMarkets();
+    addLog('init', 'Demo markets loaded');
+  }
+
+  await runForecastCycle(true);
+  scheduleAuto();
+}
+
+function scheduleAuto() {
+  if (STATE.intervalTimer) clearInterval(STATE.intervalTimer);
+  if (STATE.intervalMins > 0) {
+    STATE.intervalTimer = setInterval(() => {
+      fetchData();
+    }, STATE.intervalMins * 60 * 1000);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════
+(function init() {
+  load();
+
+  // Pre-fill saved key
+  const savedKey = localStorage.getItem('oracle_apikey') || STATE.apiKey;
+  if (savedKey) document.getElementById('apiKeyInput').value = savedKey;
+
+  // If we have existing data, skip setup and go straight in
+  if (Object.keys(STATE.markets).length > 0) {
+    showApp();
+    runForecastCycle(true);
+    scheduleAuto();
+  }
+})();
+</script>
+</body>
+</html>
