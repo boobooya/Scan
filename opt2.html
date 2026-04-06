@@ -2,148 +2,112 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Options AI Engine</title>
+<title>Options AI Scanner PRO</title>
 
 <style>
-body { background:#0f172a; color:white; font-family:Arial; padding:20px; }
-.card { background:#1e293b; padding:20px; margin-bottom:20px; border-radius:10px; }
-.bar { height:20px; border-radius:10px; margin:5px 0; }
-.green{background:#22c55e} .red{background:#ef4444} .yellow{background:#eab308}
+body {
+  background: #0f172a;
+  color: #e2e8f0;
+  font-family: Arial;
+  padding: 20px;
+}
+
+h1 { color: #38bdf8; }
+
+.card {
+  background: #1e293b;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  transition: 0.2s;
+}
+
+.card:hover {
+  transform: scale(1.01);
+}
+
+.top { border-left: 5px solid #22c55e; }
+.mid { border-left: 5px solid #eab308; }
+.low { border-left: 5px solid #ef4444; }
+
+.bar {
+  height: 10px;
+  border-radius: 6px;
+  margin-top: 5px;
+}
+
+.green { background: #22c55e; }
+.red { background: #ef4444; }
+
+input {
+  padding: 8px;
+  margin-bottom: 10px;
+  width: 200px;
+}
 </style>
 </head>
 
 <body>
 
-<h1>🚀 Options AI Engine (Self-Learning)</h1>
+<h1>🚀 Options AI Scanner PRO</h1>
 
-<div class="card">
-<h3>Prediction</h3>
-<div>Up</div><div id="up" class="bar green"></div>
-<div>Down</div><div id="down" class="bar red"></div>
-<div>Range</div><div id="range" class="bar yellow"></div>
-</div>
+<input id="filter" placeholder="Filter ticker...">
 
-<div class="card">
-<h3>Best Strikes</h3>
-<div id="picks"></div>
-</div>
+<div id="stats"></div>
+<div id="results"></div>
 
 <script>
+let globalData = [];
 
-// ----------------------
-// FETCH PRICE DATA
-// ----------------------
-async function getPrice() {
-  const res = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/AAPL");
-  const data = await res.json();
-  return data.chart.result[0].meta.regularMarketPrice;
-}
-
-// ----------------------
-// SIMPLE ML MODEL (ONLINE LEARNING)
-// ----------------------
-let weights = {
-  vol: 1,
-  momentum: 1,
-  range: 1
-};
-
-function predict(features) {
-  return (
-    weights.vol * features.vol +
-    weights.momentum * features.momentum +
-    weights.range * features.range
-  );
-}
-
-function train(features, actual) {
-  let pred = predict(features);
-  let error = actual - pred;
-
-  weights.vol += 0.01 * error;
-  weights.momentum += 0.01 * error;
-  weights.range += 0.01 * error;
-}
-
-// ----------------------
-// SIMULATION ENGINE
-// ----------------------
-function simulate(price) {
-  let results = { up:0, down:0, range:0 };
-
-  for (let i=0;i<200;i++) {
-    let p = price;
-
-    for (let j=0;j<15;j++) {
-      p *= (1 + (Math.random()-0.5)*0.02);
-    }
-
-    if (p > price*1.05) results.up++;
-    else if (p < price*0.95) results.down++;
-    else results.range++;
-  }
-
-  return {
-    up: results.up/200,
-    down: results.down/200,
-    range: results.range/200
-  };
-}
-
-// ----------------------
-// STRIKE PICKER
-// ----------------------
-function pickStrikes(price, forecast) {
-  let picks = [];
-
-  for (let i=0;i<5;i++) {
-    let strike = price * (1 + (i-2)*0.02);
-
-    picks.push({
-      strike: strike.toFixed(2),
-      score: Math.random()*10,
-      type: strike > price ? "CALL" : "PUT"
-    });
-  }
-
-  return picks;
-}
-
-// ----------------------
-// MAIN LOOP
-// ----------------------
-async function run() {
-  let price = await getPrice();
-
-  let features = {
-    vol: Math.random(),
-    momentum: Math.random(),
-    range: Math.random()
-  };
-
-  let forecast = simulate(price);
-
-  // Train model (fake feedback loop)
-  train(features, forecast.up);
-
-  // UI
-  document.getElementById("up").style.width = (forecast.up*100)+"%";
-  document.getElementById("down").style.width = (forecast.down*100)+"%";
-  document.getElementById("range").style.width = (forecast.range*100)+"%";
-
-  let picks = pickStrikes(price, forecast);
+function render(data) {
 
   let html = "";
-  picks.forEach(p=>{
-    html += `${p.type} ${p.strike} (score ${p.score.toFixed(2)})<br>`;
+  let topCount = 0;
+
+  data.slice(0,50).forEach(d => {
+
+    let level = "low";
+    if (d.score > 8) { level = "top"; topCount++; }
+    else if (d.score > 5) level = "mid";
+
+    html += `
+    <div class="card ${level}">
+      <b>${d.ticker} ${d.type}</b><br>
+      Strike: ${d.strike} | Exp: ${d.expiration}<br>
+      Price: ${d.price}<br>
+      Expected Move: ${d.expected_move}<br>
+      Projected: ${d.projected_price}<br>
+      Probability: ${(d.probability*100).toFixed(1)}%<br>
+      Score: ${d.score}<br>
+      Time: ${d.dte}d
+
+      <div class="bar green" style="width:${d.probability*100}%"></div>
+    </div>
+    `;
   });
 
-  document.getElementById("picks").innerHTML = html;
+  document.getElementById("results").innerHTML = html;
+  document.getElementById("stats").innerHTML =
+    `Top Signals: ${topCount}`;
 }
 
-run();
-setInterval(run, 60000);
+async function load() {
+  const res = await fetch("signals.json?" + Date.now());
+  const data = await res.json();
 
+  globalData = data.sort((a,b)=>b.score-a.score);
+
+  render(globalData);
+}
+
+document.getElementById("filter").addEventListener("input", e => {
+  const val = e.target.value.toUpperCase();
+  const filtered = globalData.filter(d => d.ticker.includes(val));
+  render(filtered);
+});
+
+load();
+setInterval(load, 120000);
 </script>
 
 </body>
