@@ -1,128 +1,117 @@
-import requests
+import yfinance as yf
 import numpy as np
 import pandas as pd
 from datetime import datetime
+import time
 
-TOKEN = "YOUR_TRADIER_API_KEY"
+# YOUR FULL UNIVERSE
+TICKERS = [
+"SPY","QQQ","IWM","DIA","EEM","EFA","VXX","AAPL","MSFT","GOOGL","AMZN","META","NVDA","TSLA","NFLX",
+"AMD","INTC","CRM","ORCL","ADBE","CSCO","AVGO","QCOM","TXN","MU","AMAT","LRCX","SNOW","NOW","DDOG",
+"NET","ZS","CRWD","WDAY","JPM","BAC","WFC","C","GS","MS","BLK","SCHW","AXP","USB","PNC","TFC","COF",
+"SOFI","WMT","HD","TGT","COST","NKE","SBUX","MCD","DIS","CMCSA","BKNG","ABNB","UBER","ETSY","SHOP",
+"EBAY","LOW","JNJ","UNH","PFE","ABBV","TMO","ABT","MRK","LLY","AMGN","GILD","BMY","CVS","REGN","VRTX",
+"ISRG","OXY","CVX","XOM","COP","SLB","HAL","MPC","PSX","VLO","EOG","GLD","SLV","GDX","NEM","FCX",
+"BA","CAT","GE","MMM","HON","UPS","RTX","LMT","NOC","GD","DE","FDX","DAL","UAL","LUV","AAL","TSM",
+"MCHP","NXPI","F","GM","RIVN","NIO","PLUG","T","VZ","TMUS","SNAP","PINS","RBLX","PYPL","SQ","V","MA",
+"COIN","PLTR","SPG","PLD","AMT","CCI","EQIX","PSA","BABA","JD","PDD","NEE","DUK","SO","PG","KO","PEP",
+"CCL","RCL","MAR","HLT","SQQQ","TQQQ","SPXL","TLT","HYG","JNK","USO","MARA","RIOT","ZM","DKNG","ROKU","ARKK"
+]
 
-HEADERS = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Accept": "application/json"
-}
+def realized_vol(stock):
+    hist = stock.history(period="1mo")["Close"]
+    returns = hist.pct_change().dropna()
+    return returns.std() * np.sqrt(252)
 
-TICKERS = ["SPY","QQQ","AAPL","TSLA","NVDA"]
-
-# -----------------------
-# GET OPTIONS CHAIN
-# -----------------------
-def get_chain(symbol):
-
-    url = f"https://api.tradier.com/v1/markets/options/chains"
-
-    params = {
-        "symbol": symbol,
-        "expiration": "",  # will loop later
-        "greeks": "true"
-    }
-
-    r = requests.get(url, headers=HEADERS, params=params)
-    return r.json()
-
-# -----------------------
-# EXPECTED MOVE
-# -----------------------
 def expected_move(price, iv, dte):
     return price * iv * np.sqrt(dte/365)
 
-# -----------------------
-# MAIN ENGINE
-# -----------------------
-def process(symbol):
+def probability(price, target, vol, dte):
+    std = price * vol * np.sqrt(dte/365)
+    z = (target - price)/std
+    return np.exp(-0.5*z*z)
 
-    url_exp = f"https://api.tradier.com/v1/markets/options/expirations"
-    r = requests.get(url_exp, headers=HEADERS, params={"symbol":symbol})
-    expirations = r.json()["expirations"]["date"]
+results = []
 
-    results = []
+for ticker in TICKERS:
 
-    for exp in expirations:
+    try:
+        stock = yf.Ticker(ticker)
+        hist = stock.history(period="5d")
 
-        dte = (datetime.strptime(exp,"%Y-%m-%d") - datetime.today()).days
-        if dte <= 0 or dte > 7:
+        if hist.empty:
             continue
 
-        chain_url = "https://api.tradier.com/v1/markets/options/chains"
+        price = hist["Close"].iloc[-1]
+        rv = realized_vol(stock)
 
-        r = requests.get(chain_url, headers=HEADERS, params={
-            "symbol": symbol,
-            "expiration": exp,
-            "greeks": "true"
-        })
+        for exp in stock.options:
 
-        options = r.json()["options"]["option"]
+            dte = (datetime.strptime(exp,"%Y-%m-%d") - datetime.today()).days
 
-        for opt in options:
-
-            strike = opt["strike"]
-            iv = opt["greeks"]["mid_iv"] or 0
-            gamma = opt["greeks"]["gamma"] or 0
-            bid = opt["bid"]
-            ask = opt["ask"]
-            oi = opt["open_interest"]
-            typ = opt["option_type"]
-
-            if iv == 0 or bid == 0 or ask == 0:
+            if dte <= 0 or dte > 7:
                 continue
 
-            spread = ask - bid
-            price = opt["underlying_price"]
+            chain = stock.option_chain(exp)
 
-            em = expected_move(price, iv, dte)
+            for df, typ in [(chain.calls,"CALL"), (chain.puts,"PUT")]:
 
-            if abs(strike - price) > em:
-                continue
+                for _, row in df.iterrows():
 
-            # REAL gamma exposure
-            gex = gamma * oi * 100
+                    iv = row["impliedVolatility"]
+                    bid = row["bid"]
+                    ask = row["ask"]
+                    strike = row["strike"]
+                    oi = row["openInterest"]
 
-            # scoring
-            score = (
-                (1/spread) +
-                np.log(oi+1) +
-                abs(gex)/10000
-            )
+                    if iv == 0 or bid == 0 or ask == 0:
+                        continue
 
-            proj = price + em if typ=="call" else price - em
+                    spread = ask - bid
+                    em = expected_move(price, iv, dte)
 
-            prob = np.exp(-0.5*((proj-price)/(price*iv))**2)
+                    # 1 STD DEV FILTER
+                    if abs(strike - price) > em:
+                        continue
 
-            results.append({
-                "ticker": symbol,
-                "type": typ,
-                "strike": strike,
-                "exp": exp,
-                "price": price,
-                "expected_move": em,
-                "projected": proj,
-                "probability": prob,
-                "gex": gex,
-                "score": score
-            })
+                    # GAMMA PROXY
+                    gamma_proxy = oi / (abs(strike - price) + 1)
 
-    return results
+                    # SCORE
+                    score = (
+                        (rv - iv)*3 +
+                        (1/(spread+0.01)) +
+                        np.log(oi+1) +
+                        gamma_proxy/100
+                    )
 
+                    proj = price + em if typ=="CALL" else price - em
+                    prob = probability(price, proj, rv, dte)
 
-# RUN
-all_data = []
+                    results.append({
+                        "ticker": ticker,
+                        "type": typ,
+                        "strike": round(strike,2),
+                        "expiration": exp,
+                        "price": round(price,2),
+                        "expected_move": round(em,2),
+                        "projected_price": round(proj,2),
+                        "probability": round(prob,3),
+                        "score": round(score,2),
+                        "dte": dte
+                    })
 
-for t in TICKERS:
-    try:
-        all_data += process(t)
-    except:
-        pass
+        print(f"✔ {ticker} done")
 
-df = pd.DataFrame(all_data).sort_values("score", ascending=False)
+        # Avoid rate limit
+        time.sleep(1)
+
+    except Exception as e:
+        print(f"❌ {ticker} error:", e)
+
+df = pd.DataFrame(results).sort_values("score", ascending=False)
 
 df.to_json("signals.json", orient="records", indent=2)
 
-print(df.head(10))
+print("\n🔥 TOP 20 SIGNALS:")
+print(df.head(20))
