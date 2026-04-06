@@ -1,0 +1,62 @@
+[
+  {
+    "ticker": "SPY",
+    "type": "CALL",
+    "strike": 430,
+    "expiration": "2026-04-10",
+    "price": 425,
+    "expected_move": 5,
+    "projected_price": 430,
+    "probability": 0.65,
+    "score": 9.2,
+    "dte": 3
+  },
+  {
+    "ticker": "QQQ",
+    "type": "PUT",
+    "strike": 330,
+    "expiration": "2026-04-10",
+    "price": 335,
+    "expected_move": 6,
+    "projected_price": 329,
+    "probability": 0.55,
+    "score": 8.7,
+    "dte": 3
+  },
+  {
+    "ticker": "AAPL",
+    "type": "CALL",
+    "strike": 180,
+    "expiration": "2026-04-10",
+    "price": 178,
+    "expected_move": 4,
+    "projected_price": 182,
+    "probability": 0.6,
+    "score": 8.9,
+    "dte": 3
+  },
+  {
+    "ticker": "TSLA",
+    "type": "PUT",
+    "strike": 230,
+    "expiration": "2026-04-10",
+    "price": 235,
+    "expected_move": 7,
+    "projected_price": 228,
+    "probability": 0.58,
+    "score": 8.5,
+    "dte": 3
+  },
+  {
+    "ticker": "NVDA",
+    "type": "CALL",
+    "strike": 470,
+    "expiration": "2026-04-10",
+    "price": 465,
+    "expected_move": 10,
+    "projected_price": 475,
+    "probability": 0.62,
+    "score": 9.1,
+    "dte": 3
+  }
+]
