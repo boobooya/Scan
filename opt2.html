@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Options AI Engine</title>
+
+<style>
+body { background:#0f172a; color:white; font-family:Arial; padding:20px; }
+.card { background:#1e293b; padding:20px; margin-bottom:20px; border-radius:10px; }
+.bar { height:20px; border-radius:10px; margin:5px 0; }
+.green{background:#22c55e} .red{background:#ef4444} .yellow{background:#eab308}
+</style>
+</head>
+
+<body>
+
+<h1>🚀 Options AI Engine (Self-Learning)</h1>
+
+<div class="card">
+<h3>Prediction</h3>
+<div>Up</div><div id="up" class="bar green"></div>
+<div>Down</div><div id="down" class="bar red"></div>
+<div>Range</div><div id="range" class="bar yellow"></div>
+</div>
+
+<div class="card">
+<h3>Best Strikes</h3>
+<div id="picks"></div>
+</div>
+
+<script>
+
+// ----------------------
+// FETCH PRICE DATA
+// ----------------------
+async function getPrice() {
+  const res = await fetch("https://query1.finance.yahoo.com/v8/finance/chart/AAPL");
+  const data = await res.json();
+  return data.chart.result[0].meta.regularMarketPrice;
+}
+
+// ----------------------
+// SIMPLE ML MODEL (ONLINE LEARNING)
+// ----------------------
+let weights = {
+  vol: 1,
+  momentum: 1,
+  range: 1
+};
+
+function predict(features) {
+  return (
+    weights.vol * features.vol +
+    weights.momentum * features.momentum +
+    weights.range * features.range
+  );
+}
+
+function train(features, actual) {
+  let pred = predict(features);
+  let error = actual - pred;
+
+  weights.vol += 0.01 * error;
+  weights.momentum += 0.01 * error;
+  weights.range += 0.01 * error;
+}
+
+// ----------------------
+// SIMULATION ENGINE
+// ----------------------
+function simulate(price) {
+  let results = { up:0, down:0, range:0 };
+
+  for (let i=0;i<200;i++) {
+    let p = price;
+
+    for (let j=0;j<15;j++) {
+      p *= (1 + (Math.random()-0.5)*0.02);
+    }
+
+    if (p > price*1.05) results.up++;
+    else if (p < price*0.95) results.down++;
+    else results.range++;
+  }
+
+  return {
+    up: results.up/200,
+    down: results.down/200,
+    range: results.range/200
+  };
+}
+
+// ----------------------
+// STRIKE PICKER
+// ----------------------
+function pickStrikes(price, forecast) {
+  let picks = [];
+
+  for (let i=0;i<5;i++) {
+    let strike = price * (1 + (i-2)*0.02);
+
+    picks.push({
+      strike: strike.toFixed(2),
+      score: Math.random()*10,
+      type: strike > price ? "CALL" : "PUT"
+    });
+  }
+
+  return picks;
+}
+
+// ----------------------
+// MAIN LOOP
+// ----------------------
+async function run() {
+  let price = await getPrice();
+
+  let features = {
+    vol: Math.random(),
+    momentum: Math.random(),
+    range: Math.random()
+  };
+
+  let forecast = simulate(price);
+
+  // Train model (fake feedback loop)
+  train(features, forecast.up);
+
+  // UI
+  document.getElementById("up").style.width = (forecast.up*100)+"%";
+  document.getElementById("down").style.width = (forecast.down*100)+"%";
+  document.getElementById("range").style.width = (forecast.range*100)+"%";
+
+  let picks = pickStrikes(price, forecast);
+
+  let html = "";
+  picks.forEach(p=>{
+    html += `${p.type} ${p.strike} (score ${p.score.toFixed(2)})<br>`;
+  });
+
+  document.getElementById("picks").innerHTML = html;
+}
+
+run();
+setInterval(run, 60000);
+
+</script>
+
+</body>
+</html>
