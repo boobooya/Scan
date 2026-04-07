@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UNIVERSE SCAN — Weekly & Daily Options</title>
+<title>UNIVERSE SCAN — Weekly Options Scanner</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Bebas+Neue&family=Barlow:wght@400;500;600;700&display=swap');
 :root{
   --bg:#020507;--s1:#060c12;--s2:#0a1520;--s3:#0f1f2e;
   --b1:#142030;--b2:#1c3048;
@@ -19,35 +19,43 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background:radial-gradient(ellipse 70% 30% at 50% 0%,rgba(0,207,255,.05) 0%,transparent 60%);}
 .z{position:relative;z-index:1;}
 
-/* ── TOP BAR ── */
-.top{display:flex;align-items:center;padding:0 20px;border-bottom:1px solid var(--b2);
-  background:rgba(0,0,0,.5);height:50px;gap:16px;flex-wrap:wrap;}
-.brand{font-family:'Bebas Neue',sans-serif;font-size:23px;letter-spacing:4px;
+/* TOP */
+.top{display:flex;align-items:center;padding:0 18px;border-bottom:1px solid var(--b2);
+  background:rgba(0,0,0,.55);min-height:48px;gap:14px;flex-wrap:wrap;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:4px;
   color:var(--cyan);text-shadow:0 0 20px rgba(0,207,255,.5);}
 .brand em{color:var(--green);font-style:normal;}
-.topinfo{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
-.mkt{display:flex;gap:16px;margin-left:auto;}
+.topinfo{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
+.mkt{display:flex;gap:14px;margin-left:auto;}
 .mi{display:flex;align-items:center;gap:5px;}
 .ms{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);}
 .mp{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--white);}
 .mc{font-family:'JetBrains Mono',monospace;font-size:11px;}
 .up{color:var(--green);}.dn{color:var(--red);}
-.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);
-  box-shadow:0 0 7px var(--green);animation:bk 2s infinite;flex-shrink:0;}
+.ldot{width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:var(--green);box-shadow:0 0 7px var(--green);animation:bk 2s infinite;}
 @keyframes bk{0%,100%{opacity:1}50%{opacity:.2}}
 
-/* ── STATUS BAR ── */
-.statusbar{padding:8px 20px;background:var(--s2);border-bottom:1px solid var(--b1);
+/* ALERT BANNER — shown when inside iframe */
+.iframe-alert{display:none;background:rgba(255,204,0,.08);border-bottom:2px solid var(--gold);
+  padding:12px 18px;font-size:12px;line-height:1.7;color:var(--text);}
+.iframe-alert.show{display:block;}
+.iframe-alert b{color:var(--gold);}
+.iframe-alert code{background:var(--s2);padding:2px 7px;border-radius:2px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--cyan);}
+
+/* STATUS */
+.statusbar{padding:8px 18px;background:var(--s2);border-bottom:1px solid var(--b1);
   font-family:'JetBrains Mono',monospace;font-size:11px;
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:36px;}
 .sdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .s-ok{background:var(--green);box-shadow:0 0 6px var(--green);}
 .s-pend{background:var(--gold);animation:bk 1s infinite;}
 .s-fail{background:var(--red);}
 
-/* ── CONTROLS ── */
+/* CONTROLS */
 .ctrl{background:var(--s1);border-bottom:1px solid var(--b1);
-  padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+  padding:12px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
 .cg{display:flex;flex-direction:column;gap:4px;}
 .cl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
 .cs,.ci{background:var(--s2);border:1px solid var(--b2);color:var(--white);
@@ -55,58 +63,63 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   border-radius:3px;outline:none;cursor:pointer;transition:border-color .2s;}
 .cs:focus,.ci:focus{border-color:var(--cyan);}
 .ci{width:78px;}
-.btn-scan{background:var(--cyan);color:#000;border:none;font-family:'Bebas Neue',sans-serif;
-  font-size:17px;letter-spacing:3px;padding:8px 24px;border-radius:3px;
-  cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn{font-family:'Bebas Neue',sans-serif;letter-spacing:3px;border:none;
+  border-radius:3px;cursor:pointer;transition:all .15s;white-space:nowrap;padding:8px 22px;}
+.btn-scan{background:var(--cyan);color:#000;font-size:17px;}
 .btn-scan:hover{background:#33d9ff;box-shadow:0 0 20px rgba(0,207,255,.4);}
-.btn-scan:active{transform:scale(.97);}
-.btn-scan:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.btn-scan:disabled{opacity:.3;cursor:not-allowed;box-shadow:none;}
 .btn-stop{background:transparent;color:var(--red);border:1px solid var(--red);
-  font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;
-  padding:8px 16px;border-radius:3px;cursor:pointer;display:none;}
+  font-size:15px;display:none;}
 .btn-stop.show{display:block;}
+.btn-test{background:transparent;color:var(--gold);border:1px solid rgba(255,204,0,.4);
+  font-size:13px;padding:8px 16px;}
+.btn-test:hover{background:rgba(255,204,0,.1);}
 
-/* ── FILTER ROW ── */
+/* FILTERS */
 .frow{background:var(--s1);border-bottom:1px solid var(--b1);
-  padding:8px 20px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-.fc{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 10px;
+  padding:7px 18px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.fc{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 9px;
   border-radius:2px;border:1px solid var(--b2);color:var(--dim);
-  cursor:pointer;transition:all .15s;user-select:none;letter-spacing:.5px;}
+  cursor:pointer;transition:all .15s;user-select:none;}
 .fc:hover{border-color:var(--cyan);color:var(--cyan);}
 .fc.on{background:rgba(0,207,255,.1);border-color:var(--cyan);color:var(--cyan);}
 .flbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
 
-/* ── PROGRESS ── */
+/* PROGRESS */
 .pw{height:3px;background:var(--s2);display:none;}
 .pw.show{display:block;}
 .pf{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));
-  transition:width .4s ease;box-shadow:0 0 8px var(--cyan);width:0%;}
+  transition:width .5s ease;box-shadow:0 0 8px var(--cyan);width:0%;}
 
-/* ── LOG LINE ── */
-.slog{padding:6px 20px;background:var(--bg);font-family:'JetBrains Mono',monospace;
-  font-size:11px;color:var(--dim);height:26px;overflow:hidden;white-space:nowrap;
-  text-overflow:ellipsis;border-bottom:1px solid var(--b1);display:none;}
-.slog.show{display:block;}
+/* LOG */
+.logbox{padding:7px 18px;background:var(--bg);font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--dim);border-bottom:1px solid var(--b1);
+  display:none;min-height:24px;}
+.logbox.show{display:block;}
+.log-main{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.log-timer{float:right;color:var(--b2);}
 
-/* ── DEBUG PANEL ── */
-.dbpanel{margin:10px 20px;background:var(--s2);border:1px solid var(--b2);
-  border-radius:4px;padding:12px;display:none;}
+/* DEBUG */
+.dbpanel{margin:0;background:var(--s1);border-bottom:1px solid var(--b1);display:none;}
 .dbpanel.show{display:block;}
-.dbtitle{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
-.dblog{font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.8;
-  max-height:160px;overflow-y:auto;color:var(--text);}
-.dg{color:var(--green);}.dr{color:var(--red);}.dy{color:var(--gold);}
+.dbtop{display:flex;align-items:center;justify-content:space-between;
+  padding:7px 18px;cursor:pointer;border-bottom:1px solid var(--b1);}
+.dbtitle{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
+.dbclose{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);cursor:pointer;}
+.dblog{font-family:'JetBrains Mono',monospace;font-size:10px;line-height:1.9;
+  max-height:140px;overflow-y:auto;padding:8px 18px;color:var(--text);}
+.dg{color:var(--green);}.dr{color:var(--red);}.dy{color:var(--gold);}.dd{color:var(--dim);}
 
-/* ── STATS BAR ── */
+/* STATS */
 .sbar{display:none;flex-wrap:wrap;background:var(--s2);border-bottom:1px solid var(--b1);}
 .sbar.show{display:flex;}
-.sc{padding:10px 16px;border-right:1px solid var(--b1);flex:1;min-width:88px;}
-.sl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
-.sv{font-family:'JetBrains Mono',monospace;font-size:17px;color:var(--white);}
+.sc{padding:9px 14px;border-right:1px solid var(--b1);flex:1;min-width:85px;}
+.sl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:2px;}
+.sv{font-family:'JetBrains Mono',monospace;font-size:16px;color:var(--white);}
 
-/* ── RESULTS ── */
-.rw{padding:0 20px 24px;}
-.rh{display:flex;align-items:center;gap:10px;padding:12px 0 9px;flex-wrap:wrap;}
+/* RESULTS */
+.rw{padding:0 18px 24px;}
+.rh{display:flex;align-items:center;gap:10px;padding:11px 0 8px;flex-wrap:wrap;}
 .rt{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--white);}
 .rc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);}
 .sbs{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;}
@@ -115,16 +128,16 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   transition:all .15s;font-family:'JetBrains Mono',monospace;}
 .sb:hover{border-color:var(--cyan);color:var(--cyan);}
 .sb.active{border-color:var(--gold);color:var(--gold);background:rgba(255,204,0,.07);}
-.tw{border:1px solid var(--b2);border-radius:4px;overflow:auto;max-height:68vh;}
+.tw{border:1px solid var(--b2);border-radius:4px;overflow:auto;max-height:65vh;}
 table{width:100%;border-collapse:collapse;}
 thead{position:sticky;top:0;z-index:2;}
-th{background:var(--s3);padding:8px 10px;font-size:9px;letter-spacing:1.5px;
+th{background:var(--s3);padding:7px 9px;font-size:9px;letter-spacing:1.5px;
   text-transform:uppercase;color:var(--dim);font-weight:400;white-space:nowrap;
   border-bottom:1px solid var(--b2);text-align:left;}
 tbody tr{border-bottom:1px solid rgba(20,32,48,.8);transition:background .1s;}
-tbody tr:hover{background:rgba(0,207,255,.03);}
+tbody tr:hover{background:rgba(0,207,255,.025);}
 tbody tr.star{background:rgba(0,255,127,.025);}
-td{padding:8px 10px;font-size:12px;white-space:nowrap;}
+td{padding:7px 9px;font-size:12px;white-space:nowrap;}
 .mt{font-family:'JetBrains Mono',monospace;font-size:11px;}
 .badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;
   font-weight:700;padding:2px 6px;border-radius:2px;}
@@ -132,21 +145,30 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
 .bc{background:rgba(0,207,255,.12);color:var(--cyan);border:1px solid rgba(0,207,255,.3);}
 .bgo{background:rgba(255,204,0,.12);color:var(--gold);border:1px solid rgba(255,204,0,.3);}
 .br{background:rgba(255,45,85,.12);color:var(--red);border:1px solid rgba(255,45,85,.3);}
-.bd{background:rgba(58,96,128,.15);color:var(--dim);border:1px solid var(--b2);}
 .bp{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.3);}
 .bo{background:rgba(255,122,0,.12);color:var(--orange);border:1px solid rgba(255,122,0,.3);}
 .ew{display:flex;align-items:center;gap:5px;}
-.et{width:46px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.et{width:44px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;}
 .ef{height:100%;border-radius:2px;}
 .tag{font-size:9px;padding:1px 5px;border-radius:1px;font-family:'JetBrains Mono',monospace;}
 .twk{background:rgba(255,204,0,.1);color:var(--gold);}
 .t0d{background:rgba(255,45,85,.1);color:var(--red);}
 .tcp{background:rgba(0,255,127,.1);color:var(--green);}
-.empty{text-align:center;padding:40px;color:var(--dim);font-size:13px;line-height:2.2;}
-@media(max-width:768px){.mkt{display:none;}.sc{min-width:78px;}}
+.empty{text-align:center;padding:36px;color:var(--dim);font-size:13px;line-height:2.4;}
+@media(max-width:768px){.mkt{display:none;}.sc{min-width:75px;}}
 </style>
 </head>
 <body class="z">
+
+<!-- IFRAME ALERT -->
+<div class="iframe-alert" id="iframeAlert">
+  <b>⚠ Important — Open this file directly in your browser for live data</b><br>
+  This scanner is currently running inside a preview window which blocks outbound network requests.
+  To get live option data: <b>1)</b> Download this HTML file &nbsp;
+  <b>2)</b> Open it directly in Chrome or Edge &nbsp;
+  <b>3)</b> The scanner will connect to Polygon.io automatically.
+  <br><small style="color:var(--dim)">Your API key is already embedded. No setup needed once opened directly.</small>
+</div>
 
 <!-- TOP BAR -->
 <div class="top">
@@ -155,15 +177,15 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
   <div class="mkt">
     <div class="mi"><span class="ms">SPY</span><span class="mp" id="h-spy">—</span><span class="mc" id="h-spy-c"></span></div>
     <div class="mi"><span class="ms">QQQ</span><span class="mp" id="h-qqq">—</span><span class="mc" id="h-qqq-c"></span></div>
-    <div class="mi"><span class="ms">NDX</span><span class="mp" id="h-ndx">—</span><span class="mc" id="h-ndx-c"></span></div>
+    <div class="mi"><span class="ms">IWM</span><span class="mp" id="h-iwm">—</span><span class="mc" id="h-iwm-c"></span></div>
   </div>
-  <div class="live-dot" id="liveDot" style="opacity:.3"></div>
+  <div class="ldot" id="ldot" style="opacity:.3"></div>
 </div>
 
-<!-- STATUS BAR -->
+<!-- STATUS -->
 <div class="statusbar">
   <div class="sdot s-pend" id="apiDot"></div>
-  <span id="apiStatus" style="color:var(--dim)">Connecting to Polygon.io…</span>
+  <span id="apiTxt" style="color:var(--dim)">Connecting…</span>
   <span style="margin-left:auto;color:var(--dim);font-size:10px" id="rateNote"></span>
 </div>
 
@@ -172,11 +194,10 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
   <div class="cg">
     <div class="cl">Universe</div>
     <select class="cs" id="universe" style="width:185px">
-      <option value="top30">Top 30 — Fastest (3 min)</option>
-      <option value="top50" selected>Top 50 — Recommended</option>
-      <option value="sp100">S&P 100 + ETFs (~120)</option>
-      <option value="full">Full Universe (~180)</option>
-      <option value="etf">ETFs Only (~30)</option>
+      <option value="top20">Top 20 — Fastest (~4 min)</option>
+      <option value="top40" selected>Top 40 — Recommended (~8 min)</option>
+      <option value="sp80">S&P 80 + ETFs (~16 min)</option>
+      <option value="etf">ETFs Only (~7 min)</option>
     </select>
   </div>
   <div class="cg">
@@ -190,19 +211,23 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
       <option value="7" selected>≤ 7 DTE</option>
     </select>
   </div>
-  <div class="cg"><div class="cl">Min Edge</div><input type="number" class="ci" id="minEdge" value="35" min="0" max="100"></div>
-  <div class="cg"><div class="cl">Min OI</div><input type="number" class="ci" id="minOI" value="25" min="0"></div>
-  <div class="cg"><div class="cl">σ Width</div><input type="number" class="ci" id="sdMult" value="1.0" min="0.5" max="2.5" step="0.25"></div>
+  <div class="cg"><div class="cl">Min Edge</div>
+    <input type="number" class="ci" id="minEdge" value="30" min="0" max="100"></div>
+  <div class="cg"><div class="cl">Min OI</div>
+    <input type="number" class="ci" id="minOI" value="10" min="0"></div>
+  <div class="cg"><div class="cl">σ Width</div>
+    <input type="number" class="ci" id="sdMult" value="1.0" min="0.5" max="2.5" step="0.25"></div>
   <div class="cg">
     <div class="cl">Type</div>
-    <select class="cs" id="optType" style="width:88px">
+    <select class="cs" id="optType" style="width:86px">
       <option value="both">Both</option>
       <option value="call">Calls</option>
       <option value="put">Puts</option>
     </select>
   </div>
-  <button class="btn-scan" id="scanBtn" onclick="startScan()">⚡ SCAN</button>
-  <button class="btn-stop" id="stopBtn" onclick="stopScan()">■ STOP</button>
+  <button class="btn btn-scan" id="scanBtn" onclick="startScan()" disabled>⚡ SCAN</button>
+  <button class="btn btn-stop" id="stopBtn" onclick="stopScan()">■ STOP</button>
+  <button class="btn btn-test" onclick="runConnTest()">🔧 TEST</button>
 </div>
 
 <!-- FILTERS -->
@@ -210,21 +235,30 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
   <span class="flbl">Filter:</span>
   <div class="fc" id="f-0dte"  onclick="toggleF('0dte')">0DTE</div>
   <div class="fc" id="f-cheap" onclick="toggleF('cheap')">IV &lt; HV</div>
-  <div class="fc" id="f-liq"   onclick="toggleF('liq')">High Liq</div>
+  <div class="fc" id="f-liq"   onclick="toggleF('liq')">Liquid</div>
   <div class="fc" id="f-etf"   onclick="toggleF('etf')">ETFs</div>
   <div class="fc" id="f-stk"   onclick="toggleF('stk')">Stocks</div>
-  <div class="fc" id="f-top"   onclick="toggleF('top')">Edge ≥ 65</div>
+  <div class="fc" id="f-top"   onclick="toggleF('top')">Edge≥65</div>
   <div class="fc" id="f-call"  onclick="toggleF('call')">Calls</div>
   <div class="fc" id="f-put"   onclick="toggleF('put')">Puts</div>
   <span id="finfo" style="margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim)"></span>
 </div>
 
+<!-- PROGRESS -->
 <div class="pw" id="pw"><div class="pf" id="pf"></div></div>
-<div class="slog" id="slog"></div>
+
+<!-- LOG -->
+<div class="logbox show" id="logbox">
+  <span class="log-main" id="logmain">Initializing…</span>
+  <span class="log-timer" id="logtimer"></span>
+</div>
 
 <!-- DEBUG PANEL -->
 <div class="dbpanel" id="dbpanel">
-  <div class="dbtitle">Live Diagnostics</div>
+  <div class="dbtop" onclick="toggleDebug()">
+    <span class="dbtitle">▼ Diagnostics Log</span>
+    <span class="dbclose">[collapse]</span>
+  </div>
   <div class="dblog" id="dblog"></div>
 </div>
 
@@ -232,7 +266,7 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
 <div class="sbar" id="sbar">
   <div class="sc"><div class="sl">Scanned</div><div class="sv" id="ss">0</div></div>
   <div class="sc"><div class="sl">Strikes</div><div class="sv" style="color:var(--cyan)" id="sk">0</div></div>
-  <div class="sc"><div class="sl">Edge ≥ 65</div><div class="sv" style="color:var(--green)" id="sh">0</div></div>
+  <div class="sc"><div class="sl">Edge≥65</div><div class="sv" style="color:var(--green)" id="sh">0</div></div>
   <div class="sc"><div class="sl">0DTE Syms</div><div class="sv" style="color:var(--red)" id="sz">0</div></div>
   <div class="sc"><div class="sl">Avg IV/HV</div><div class="sv" id="sr">—</div></div>
   <div class="sc"><div class="sl">Skipped</div><div class="sv" style="color:var(--dim)" id="se">0</div></div>
@@ -241,10 +275,10 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
 <!-- RESULTS -->
 <div class="rw" id="rw" style="display:none">
   <div class="rh">
-    <div class="rt">SCAN RESULTS</div>
+    <div class="rt">RESULTS</div>
     <div class="rc" id="rcount"></div>
     <div class="sbs">
-      <button class="sb active" onclick="sortBy('edge',this)">Edge ↓</button>
+      <button class="sb active" onclick="sortBy('edge',this)">Edge↓</button>
       <button class="sb" onclick="sortBy('sym',this)">Symbol</button>
       <button class="sb" onclick="sortBy('dte',this)">DTE</button>
       <button class="sb" onclick="sortBy('iv',this)">IV%</button>
@@ -255,527 +289,579 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
   <div class="tw">
     <table>
       <thead><tr>
-        <th>#</th><th>Symbol</th><th>Type</th>
-        <th>Price</th><th>Strike</th><th>Expiry</th><th>DTE</th>
+        <th>#</th><th>Sym</th><th>Type</th>
+        <th>Price</th><th>Strike</th><th>Exp</th><th>DTE</th>
         <th>Bid×Ask</th><th>Mid</th><th>IV%</th><th>IV/HV</th>
-        <th>Delta</th><th>Gamma</th><th>Theta</th>
-        <th>OI</th><th>Volume</th><th>1σ Band</th><th>Edge</th><th>Tags</th>
+        <th>Δ Delta</th><th>Γ Gamma</th><th>Θ Theta</th>
+        <th>OI</th><th>Vol</th><th>1σ Band</th><th>Edge</th><th>Tags</th>
       </tr></thead>
       <tbody id="rbody">
-        <tr><td colspan="19" class="empty">Click ⚡ SCAN to start scanning</td></tr>
+        <tr><td colspan="19" class="empty">Click ⚡ SCAN to begin</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════════
-// CONFIG — API KEY EMBEDDED
-// ═══════════════════════════════════════════════════════════════════
-const POLYGON_KEY = '2Y4h5WCcheaE_rv8HifMpFScpMCYxWiw';
-const POLY_BASE   = 'https://api.polygon.io';
+// ═══════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════
+const API_KEY = '2Y4h5WCcheaE_rv8HifMpFScpMCYxWiw';
+const BASE    = 'https://api.polygon.io';
 
-// Free tier = 5 requests/minute = 1 req per 12s
-// We make 3 calls per symbol: prev + history + options
-// Use 4s between each API call to stay safe
-const RATE_DELAY_MS = 4000;
+// Free tier = 5 req/min → 1 call every 12s minimum
+// We use 13s to stay safely under
+const CALL_INTERVAL = 13000;
 
-// ═══════════════════════════════════════════════════════════════════
-// UNIVERSES
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════
+// UNIVERSES  (kept small — quality > qty)
+// ═══════════════════════════════════════
 const UNI = {
-  top30: ['SPY','QQQ','IWM','GLD','TLT',
-    'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','AMD',
-    'NFLX','PLTR','COIN','BAC','JPM','V','XOM',
-    'TQQQ','SQQQ','SOXL','UVXY','VXX',
-    'MSTR','CRWD','SOFI','NIO','RIVN'],
+  top20: ['SPY','QQQ','IWM','GLD','TLT',
+    'AAPL','MSFT','NVDA','TSLA','AMZN',
+    'META','GOOGL','AMD','NFLX','PLTR',
+    'COIN','BAC','JPM','TQQQ','SQQQ'],
 
-  top50: ['SPY','QQQ','IWM','DIA','GLD','TLT','HYG','XLF','XLE','XLK',
+  top40: ['SPY','QQQ','IWM','GLD','TLT','HYG','XLF','XLE','XLK','XLV',
     'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','AMD','INTC','NFLX',
-    'PLTR','COIN','HOOD','CRM','UBER','SHOP','BAC','JPM','GS','V',
-    'XOM','CVX','OXY','TQQQ','SQQQ','UPRO','SOXL','SOXS','UVXY','VXX',
-    'MSTR','RIOT','MARA','CRWD','NET','DDOG','ROKU','SQ','SOFI','NIO'],
+    'PLTR','COIN','HOOD','CRM','BAC','JPM','GS','V','XOM','CVX',
+    'TQQQ','SQQQ','UPRO','SOXL','UVXY','VXX',
+    'MSTR','CRWD','SOFI','NIO'],
 
-  sp100: ['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','EEM',
+  sp80: ['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','EEM',
     'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB',
-    'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','GOOG','AMD','INTC','QCOM','MU','AVGO',
-    'NFLX','BABA','CRM','ORCL','UBER','SHOP','PLTR','COIN','HOOD',
-    'BAC','JPM','GS','MS','C','WFC','V','MA','PYPL','AXP',
-    'XOM','CVX','OXY','COP','MRO','HAL',
-    'JNJ','PFE','MRNA','ABBV','UNH','AMGN','GILD',
+    'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','AMD','INTC','QCOM','MU',
+    'NFLX','BABA','CRM','ORCL','UBER','PLTR','COIN','HOOD',
+    'BAC','JPM','GS','MS','C','WFC','V','MA','PYPL',
+    'XOM','CVX','OXY','COP','MRO',
+    'JNJ','PFE','MRNA','ABBV','UNH','AMGN',
     'HD','WMT','TGT','COST','NKE','MCD',
-    'BA','LMT','GE','CAT','HON','F','GM','RIVN','NIO',
-    'DIS','CMCSA','T','VZ','SNAP','RDDT',
-    'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX',
-    'MSTR','RIOT','MARA','CRWD','NET','DDOG','SNOW','SQ','SOFI'],
-
-  full: ['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
-    'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB','XLRE','XLY',
-    'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','GOOG','AMD','INTC','QCOM','MU','AVGO',
-    'NFLX','BABA','CRM','ORCL','UBER','SHOP','PLTR','COIN','HOOD','RBLX','SNAP','RDDT',
-    'BAC','JPM','GS','MS','C','WFC','V','MA','PYPL','AXP','COF',
-    'XOM','CVX','OXY','COP','MRO','HAL',
-    'JNJ','PFE','MRNA','ABBV','UNH','AMGN','GILD','BIIB','REGN','VRTX',
-    'HD','LOW','WMT','TGT','COST','NKE','MCD','SBUX','CMG',
-    'BA','LMT','RTX','GE','CAT','DE','HON',
-    'F','GM','RIVN','NIO','LCID',
-    'DIS','CMCSA','T','VZ','TMUS','PARA',
-    'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX','LABD',
-    'MSTR','RIOT','MARA','CLSK',
-    'CRWD','NET','DDOG','SNOW','MDB','ZS','OKTA',
-    'ROKU','SQ','SOFI','AFRM','UPST','GME','AMC'],
+    'BA','GE','CAT','F','GM','RIVN','NIO',
+    'DIS','CMCSA','SNAP','RDDT',
+    'TQQQ','SQQQ','UPRO','SPXU','SOXL','UVXY','VXX',
+    'MSTR','RIOT','MARA','CRWD','NET','DDOG'],
 
   etf: ['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
-    'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB','XLRE','XLY',
-    'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX','LABD',
-    'USO','UNG','ARKK','ARKG']
+    'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB',
+    'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX',
+    'USO','UNG','ARKK','ARKG','LABD']
 };
 
 const ETF_SET = new Set(['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
-  'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB','XLRE','XLY',
-  'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX','LABD',
-  'USO','UNG','ARKK','ARKG']);
+  'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB',
+  'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX',
+  'USO','UNG','ARKK','ARKG','LABD']);
 
-// ═══════════════════════════════════════════════════════════════════
-// POLYGON API FETCH — with retry on 429
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════
+// RATE-LIMITED FETCH QUEUE
+// ═══════════════════════════════════════
+let lastCallTime = 0;
+let callCount = 0;
+let scanStartTime = 0;
+
 async function polyGet(path) {
-  const sep = path.includes('?') ? '&' : '?';
-  const url = `${POLY_BASE}${path}${sep}apiKey=${POLYGON_KEY}`;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const res = await fetch(url, { signal: AbortSignal.timeout(12000) });
-    if (res.status === 429) {
-      dlog(`Rate limited — waiting 15s…`, 'dy');
-      await sleep(15000);
-      continue;
-    }
-    if (res.status === 403) throw new Error('API key invalid or expired');
-    if (!res.ok) throw new Error(`HTTP ${res.status} on ${path}`);
-    return res.json();
+  // Enforce minimum interval between calls
+  const now = Date.now();
+  const elapsed = now - lastCallTime;
+  if (elapsed < CALL_INTERVAL && lastCallTime > 0) {
+    const wait = CALL_INTERVAL - elapsed;
+    dlog(`Rate pacing: waiting ${(wait/1000).toFixed(1)}s…`, 'dd');
+    await sleep(wait);
   }
-  throw new Error('Max retries exceeded');
+
+  const sep = path.includes('?') ? '&' : '?';
+  const url = `${BASE}${path}${sep}apiKey=${API_KEY}`;
+  lastCallTime = Date.now();
+  callCount++;
+
+  const elapsed2 = Math.round((Date.now() - scanStartTime) / 1000);
+  document.getElementById('rateNote').textContent =
+    `${callCount} API calls · ${elapsed2}s elapsed`;
+
+  let res;
+  try {
+    res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  } catch(e) {
+    if (e.name === 'AbortError') throw new Error('Request timeout after 15s');
+    throw new Error(`Network error: ${e.message}. Try opening this file directly in Chrome.`);
+  }
+
+  if (res.status === 429) {
+    dlog('429 Rate limit hit — waiting 60s before retry…', 'dr');
+    setLog('⚠ Rate limited — pausing 60 seconds…');
+    await sleep(60000);
+    // Retry once
+    lastCallTime = Date.now();
+    res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+  }
+
+  if (res.status === 403) throw new Error('API key rejected (403)');
+  if (res.status === 404) throw new Error(`Not found: ${path.split('?')[0]}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const data = await res.json();
+  if (data.status === 'ERROR') throw new Error(`API error: ${data.error || data.message}`);
+  return data;
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-// ═══════════════════════════════════════════════════════════════════
-// MATH — Black-Scholes for greeks fallback
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════
+// MATH — Black-Scholes Greeks
+// ═══════════════════════════════════════
 function normCDF(x) {
   const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
-  const s = x < 0 ? -1 : 1; x = Math.abs(x)/Math.sqrt(2);
-  const t = 1/(1+p*x);
+  const s=x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
   return 0.5*(1+s*(1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x)));
 }
-function normPDF(x) { return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI); }
+function normPDF(x){ return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI); }
 
-function bsGreeks(S, K, T, r, iv, type) {
-  if (T < 0.0001 || iv <= 0 || S <= 0 || K <= 0) {
-    return { delta: type==='call'?0.5:-0.5, gamma:0, theta:0 };
-  }
-  const d1 = (Math.log(S/K) + (r + 0.5*iv*iv)*T) / (iv*Math.sqrt(T));
-  const d2 = d1 - iv*Math.sqrt(T);
-  const nd1 = normPDF(d1);
-  const delta = type==='call' ? normCDF(d1) : normCDF(d1)-1;
-  const gamma = nd1 / (S * iv * Math.sqrt(T));
-  const theta_call = (-S*nd1*iv/(2*Math.sqrt(T)) - r*K*Math.exp(-r*T)*normCDF(d2)) / 365;
-  const theta_put  = (-S*nd1*iv/(2*Math.sqrt(T)) + r*K*Math.exp(-r*T)*normCDF(-d2)) / 365;
-  const theta = type==='call' ? theta_call : theta_put;
-  return { delta, gamma, theta };
+function bsGreeks(S,K,T,iv,type) {
+  if (T<1/365||iv<=0||S<=0||K<=0) return {delta:type==='call'?0.5:-0.5,gamma:0,theta:0};
+  const d1=(Math.log(S/K)+(0.05+.5*iv*iv)*T)/(iv*Math.sqrt(T));
+  const d2=d1-iv*Math.sqrt(T);
+  const nd1=normPDF(d1);
+  const delta=type==='call'?normCDF(d1):normCDF(d1)-1;
+  const gamma=nd1/(S*iv*Math.sqrt(T));
+  const theta=type==='call'
+    ?(-S*nd1*iv/(2*Math.sqrt(T))-0.05*K*Math.exp(-0.05*T)*normCDF(d2))/365
+    :(-S*nd1*iv/(2*Math.sqrt(T))+0.05*K*Math.exp(-0.05*T)*normCDF(-d2))/365;
+  return {delta,gamma,theta};
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// EDGE SCORING
-// ═══════════════════════════════════════════════════════════════════
-function edgeScore(iv, hv, bid, ask, vol, oi, dte, delta) {
-  if (iv <= 0) return 0;
-  const mid = (bid > 0 && ask > 0) ? (bid+ask)/2 : 0;
-  const ivhv = hv > 0 ? iv/hv : 1;
-  // 1. IV cheapness vs HV
-  const ivS  = ivhv<0.7?100 : ivhv<0.85?85 : ivhv<1.0?70 : ivhv<1.2?50 : ivhv<1.5?30 : 15;
-  // 2. Bid-ask spread tightness
-  const spd  = mid>0 ? (ask-bid)/mid : 0.5;
-  const spdS = spd<0.05?95 : spd<0.10?82 : spd<0.20?65 : spd<0.40?42 : 18;
-  // 3. Vol/OI ratio
-  const voi  = oi>0 ? vol/oi : (vol>0?0.5:0.05);
-  const voiS = voi>1?95 : voi>0.5?80 : voi>0.2?62 : voi>0.05?42 : 20;
-  // 4. OI depth
-  const oiS  = oi>5000?95 : oi>1000?80 : oi>200?62 : oi>50?44 : oi>0?28:12;
-  // 5. Delta position
-  const ad   = Math.abs(delta);
-  const dS   = ad>=0.20&&ad<=0.45?90 : ad>=0.15&&ad<=0.55?72 : ad>=0.10?50 : 25;
-  // 6. DTE sweet spot
-  const dteS = dte===0?65 : dte<=2?92 : dte<=5?83 : dte<=7?70 : 52;
-  return Math.round(ivS*0.22 + spdS*0.20 + voiS*0.15 + oiS*0.15 + dS*0.15 + dteS*0.13);
+// ═══════════════════════════════════════
+// EDGE SCORE
+// ═══════════════════════════════════════
+function calcEdge(iv,hv,bid,ask,vol,oi,dte,delta) {
+  if (iv<=0) return 0;
+  const mid=(bid>0&&ask>0)?(bid+ask)/2:0;
+  const ivhv=hv>0?iv/hv:1;
+  const ivS=ivhv<0.7?100:ivhv<0.85?85:ivhv<1.0?70:ivhv<1.2?50:ivhv<1.5?30:15;
+  const spd=mid>0?(ask-bid)/mid:0.5;
+  const spdS=spd<0.05?95:spd<0.10?82:spd<0.20?65:spd<0.40?42:18;
+  const voi=oi>0?vol/oi:(vol>0?0.5:0.05);
+  const voiS=voi>1?95:voi>0.5?80:voi>0.2?62:voi>0.05?42:20;
+  const oiS=oi>5000?95:oi>1000?80:oi>200?62:oi>50?44:oi>10?30:12;
+  const ad=Math.abs(delta);
+  const dS=ad>=0.20&&ad<=0.45?90:ad>=0.15&&ad<=0.55?72:ad>=0.10?50:25;
+  const dteS=dte===0?65:dte<=2?92:dte<=5?83:dte<=7?70:52;
+  return Math.round(ivS*.22+spdS*.20+voiS*.15+oiS*.15+dS*.15+dteS*.13);
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════════════════════
-let scanning = false, allResults = [], activeF = new Set(), sortKey = 'edge';
-let st = {s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
+// ═══════════════════════════════════════
+let scanning=false, allResults=[], activeF=new Set(), sortKey='edge';
+let st={s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
+let timerInterval=null;
 
-const setLog = m => document.getElementById('slog').textContent = m;
-const setProg = (d,t) => document.getElementById('pf').style.width = (t>0?(d/t*100).toFixed(1):0)+'%';
-function updSt() {
-  document.getElementById('ss').textContent = st.s;
-  document.getElementById('sk').textContent = st.k;
-  document.getElementById('sh').textContent = st.h;
-  document.getElementById('sz').textContent = st.z;
-  document.getElementById('se').textContent = st.e;
-  document.getElementById('sr').textContent = st.ivhvN>0?(st.ivhvSum/st.ivhvN).toFixed(2):'—';
+function setLog(m){ document.getElementById('logmain').textContent=m; }
+function setProg(d,t){ document.getElementById('pf').style.width=(t>0?(d/t*100).toFixed(1):0)+'%'; }
+function updSt(){
+  document.getElementById('ss').textContent=st.s;
+  document.getElementById('sk').textContent=st.k;
+  document.getElementById('sh').textContent=st.h;
+  document.getElementById('sz').textContent=st.z;
+  document.getElementById('se').textContent=st.e;
+  document.getElementById('sr').textContent=st.ivhvN>0?(st.ivhvSum/st.ivhvN).toFixed(2):'—';
 }
 
-function dlog(msg, cls='') {
-  const el = document.getElementById('dblog');
-  const d = document.createElement('div');
-  d.className = cls;
-  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+let dbExpanded = true;
+function toggleDebug(){
+  dbExpanded=!dbExpanded;
+  document.getElementById('dblog').style.display=dbExpanded?'block':'none';
+  document.querySelector('.dbclose').textContent=dbExpanded?'[collapse]':'[expand]';
+}
+
+function dlog(m,cls=''){
+  const el=document.getElementById('dblog');
+  const d=document.createElement('div');
+  d.className=cls;
+  d.textContent=`[${new Date().toLocaleTimeString()}] ${m}`;
   el.appendChild(d);
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop=el.scrollHeight;
   document.getElementById('dbpanel').classList.add('show');
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// DATE HELPERS
-// ═══════════════════════════════════════════════════════════════════
-function todayStr() {
-  // Always use today's local date
-  const d = new Date();
+// ═══════════════════════════════════════
+// DATE UTILS
+// ═══════════════════════════════════════
+function todayStr(){
+  const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function addDays(dateStr, n) {
-  const d = new Date(dateStr + 'T12:00:00');
-  d.setDate(d.getDate() + n);
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function addDays(s,n){
+  const d=new Date(s+'T12:00:00Z'); d.setUTCDate(d.getUTCDate()+n);
+  return d.toISOString().slice(0,10);
 }
-function daysBetween(dateStr1, dateStr2) {
-  const d1 = new Date(dateStr1 + 'T12:00:00');
-  const d2 = new Date(dateStr2 + 'T12:00:00');
-  return Math.round((d2-d1)/86400000);
+function daysApart(a,b){
+  return Math.round((new Date(b+'T12:00:00Z')-new Date(a+'T12:00:00Z'))/86400000);
 }
-function fmtExp(dateStr) {
-  const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+function fmtDate(s){
+  return new Date(s+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric'});
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// INIT — test connection on load
-// ═══════════════════════════════════════════════════════════════════
-async function initConnection() {
-  dlog('Testing Polygon.io connection…');
+// ═══════════════════════════════════════
+// CONNECTION TEST
+// ═══════════════════════════════════════
+async function runConnTest(){
+  dlog('=== Connection Test ===', 'dy');
+  setLog('Testing connection…');
+  try {
+    dlog('Fetching SPY prev close…');
+    const d = await polyGet('/v2/aggs/ticker/SPY/prev');
+    const px = d.results?.[0]?.c;
+    dlog(`✓ SPY = $${px?.toFixed(2) || 'n/a'}`, 'dg');
+
+    dlog('Fetching SPY options snapshot (7-day window)…');
+    const today = todayStr();
+    const maxExp = addDays(today, 7);
+    // Use a narrow strike range to minimize data
+    const lo = ((px||500)*0.98).toFixed(0);
+    const hi = ((px||500)*1.02).toFixed(0);
+    const opts = await polyGet(
+      `/v3/snapshot/options/SPY?expiration_date.gte=${today}&expiration_date.lte=${maxExp}&strike_price.gte=${lo}&strike_price.lte=${hi}&limit=10`
+    );
+    const n = opts.results?.length || 0;
+    dlog(`✓ SPY options: ${n} contracts returned`, 'dg');
+    if (n>0){
+      const c=opts.results[0];
+      dlog(`  Sample: ${c.details?.contract_type} $${c.details?.strike_price} exp ${c.details?.expiration_date}`, 'dg');
+      dlog(`  IV=${c.implied_volatility?.toFixed(3)||'n/a'} OI=${c.open_interest||0} Vol=${c.day?.volume||0}`, 'dg');
+      dlog(`  bid=${c.last_quote?.bid||0} ask=${c.last_quote?.ask||0}`, 'dg');
+    }
+    dlog('=== Test PASSED — ready to scan ===', 'dg');
+    setLog('✓ Connection verified — ready to scan');
+  } catch(e){
+    dlog(`✗ Test FAILED: ${e.message}`, 'dr');
+    setLog(`✗ ${e.message}`);
+  }
+}
+
+// ═══════════════════════════════════════
+// INIT / AUTO-CONNECT
+// ═══════════════════════════════════════
+async function initConn(){
+  // Detect iframe — warn user
+  if (window.self !== window.top) {
+    document.getElementById('iframeAlert').classList.add('show');
+    dlog('Running inside iframe — outbound fetch may be blocked', 'dy');
+    dlog('Download and open this HTML file directly in Chrome/Edge for best results', 'dy');
+  }
+
+  dlog('Testing Polygon.io API key…');
   setLog('Connecting to Polygon.io…');
-  document.getElementById('slog').classList.add('show');
   try {
     const d = await polyGet('/v2/aggs/ticker/SPY/prev');
-    if (d.resultsCount > 0 || d.results?.length > 0) {
-      const r = d.results?.[0];
-      const px = r?.c || r?.close;
-      document.getElementById('apiDot').className = 'sdot s-ok';
-      document.getElementById('apiStatus').textContent = `✓ Connected — SPY $${px?.toFixed(2)||'—'} (free tier, 5 req/min)`;
-      document.getElementById('apiStatus').style.color = 'var(--green)';
-      document.getElementById('liveDot').style.opacity = '1';
-      document.getElementById('rateNote').textContent = 'Data: 15-min delayed';
-      document.getElementById('scanBtn').disabled = false;
-      dlog(`✓ API connected — SPY last close $${px?.toFixed(2)||'unknown'}`, 'dg');
-      setLog('Ready — click ⚡ SCAN to begin');
-      loadMktTickers();
-      return true;
-    } else {
-      throw new Error('Empty response from Polygon');
-    }
-  } catch(e) {
-    document.getElementById('apiDot').className = 'sdot s-fail';
-    document.getElementById('apiStatus').textContent = `✗ Connection failed: ${e.message}`;
-    document.getElementById('apiStatus').style.color = 'var(--red)';
-    dlog(`✗ ${e.message}`, 'dr');
-    setLog(`Connection error: ${e.message}`);
-    return false;
+    const px = d.results?.[0]?.c;
+    if (!px) throw new Error('No price in response');
+    document.getElementById('apiDot').className='sdot s-ok';
+    document.getElementById('apiTxt').textContent=`✓ Connected — SPY $${px.toFixed(2)} (15-min delayed, free tier)`;
+    document.getElementById('apiTxt').style.color='var(--green)';
+    document.getElementById('ldot').style.opacity='1';
+    document.getElementById('scanBtn').disabled=false;
+    dlog(`✓ API OK — SPY $${px.toFixed(2)}`, 'dg');
+    setLog('Ready — configure options above and click ⚡ SCAN');
+    loadMktTickers();
+  } catch(e){
+    document.getElementById('apiDot').className='sdot s-fail';
+    document.getElementById('apiTxt').textContent=`✗ ${e.message}`;
+    document.getElementById('apiTxt').style.color='var(--red)';
+    dlog(`✗ Connection failed: ${e.message}`, 'dr');
+    setLog(`Connection failed — open file directly in Chrome. Error: ${e.message}`);
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// SCAN ENTRY
-// ═══════════════════════════════════════════════════════════════════
-async function startScan() {
+// ═══════════════════════════════════════
+// MAIN SCAN
+// ═══════════════════════════════════════
+async function startScan(){
   if (scanning) return;
-  scanning = true;
-  allResults = [];
-  st = {s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
+  scanning=true; allResults=[];
+  st={s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
+  callCount=0; scanStartTime=Date.now();
 
-  const uKey   = document.getElementById('universe').value;
-  const maxDte = parseInt(document.getElementById('maxDte').value);
-  const minEdg = parseFloat(document.getElementById('minEdge').value)||0;
-  const minOI  = parseFloat(document.getElementById('minOI').value)||0;
-  const sdM    = parseFloat(document.getElementById('sdMult').value)||1;
-  const oType  = document.getElementById('optType').value;
+  const uKey  =document.getElementById('universe').value;
+  const maxDte=parseInt(document.getElementById('maxDte').value);
+  const minEdg=parseFloat(document.getElementById('minEdge').value)||0;
+  const minOI =parseFloat(document.getElementById('minOI').value)||0;
+  const sdM   =parseFloat(document.getElementById('sdMult').value)||1;
+  const oType =document.getElementById('optType').value;
 
-  const syms = [...new Set(UNI[uKey])];
-  const today = todayStr();
-  const maxExp = addDays(today, maxDte);
+  const syms=[...new Set(UNI[uKey])];
+  const today=todayStr();
+  const maxExp=addDays(today,maxDte);
 
-  document.getElementById('scanBtn').disabled = true;
-  document.getElementById('scanBtn').textContent = 'SCANNING…';
+  document.getElementById('scanBtn').disabled=true;
+  document.getElementById('scanBtn').textContent='SCANNING…';
   document.getElementById('stopBtn').classList.add('show');
   document.getElementById('pw').classList.add('show');
-  document.getElementById('slog').classList.add('show');
   document.getElementById('sbar').classList.add('show');
-  document.getElementById('rw').style.display = 'block';
-  document.getElementById('rbody').innerHTML =
-    `<tr><td colspan="19" class="empty" style="color:var(--dim)">Scanning ${syms.length} symbols… results appear live below<br><small>Free tier: ~${Math.ceil(syms.length * 3 / 5)} min estimated</small></td></tr>`;
+  document.getElementById('rw').style.display='block';
+  document.getElementById('rbody').innerHTML=
+    `<tr><td colspan="19" class="empty">Scanning ${syms.length} symbols…<br>
+    <small style="color:var(--dim)">Free tier: ~${Math.ceil(syms.length*CALL_INTERVAL/60000)} min · Results appear live as each symbol finishes</small></td></tr>`;
 
-  dlog(`Starting scan: ${syms.length} symbols, today=${today}, maxExp=${maxExp}, maxDte=${maxDte}`, 'dg');
+  dlog(`Scan started: ${syms.length} symbols | today=${today} | maxExp=${maxExp} | maxDte=${maxDte}`, 'dg');
 
-  // Process ONE AT A TIME to respect 5 req/min rate limit
-  // Each symbol = 3 API calls (prev + history + options)
-  for (let i = 0; i < syms.length && scanning; i++) {
-    const sym = syms[i];
-    setProg(i, syms.length);
-    setLog(`[${i+1}/${syms.length}] Scanning ${sym}…`);
-    await scanOne(sym, today, maxExp, maxDte, minEdg, minOI, sdM, oType);
-    renderResults();
-    // Rate limit pause between symbols (3 calls × 12s/call = 36s per symbol on strict limit)
-    // In practice Polygon allows bursting, so 2.5s between symbols works
-    if (i < syms.length - 1 && scanning) await sleep(RATE_DELAY_MS);
+  // Timer display
+  timerInterval=setInterval(()=>{
+    const s=Math.round((Date.now()-scanStartTime)/1000);
+    document.getElementById('logtimer').textContent=`${Math.floor(s/60)}m${String(s%60).padStart(2,'0')}s`;
+  },1000);
+
+  // STEP 1: Batch fetch ALL stock prices in ONE call
+  setLog('Step 1/2: Fetching all stock prices (1 call)…');
+  const priceMap={};
+  try {
+    const tickers=syms.join(',');
+    const snap=await polyGet(
+      `/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers}`
+    );
+    const items=snap.tickers||[];
+    dlog(`Batch price fetch: got ${items.length}/${syms.length} tickers`, 'dg');
+    for (const t of items){
+      const day=t.day||{};
+      const prevDay=t.prevDay||{};
+      const close=t.lastTrade?.p||day.c||prevDay.c||0;
+      const open=day.o||prevDay.o||close;
+      const hi=day.h||prevDay.h||close*1.01;
+      const lo=day.l||prevDay.l||close*0.99;
+      // Parkinson HV estimate from day range (saves 50 API calls)
+      const parkHV = lo>0&&hi>0&&close>0
+        ? Math.sqrt(252/(4*Math.log(2))) * Math.log(hi/lo)
+        : 0.25;
+      priceMap[t.ticker]={ S:close, hv:Math.max(parkHV,0.05) };
+    }
+  } catch(e){
+    dlog(`Batch price fetch failed: ${e.message} — will fetch per-symbol`, 'dy');
+    // Fallback: will fetch price per-symbol
   }
 
-  scanning = false;
-  setProg(syms.length, syms.length);
-  document.getElementById('scanBtn').disabled = false;
-  document.getElementById('scanBtn').textContent = '⚡ SCAN';
+  // STEP 2: Options chain per symbol
+  setLog('Step 2/2: Scanning options chains…');
+  for (let i=0; i<syms.length&&scanning; i++){
+    const sym=syms[i];
+    const pct=Math.round(i/syms.length*100);
+    setProg(i,syms.length);
+    setLog(`[${i+1}/${syms.length}] ${sym} — ${pct}% done`);
+    await scanOneSym(sym, priceMap, today, maxExp, maxDte, minEdg, minOI, sdM, oType);
+    renderResults();
+  }
+
+  clearInterval(timerInterval);
+  scanning=false;
+  setProg(syms.length,syms.length);
+  document.getElementById('scanBtn').disabled=false;
+  document.getElementById('scanBtn').textContent='⚡ SCAN';
   document.getElementById('stopBtn').classList.remove('show');
-  const msg = `✓ Scan complete — ${st.k} strikes across ${st.s} symbols (${st.e} skipped)`;
-  setLog(msg);
-  dlog(msg, 'dg');
+  const done=`✓ Done — ${st.k} strikes | ${st.s} symbols | ${st.e} skipped | ${callCount} API calls`;
+  setLog(done);
+  dlog(done,'dg');
   renderResults();
 }
 
-function stopScan() {
-  scanning = false;
+function stopScan(){
+  scanning=false;
+  clearInterval(timerInterval);
   document.getElementById('stopBtn').classList.remove('show');
-  document.getElementById('scanBtn').disabled = false;
-  document.getElementById('scanBtn').textContent = '⚡ SCAN';
-  setLog(`⏹ Stopped — ${st.k} strikes found so far`);
+  document.getElementById('scanBtn').disabled=false;
+  document.getElementById('scanBtn').textContent='⚡ SCAN';
+  setLog(`⏹ Stopped — ${st.k} strikes found`);
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 // SCAN ONE SYMBOL
-// ═══════════════════════════════════════════════════════════════════
-async function scanOne(sym, today, maxExp, maxDte, minEdg, minOI, sdM, oType) {
+// ═══════════════════════════════════════
+async function scanOneSym(sym, priceMap, today, maxExp, maxDte, minEdg, minOI, sdM, oType){
   try {
-    // ── 1. Previous close (stock price) ──────────────────────────
-    const prevD = await polyGet(`/v2/aggs/ticker/${sym}/prev`);
-    await sleep(1200); // space out calls
-
-    const prevR = prevD.results?.[0];
-    if (!prevR) { dlog(`${sym}: no price data`, 'dy'); st.e++; updSt(); return; }
-    const S = prevR.c;
-    if (!S || S <= 0) { st.e++; updSt(); return; }
-
-    // ── 2. Historical bars for HV20 ──────────────────────────────
-    const histStart = addDays(today, -30);
-    const histD = await polyGet(
-      `/v2/aggs/ticker/${sym}/range/1/day/${histStart}/${today}?adjusted=true&sort=asc&limit=30`
-    );
-    await sleep(1200);
-
-    let hv = 0.25;
-    const bars = histD.results || [];
-    if (bars.length >= 5) {
-      const logs = [];
-      for (let i = 1; i < bars.length; i++) {
-        if (bars[i].c > 0 && bars[i-1].c > 0)
-          logs.push(Math.log(bars[i].c / bars[i-1].c));
-      }
-      if (logs.length >= 4) {
-        const mu = logs.reduce((a,b)=>a+b,0)/logs.length;
-        const va = logs.reduce((s,v)=>s+(v-mu)**2,0)/(logs.length-1);
-        const h2 = Math.sqrt(va * 252);
-        if (h2 > 0 && !isNaN(h2)) hv = h2;
-      }
+    // Get price (from batch map or fresh fetch)
+    let S=0, hv=0.25;
+    if (priceMap[sym]&&priceMap[sym].S>0){
+      S=priceMap[sym].S; hv=priceMap[sym].hv;
+    } else {
+      const pd=await polyGet(`/v2/aggs/ticker/${sym}/prev`);
+      const r=pd.results?.[0];
+      S=r?.c||0; 
+      const h=r?.h||S*1.01, l=r?.l||S*0.99;
+      if (h>0&&l>0&&S>0) hv=Math.max(Math.sqrt(252/(4*Math.log(2)))*Math.log(h/l),0.05);
+      if (!S||S<=0){ st.e++; updSt(); return; }
     }
 
-    // ── 3. Options snapshot ───────────────────────────────────────
-    // Polygon v3/snapshot/options returns full chain with IV, greeks, quotes
-    const chainD = await polyGet(
-      `/v3/snapshot/options/${sym}?expiration_date.gte=${today}&expiration_date.lte=${maxExp}&limit=250`
+    // Compute 1-SD strike bounds for server-side filtering
+    // Use a 14-day T for the filter (generous window)
+    const Tfilter=Math.max(maxDte/365,7/365);
+    const sd1filter=S*hv*Math.sqrt(Tfilter)*sdM*1.15; // 15% buffer
+    const strikeLo=(S-sd1filter).toFixed(2);
+    const strikeHi=(S+sd1filter).toFixed(2);
+
+    dlog(`${sym}: $${S.toFixed(2)} HV=${(hv*100).toFixed(1)}% band $${(+strikeLo).toFixed(0)}–$${(+strikeHi).toFixed(0)}`);
+
+    // Fetch options chain — server-filtered to our strike range
+    const chainD=await polyGet(
+      `/v3/snapshot/options/${sym}?expiration_date.gte=${today}&expiration_date.lte=${maxExp}&strike_price.gte=${strikeLo}&strike_price.lte=${strikeHi}&limit=250`
     );
 
-    const contracts = chainD.results || [];
-    dlog(`${sym}: $${S.toFixed(2)}, HV=${(hv*100).toFixed(1)}%, ${contracts.length} contracts (DTE ≤${maxDte})`);
+    const contracts=chainD.results||[];
+    dlog(`  → ${contracts.length} contracts in window`, contracts.length>0?'dg':'dy');
 
-    if (!contracts.length) {
-      dlog(`${sym}: no option contracts found for ${today}–${maxExp}`, 'dy');
-      st.s++; updSt(); return;
-    }
+    if (!contracts.length){ st.s++; updSt(); return; }
 
-    const isETF = ETF_SET.has(sym);
-    let has0 = false;
+    const isETF=ETF_SET.has(sym);
+    let has0=false;
 
-    // Group by expiry for per-expiry 1-SD band
-    const byExp = {};
-    for (const c of contracts) {
-      const exp = c.details?.expiration_date;
-      if (!exp) continue;
-      if (!byExp[exp]) byExp[exp] = [];
+    // Group by expiry for per-expiry IV average (used for 1-SD band)
+    const byExp={};
+    for (const c of contracts){
+      const exp=c.details?.expiration_date; if(!exp) continue;
+      if(!byExp[exp]) byExp[exp]=[];
       byExp[exp].push(c);
     }
 
-    for (const [exp, expContracts] of Object.entries(byExp)) {
+    for (const [exp,expC] of Object.entries(byExp)){
       if (!scanning) break;
-      const dte = Math.max(0, daysBetween(today, exp));
-      if (dte === 0) has0 = true;
-      if (dte > maxDte) continue;
+      const dte=Math.max(0,daysApart(today,exp));
+      if (dte===0) has0=true;
+      if (dte>maxDte) continue;
 
-      const T = Math.max(dte/365, 1/365);
+      const T=Math.max(dte/365,1/365);
 
-      // ── Average IV for this expiry ──
-      const ivVals = expContracts
-        .map(c => c.implied_volatility)   // TOP-LEVEL field
-        .filter(v => v && v > 0 && v < 15);
-      const avgIV = ivVals.length ? ivVals.reduce((a,b)=>a+b,0)/ivVals.length : hv;
+      // Per-expiry avg IV
+      const ivVals=expC.map(c=>c.implied_volatility).filter(v=>v&&v>0&&v<15);
+      const avgIV=ivVals.length?ivVals.reduce((a,b)=>a+b,0)/ivVals.length:hv;
 
-      // ── 1-σ band ──
-      const sd1 = S * avgIV * Math.sqrt(T) * sdM;
-      const lo = S - sd1, hi = S + sd1;
+      // Tighter 1-SD for this exact DTE
+      const sd1=S*avgIV*Math.sqrt(T)*sdM;
+      const lo=S-sd1, hi=S+sd1;
 
-      const ivhvR = hv > 0 ? avgIV/hv : 1;
-      st.ivhvSum += ivhvR;
-      st.ivhvN++;
+      const ivhvR=hv>0?avgIV/hv:1;
+      st.ivhvSum+=ivhvR; st.ivhvN++;
 
-      const expStr = fmtExp(exp);
+      const expStr=fmtDate(exp);
 
-      for (const c of expContracts) {
-        // ── Field extraction (correct Polygon field names) ──
-        const type = c.details?.contract_type;   // 'call' or 'put'
+      for (const c of expC){
+        const type=c.details?.contract_type; // 'call'|'put'
         if (!type) continue;
-        if (oType === 'call' && type !== 'call') continue;
-        if (oType === 'put'  && type !== 'put')  continue;
+        if (oType==='call'&&type!=='call') continue;
+        if (oType==='put' &&type!=='put')  continue;
 
-        const K = c.details?.strike_price;
-        if (!K || K < lo || K > hi) continue;
+        const K=c.details?.strike_price;
+        if (!K||K<lo||K>hi) continue;
 
-        const oi  = c.open_interest || 0;
-        if (oi < minOI) continue;
+        const oi =c.open_interest||0;
+        if (oi<minOI) continue;
 
-        const iv   = c.implied_volatility || avgIV;  // TOP-LEVEL
-        const vol  = c.day?.volume || 0;
-        const bid  = c.last_quote?.bid || 0;
-        const ask  = c.last_quote?.ask || 0;
-        // Use day close as mid fallback if no quote
-        const dayClose = c.day?.close || c.day?.vwap || 0;
-        const mid  = bid > 0 && ask > 0 ? (bid+ask)/2 : dayClose;
+        // ── Correct Polygon field paths ──
+        const iv  =c.implied_volatility||avgIV;   // TOP-LEVEL
+        const vol =c.day?.volume||0;
+        const bid =c.last_quote?.bid||0;
+        const ask =c.last_quote?.ask||0;
+        const mid =bid>0&&ask>0?(bid+ask)/2:(c.day?.vwap||c.day?.close||0);
 
-        // Greeks: use from API if available, else calculate
-        let delta, gamma, theta;
-        if (c.greeks?.delta != null) {
-          delta = c.greeks.delta;
-          gamma = c.greeks.gamma || 0;
-          theta = c.greeks.theta || 0;
+        // Greeks from API or Black-Scholes
+        let delta,gamma,theta;
+        if (c.greeks?.delta!=null){
+          delta=c.greeks.delta; gamma=c.greeks.gamma||0; theta=c.greeks.theta||0;
         } else {
-          const g = bsGreeks(S, K, T, 0.05, iv, type);
-          delta = g.delta;
-          gamma = g.gamma;
-          theta = g.theta;
+          const g=bsGreeks(S,K,T,iv,type);
+          delta=g.delta; gamma=g.gamma; theta=g.theta;
         }
 
-        const e = edgeScore(iv, hv, bid, ask, vol, oi, dte, delta);
-        if (e < minEdg) continue;
-        if (e >= 65) st.h++;
+        const edge=calcEdge(iv,hv,bid,ask,vol,oi,dte,delta);
+        if (edge<minEdg) continue;
+        if (edge>=65) st.h++;
 
         allResults.push({
-          sym, type: type.toUpperCase(), S, strike: K,
-          expStr, dte, bid, ask, mid,
-          iv: iv * 100,
-          ivhv: ivhvR,
-          delta, gamma, theta,
-          oi, vol, edge: e,
-          lo, hi, isETF, is0: (dte === 0)
+          sym,type:type.toUpperCase(),S,strike:K,
+          expStr,dte,bid,ask,mid,
+          iv:iv*100,ivhv:ivhvR,
+          delta,gamma,theta,
+          oi,vol,edge,lo,hi,isETF,is0:dte===0
         });
         st.k++;
       }
     }
 
     if (has0) st.z++;
-    st.s++;
-    updSt();
+    st.s++; updSt();
 
-  } catch(err) {
-    dlog(`${sym}: ERROR — ${err.message}`, 'dr');
-    st.e++;
-    updSt();
+  } catch(err){
+    dlog(`${sym}: ${err.message}`, 'dr');
+    st.e++; updSt();
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 // FILTER / SORT / RENDER
-// ═══════════════════════════════════════════════════════════════════
-function toggleF(f) {
-  const el = document.getElementById('f-'+f);
-  if (activeF.has(f)) { activeF.delete(f); el.className = 'fc'; }
-  else { activeF.add(f); el.className = 'fc on'; }
+// ═══════════════════════════════════════
+function toggleF(f){
+  const el=document.getElementById('f-'+f);
+  if (activeF.has(f)){activeF.delete(f);el.className='fc';}
+  else{activeF.add(f);el.className='fc on';}
   renderResults();
 }
-function applyF(rows) {
+function applyF(rows){
   if (!activeF.size) return rows;
-  return rows.filter(r => {
+  return rows.filter(r=>{
     if (activeF.has('0dte')  && !r.is0) return false;
-    if (activeF.has('cheap') && r.ivhv >= 1.0) return false;
-    if (activeF.has('liq')   && r.oi < 300 && r.vol < 100) return false;
+    if (activeF.has('cheap') && r.ivhv>=1.0) return false;
+    if (activeF.has('liq')   && r.oi<200&&r.vol<50) return false;
     if (activeF.has('etf')   && !r.isETF) return false;
     if (activeF.has('stk')   && r.isETF) return false;
-    if (activeF.has('top')   && r.edge < 65) return false;
-    if (activeF.has('call')  && r.type !== 'CALL') return false;
-    if (activeF.has('put')   && r.type !== 'PUT') return false;
+    if (activeF.has('top')   && r.edge<65) return false;
+    if (activeF.has('call')  && r.type!=='CALL') return false;
+    if (activeF.has('put')   && r.type!=='PUT') return false;
     return true;
   });
 }
-function sortBy(k, btn) {
-  sortKey = k;
-  document.querySelectorAll('.sb').forEach(b => b.classList.remove('active'));
+function sortBy(k,btn){
+  sortKey=k;
+  document.querySelectorAll('.sb').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderResults();
 }
-function getSorted(rows) {
-  return [...rows].sort((a,b) => {
-    switch(sortKey) {
+function getSorted(rows){
+  return [...rows].sort((a,b)=>{
+    switch(sortKey){
       case 'sym': return a.sym.localeCompare(b.sym);
-      case 'dte': return a.dte - b.dte;
-      case 'iv':  return b.iv - a.iv;
-      case 'oi':  return b.oi - a.oi;
-      case 'vol': return b.vol - a.vol;
-      default:    return b.edge - a.edge;
+      case 'dte': return a.dte-b.dte;
+      case 'iv':  return b.iv-a.iv;
+      case 'oi':  return b.oi-a.oi;
+      case 'vol': return b.vol-a.vol;
+      default:    return b.edge-a.edge;
     }
   });
 }
 
-function renderResults() {
-  const fil = applyF(allResults);
-  const srt = getSorted(fil);
-  document.getElementById('rcount').textContent =
-    `${srt.length.toLocaleString()} results` +
-    (allResults.length !== srt.length ? ` (of ${allResults.length.toLocaleString()})` : '');
-  document.getElementById('finfo').textContent =
-    activeF.size ? `${activeF.size} filter${activeF.size>1?'s':''} active` : '';
+function renderResults(){
+  const fil=applyF(allResults), srt=getSorted(fil);
+  document.getElementById('rcount').textContent=
+    `${srt.length.toLocaleString()} results`+
+    (allResults.length!==srt.length?` (of ${allResults.length.toLocaleString()})` : '');
+  document.getElementById('finfo').textContent=
+    activeF.size?`${activeF.size} filter${activeF.size>1?'s':''} active`:'';
 
-  const tb = document.getElementById('rbody');
-  if (!srt.length) {
-    tb.innerHTML = '<tr><td colspan="19" class="empty">No results yet — scan running…<br><small>Results appear as each symbol completes</small></td></tr>';
+  const tb=document.getElementById('rbody');
+  if (!srt.length){
+    tb.innerHTML=scanning
+      ?'<tr><td colspan="19" class="empty" style="color:var(--dim)">Scanning… results will appear here as symbols complete</td></tr>'
+      :'<tr><td colspan="19" class="empty">No results — try lowering Min Edge or Min OI</td></tr>';
     return;
   }
 
-  tb.innerHTML = srt.slice(0, 500).map((r, i) => {
-    const ec  = r.edge>=70?'#00ff7f' : r.edge>=55?'#ffcc00' : r.edge>=40?'#00cfff' : '#3a6080';
-    const ihc = r.ivhv<0.85?'var(--green)' : r.ivhv<1.0?'var(--cyan)' : r.ivhv<1.2?'var(--gold)' : 'var(--red)';
-    const dBC = r.dte===0?'br' : r.dte<=2?'bo' : r.dte<=5?'bgo' : 'bc';
-    const tBC = r.type==='CALL'?'bg':'br';
-    const tags = [];
+  tb.innerHTML=srt.slice(0,500).map((r,i)=>{
+    const ec=r.edge>=70?'#00ff7f':r.edge>=55?'#ffcc00':r.edge>=40?'#00cfff':'#3a6080';
+    const ihc=r.ivhv<0.85?'var(--green)':r.ivhv<1.0?'var(--cyan)':r.ivhv<1.2?'var(--gold)':'var(--red)';
+    const dBC=r.dte===0?'br':r.dte<=2?'bo':r.dte<=5?'bgo':'bc';
+    const tBC=r.type==='CALL'?'bg':'br';
+    const tags=[];
     if (r.is0) tags.push(`<span class="tag t0d">0DTE</span>`);
     else tags.push(`<span class="tag twk">WKL</span>`);
-    if (r.ivhv < 1.0) tags.push(`<span class="tag tcp">CHEAP</span>`);
+    if (r.ivhv<1.0) tags.push(`<span class="tag tcp">CHEAP</span>`);
     return `<tr class="${i<5?'star':''}">
       <td class="mt" style="color:var(--dim)">${i<5?'★':(i+1)}</td>
-      <td><b style="font-family:'JetBrains Mono',monospace;color:var(--white)">${r.sym}</b>${r.isETF?` <span class="badge bp" style="font-size:8px">ETF</span>`:''}</td>
+      <td><b style="font-family:'JetBrains Mono',monospace;color:var(--white);letter-spacing:1px">${r.sym}</b>${r.isETF?` <span class="badge bp" style="font-size:8px">ETF</span>`:''}</td>
       <td><span class="badge ${tBC}">${r.type}</span></td>
       <td class="mt" style="color:var(--cyan)">$${r.S.toFixed(2)}</td>
       <td class="mt" style="color:var(--white);font-weight:700">$${r.strike.toFixed(2)}</td>
@@ -786,47 +872,50 @@ function renderResults() {
       <td class="mt" style="color:var(--purple)">${r.iv.toFixed(1)}%</td>
       <td class="mt" style="color:${ihc}">${r.ivhv.toFixed(2)}×</td>
       <td class="mt" style="color:${r.type==='CALL'?'var(--green)':'var(--red)'}">${r.delta.toFixed(3)}</td>
-      <td class="mt" style="color:var(--gold)">${r.gamma?r.gamma.toFixed(4):'—'}</td>
-      <td class="mt" style="color:var(--red)">${r.theta?r.theta.toFixed(3):'—'}</td>
+      <td class="mt" style="color:var(--gold)">${r.gamma>0?r.gamma.toFixed(4):'—'}</td>
+      <td class="mt" style="color:var(--red)">${r.theta!==0?r.theta.toFixed(3):'—'}</td>
       <td class="mt">${r.oi.toLocaleString()}</td>
-      <td class="mt" style="color:${r.vol>500?'var(--cyan)':'var(--text)'}">${r.vol.toLocaleString()}</td>
-      <td class="mt" style="font-size:10px;color:var(--dim)">${r.lo.toFixed(1)}–${r.hi.toFixed(1)}</td>
-      <td><div class="ew"><div class="et"><div class="ef" style="width:${r.edge}%;background:${ec}"></div></div><span class="mt" style="color:${ec}">${r.edge}</span></div></td>
-      <td><div style="display:flex;gap:3px">${tags.join('')}</div></td>
+      <td class="mt" style="color:${r.vol>200?'var(--cyan)':'var(--text)'}">${r.vol.toLocaleString()}</td>
+      <td class="mt" style="font-size:10px;color:var(--dim)">${r.lo.toFixed(0)}–${r.hi.toFixed(0)}</td>
+      <td><div class="ew"><div class="et"><div class="ef" style="width:${r.edge}%;background:${ec}"></div></div>
+        <span class="mt" style="color:${ec};font-weight:600">${r.edge}</span></div></td>
+      <td><div style="display:flex;gap:3px;flex-wrap:wrap">${tags.join('')}</div></td>
     </tr>`;
   }).join('');
 
-  if (srt.length > 500)
-    tb.innerHTML += `<tr><td colspan="19" style="text-align:center;padding:8px;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:10px">
+  if (srt.length>500)
+    tb.innerHTML+=`<tr><td colspan="19" style="text-align:center;padding:8px;color:var(--dim);
+      font-family:'JetBrains Mono',monospace;font-size:10px">
       Top 500 of ${srt.length.toLocaleString()} — use filters to narrow results</td></tr>`;
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// HEADER MARKET TICKERS
-// ═══════════════════════════════════════════════════════════════════
-async function loadMktTickers() {
-  for (const [sym, pxId, cId] of [['SPY','h-spy','h-spy-c'],['QQQ','h-qqq','h-qqq-c'],['NDAQ','h-ndx','h-ndx-c']]) {
-    try {
-      const d = await polyGet(`/v2/aggs/ticker/${sym}/prev`);
-      const r = d.results?.[0];
-      if (r) {
-        const pct = ((r.c - r.o) / r.o * 100).toFixed(2);
-        document.getElementById(pxId).textContent = r.c.toFixed(2);
-        document.getElementById(cId).textContent  = (r.c >= r.o ? '+' : '') + pct + '%';
-        document.getElementById(cId).className    = 'mc ' + (r.c >= r.o ? 'up' : 'dn');
-      }
-    } catch(e) {}
-    await sleep(1500);
-  }
+// ═══════════════════════════════════════
+// MARKET HEADER TICKERS
+// ═══════════════════════════════════════
+async function loadMktTickers(){
+  try {
+    const d=await polyGet('/v2/snapshot/locale/us/markets/stocks/tickers?tickers=SPY,QQQ,IWM');
+    for (const t of (d.tickers||[])){
+      const day=t.day||{}, prev=t.prevDay||{};
+      const c=t.lastTrade?.p||day.c||prev.c||0;
+      const o=day.o||prev.o||c;
+      if (!c) continue;
+      const sym=t.ticker;
+      const idMap={SPY:'h-spy',QQQ:'h-qqq',IWM:'h-iwm'};
+      const cMap={SPY:'h-spy-c',QQQ:'h-qqq-c',IWM:'h-iwm-c'};
+      if (!idMap[sym]) continue;
+      const pct=((c-o)/o*100).toFixed(2);
+      document.getElementById(idMap[sym]).textContent=c.toFixed(2);
+      document.getElementById(cMap[sym]).textContent=(c>=o?'+':'')+pct+'%';
+      document.getElementById(cMap[sym]).className='mc '+(c>=o?'up':'dn');
+    }
+  } catch(e){ dlog(`Header tickers failed: ${e.message}`,'dd'); }
 }
 
-// ═══════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════
 // BOOT
-// ═══════════════════════════════════════════════════════════════════
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('scanBtn').disabled = true;
-  initConnection();
-});
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded', initConn);
 </script>
 </body>
 </html>
