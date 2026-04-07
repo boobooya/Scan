@@ -6,166 +6,192 @@
 <title>UNIVERSE SCAN — Weekly & Daily Options</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700&display=swap');
-
-:root {
-  --bg:#020507; --s1:#060c12; --s2:#0a1520; --s3:#0f1f2e;
-  --border:#142030; --border2:#1c3048;
-  --cyan:#00cfff; --green:#00ff7f; --red:#ff2d55;
-  --gold:#ffcc00; --orange:#ff7a00; --purple:#a855f7;
-  --text:#7aaccc; --dim:#3a6080; --white:#d8eeff;
+:root{
+  --bg:#020507;--s1:#060c12;--s2:#0a1520;--s3:#0f1f2e;
+  --b1:#142030;--b2:#1c3048;
+  --cyan:#00cfff;--green:#00ff7f;--red:#ff2d55;
+  --gold:#ffcc00;--orange:#ff7a00;--purple:#a855f7;
+  --text:#7aaccc;--dim:#3a6080;--white:#d8eeff;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;}
-body::before{content:'';position:fixed;inset:0;background:
-  radial-gradient(ellipse 60% 30% at 50% 0%,rgba(0,207,255,.05) 0%,transparent 70%),
-  radial-gradient(ellipse 40% 20% at 0% 100%,rgba(0,255,127,.03) 0%,transparent 60%);
-  pointer-events:none;z-index:0;}
-.z1{position:relative;z-index:1;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 60% 30% at 50% 0%,rgba(0,207,255,.05) 0%,transparent 70%);}
+.z{position:relative;z-index:1;}
 
-.topbar{display:flex;align-items:center;padding:0 20px;border-bottom:1px solid var(--border2);
-  background:rgba(0,0,0,.4);height:50px;gap:16px;}
-.brand{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:var(--cyan);
-  text-shadow:0 0 24px rgba(0,207,255,.5);flex-shrink:0;}
+/* TOP */
+.top{display:flex;align-items:center;padding:0 20px;border-bottom:1px solid var(--b2);
+  background:rgba(0,0,0,.5);height:50px;gap:16px;}
+.brand{font-family:'Bebas Neue',sans-serif;font-size:23px;letter-spacing:4px;
+  color:var(--cyan);text-shadow:0 0 20px rgba(0,207,255,.5);flex-shrink:0;}
 .brand em{color:var(--green);font-style:normal;}
 .topinfo{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
-.topmkt{display:flex;gap:16px;margin-left:auto;}
-.mkt-item{display:flex;align-items:center;gap:6px;}
-.msym{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);}
-.mpx{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--white);}
-.mchg{font-family:'JetBrains Mono',monospace;font-size:11px;}
+.mkt{display:flex;gap:14px;margin-left:auto;}
+.mi{display:flex;align-items:center;gap:5px;}
+.ms{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);}
+.mp{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--white);}
+.mc{font-family:'JetBrains Mono',monospace;font-size:11px;}
 .up{color:var(--green);}.dn{color:var(--red);}
-.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);
-  box-shadow:0 0 8px var(--green);animation:bk 2s infinite;flex-shrink:0;}
-@keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;
+  background:var(--green);box-shadow:0 0 7px var(--green);animation:bk 2s infinite;}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.25}}
 
-.proxybar{background:var(--s2);border-bottom:1px solid var(--border);
-  padding:8px 20px;font-family:'JetBrains Mono',monospace;font-size:11px;
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.dok{background:var(--green);box-shadow:0 0 6px var(--green);}
-.dfail{background:var(--red);}
-.dpend{background:var(--gold);animation:bk 1s infinite;}
+/* API KEY SETUP */
+.apisetup{padding:16px 20px;background:var(--s1);border-bottom:2px solid var(--gold);}
+.apirow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.apititle{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--gold);}
+.apidesc{font-size:12px;color:var(--dim);line-height:1.5;margin-top:4px;}
+.apidesc a{color:var(--cyan);}
+.apiinput{background:var(--s2);border:1px solid var(--gold);color:var(--white);
+  font-family:'JetBrains Mono',monospace;font-size:13px;padding:8px 12px;
+  border-radius:3px;outline:none;width:280px;transition:border-color .2s;}
+.apiinput:focus{border-color:var(--cyan);}
+.apibtn{background:var(--gold);color:#000;border:none;font-family:'Bebas Neue',sans-serif;
+  font-size:15px;letter-spacing:2px;padding:8px 20px;border-radius:3px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;}
+.apibtn:hover{background:#ffe033;}
+.apistatus{font-family:'JetBrains Mono',monospace;font-size:12px;padding:4px 10px;
+  border-radius:2px;display:none;}
+.apistatus.ok{display:inline-block;background:rgba(0,255,127,.1);color:var(--green);
+  border:1px solid rgba(0,255,127,.3);}
+.apistatus.fail{display:inline-block;background:rgba(255,45,85,.1);color:var(--red);
+  border:1px solid rgba(255,45,85,.3);}
+.freetier{font-size:11px;color:var(--dim);margin-top:6px;
+  padding:6px 10px;border-left:2px solid var(--b2);line-height:1.6;}
 
-.controls{background:var(--s1);border-bottom:1px solid var(--border);
-  padding:14px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;}
+/* CONTROLS */
+.ctrl{background:var(--s1);border-bottom:1px solid var(--b1);
+  padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
 .cg{display:flex;flex-direction:column;gap:4px;}
 .cl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
-.cs,.ci{background:var(--s2);border:1px solid var(--border2);color:var(--white);
+.cs,.ci{background:var(--s2);border:1px solid var(--b2);color:var(--white);
   font-family:'JetBrains Mono',monospace;font-size:13px;padding:7px 10px;
-  border-radius:3px;outline:none;transition:border-color .2s;cursor:pointer;}
+  border-radius:3px;outline:none;cursor:pointer;transition:border-color .2s;}
 .cs:focus,.ci:focus{border-color:var(--cyan);}
-.ci{width:80px;}
-.btn-go{background:var(--cyan);color:#000;border:none;
-  font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:3px;
-  padding:8px 24px;border-radius:3px;cursor:pointer;transition:all .15s;white-space:nowrap;}
-.btn-go:hover{background:#33d9ff;box-shadow:0 0 20px rgba(0,207,255,.5);}
-.btn-go:active{transform:scale(.97);}
-.btn-go:disabled{opacity:.35;cursor:not-allowed;}
-.btn-stop{background:transparent;color:var(--red);border:1px solid var(--red);
+.ci{width:78px;}
+.bgo{background:var(--cyan);color:#000;border:none;font-family:'Bebas Neue',sans-serif;
+  font-size:17px;letter-spacing:3px;padding:8px 22px;border-radius:3px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;}
+.bgo:hover{background:#33d9ff;box-shadow:0 0 18px rgba(0,207,255,.4);}
+.bgo:active{transform:scale(.97);}
+.bgo:disabled{opacity:.3;cursor:not-allowed;}
+.bst{background:transparent;color:var(--red);border:1px solid var(--red);
   font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:2px;
   padding:8px 16px;border-radius:3px;cursor:pointer;display:none;}
-.btn-stop.show{display:block;}
+.bst.show{display:block;}
 
-.frow{background:var(--s1);border-bottom:1px solid var(--border);
-  padding:9px 20px;display:flex;flex-wrap:wrap;gap:7px;align-items:center;}
-.fc{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1px;
-  padding:4px 10px;border-radius:2px;border:1px solid var(--border2);
-  color:var(--dim);cursor:pointer;transition:all .15s;user-select:none;}
+/* FILTER */
+.frow{background:var(--s1);border-bottom:1px solid var(--b1);
+  padding:8px 20px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.fc{font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 10px;
+  border-radius:2px;border:1px solid var(--b2);color:var(--dim);
+  cursor:pointer;transition:all .15s;user-select:none;}
 .fc:hover{border-color:var(--cyan);color:var(--cyan);}
 .fc.on{background:rgba(0,207,255,.1);border-color:var(--cyan);color:var(--cyan);}
 .flbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);}
 
+/* PROGRESS */
 .pw{height:3px;background:var(--s2);overflow:hidden;display:none;}
 .pw.show{display:block;}
 .pf{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));
-  transition:width .3s;box-shadow:0 0 8px var(--cyan);}
-
-.slog{display:none;padding:7px 20px;border-bottom:1px solid var(--border);
-  background:var(--bg);font-family:'JetBrains Mono',monospace;font-size:11px;
-  color:var(--dim);height:26px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+  transition:width .4s;box-shadow:0 0 8px var(--cyan);}
+.slog{display:none;padding:7px 20px;background:var(--bg);font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--dim);height:26px;overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis;border-bottom:1px solid var(--b1);}
 .slog.show{display:block;}
 
-.debugpanel{display:none;margin:10px 20px;background:var(--s2);
-  border:1px solid var(--border2);border-radius:4px;padding:14px;}
-.debugpanel.show{display:block;}
-.dbtitle{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;}
-.dblog{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text);
-  line-height:1.8;max-height:180px;overflow-y:auto;}
-.dg{color:var(--green);}.dr{color:var(--red);}.dy{color:var(--gold);}
-
-.sbar{display:none;flex-wrap:wrap;gap:0;background:var(--s2);border-bottom:1px solid var(--border);}
+/* STATS */
+.sbar{display:none;flex-wrap:wrap;background:var(--s2);border-bottom:1px solid var(--b1);}
 .sbar.show{display:flex;}
-.sc{padding:10px 16px;border-right:1px solid var(--border);flex:1;min-width:95px;}
+.sc{padding:10px 16px;border-right:1px solid var(--b1);flex:1;min-width:90px;}
 .sl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
 .sv{font-family:'JetBrains Mono',monospace;font-size:17px;color:var(--white);}
 
-.rw{padding:0 20px 20px;}
+/* RESULTS */
+.rw{padding:0 20px 24px;}
 .rh{display:flex;align-items:center;gap:10px;padding:12px 0 9px;flex-wrap:wrap;}
-.rt{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:3px;color:var(--white);}
+.rt{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:3px;color:var(--white);}
 .rc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);}
-.sbs{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap;}
-.sb{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;padding:4px 8px;
-  border-radius:2px;border:1px solid var(--border2);color:var(--dim);cursor:pointer;
-  transition:all .15s;font-family:'JetBrains Mono',monospace;}
+.sbs{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;}
+.sb{font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:2px;
+  border:1px solid var(--b2);color:var(--dim);cursor:pointer;transition:all .15s;
+  font-family:'JetBrains Mono',monospace;}
 .sb:hover{border-color:var(--cyan);color:var(--cyan);}
 .sb.active{border-color:var(--gold);color:var(--gold);background:rgba(255,204,0,.07);}
 
-.tw{border:1px solid var(--border2);border-radius:4px;overflow:auto;max-height:65vh;}
+.tw{border:1px solid var(--b2);border-radius:4px;overflow:auto;max-height:68vh;}
 table{width:100%;border-collapse:collapse;}
 thead{position:sticky;top:0;z-index:2;}
 th{background:var(--s3);padding:8px 10px;font-size:9px;letter-spacing:1.5px;
   text-transform:uppercase;color:var(--dim);font-weight:400;white-space:nowrap;
-  border-bottom:1px solid var(--border2);text-align:left;}
-tbody tr{border-bottom:1px solid rgba(20,32,48,.7);transition:background .1s;}
+  border-bottom:1px solid var(--b2);text-align:left;}
+tbody tr{border-bottom:1px solid rgba(20,32,48,.8);transition:background .1s;}
 tbody tr:hover{background:rgba(0,207,255,.03);}
-tbody tr.toprow{background:rgba(0,255,127,.025);}
+tbody tr.star{background:rgba(0,255,127,.025);}
 td{padding:8px 10px;font-size:12px;white-space:nowrap;}
 .mt{font-family:'JetBrains Mono',monospace;font-size:11px;}
-.badge{display:inline-block;font-family:'JetBrains Mono',monospace;
-  font-size:9px;font-weight:700;padding:2px 6px;border-radius:2px;letter-spacing:.3px;}
+.badge{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;
+  font-weight:700;padding:2px 6px;border-radius:2px;}
 .bg{background:rgba(0,255,127,.12);color:var(--green);border:1px solid rgba(0,255,127,.3);}
 .bc{background:rgba(0,207,255,.12);color:var(--cyan);border:1px solid rgba(0,207,255,.3);}
-.bgo{background:rgba(255,204,0,.12);color:var(--gold);border:1px solid rgba(255,204,0,.3);}
+.bgo2{background:rgba(255,204,0,.12);color:var(--gold);border:1px solid rgba(255,204,0,.3);}
 .br{background:rgba(255,45,85,.12);color:var(--red);border:1px solid rgba(255,45,85,.3);}
-.bd{background:rgba(58,96,128,.15);color:var(--dim);border:1px solid var(--border2);}
+.bd{background:rgba(58,96,128,.15);color:var(--dim);border:1px solid var(--b2);}
 .bp{background:rgba(168,85,247,.12);color:var(--purple);border:1px solid rgba(168,85,247,.3);}
 .bo{background:rgba(255,122,0,.12);color:var(--orange);border:1px solid rgba(255,122,0,.3);}
-.ew{display:flex;align-items:center;gap:6px;}
-.et{width:48px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;}
+.ew{display:flex;align-items:center;gap:5px;}
+.et{width:46px;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;}
 .ef{height:100%;border-radius:2px;}
 .tag{font-size:9px;padding:1px 5px;border-radius:1px;font-family:'JetBrains Mono',monospace;}
 .twk{background:rgba(255,204,0,.1);color:var(--gold);}
 .t0d{background:rgba(255,45,85,.1);color:var(--red);}
 .tcp{background:rgba(0,255,127,.1);color:var(--green);}
-.empty{text-align:center;padding:40px;color:var(--dim);font-size:13px;}
-@media(max-width:768px){.topmkt{display:none;}.sc{min-width:80px;}}
+.empty{text-align:center;padding:40px;color:var(--dim);font-size:13px;line-height:2;}
+@media(max-width:768px){.mkt{display:none;}.sc{min-width:80px;}}
 </style>
 </head>
-<body class="z1">
+<body class="z">
 
-<div class="topbar">
+<!-- TOP -->
+<div class="top">
   <div class="brand">UNIVERSE<em>SCAN</em></div>
   <div class="topinfo">Weekly &amp; Daily Options — Live Data</div>
-  <div class="topmkt">
-    <div class="mkt-item"><span class="msym">SPY</span><span class="mpx" id="h-spy">—</span><span class="mchg" id="h-spy-c"></span></div>
-    <div class="mkt-item"><span class="msym">QQQ</span><span class="mpx" id="h-qqq">—</span><span class="mchg" id="h-qqq-c"></span></div>
-    <div class="mkt-item"><span class="msym">VIX</span><span class="mpx" id="h-vix">—</span><span class="mchg" id="h-vix-c"></span></div>
+  <div class="mkt">
+    <div class="mi"><span class="ms">SPY</span><span class="mp" id="h-spy">—</span><span class="mc" id="h-spy-c"></span></div>
+    <div class="mi"><span class="ms">QQQ</span><span class="mp" id="h-qqq">—</span><span class="mc" id="h-qqq-c"></span></div>
+    <div class="mi"><span class="ms">VIX</span><span class="mp" id="h-vix">—</span><span class="mc" id="h-vix-c"></span></div>
   </div>
-  <div class="pulse" id="liveDot" style="opacity:.4"></div>
+  <div class="dot" id="liveDot" style="opacity:.3"></div>
 </div>
 
-<div class="proxybar" id="proxyBar">
-  <div class="pdot dpend" id="p1dot"></div>
-  <span id="p1txt" style="color:var(--dim)">Connecting to data…</span>
-  <span id="pnote" style="margin-left:auto;color:var(--dim);font-size:10px"></span>
+<!-- API KEY SETUP -->
+<div class="apisetup">
+  <div class="apititle">⚡ Polygon.io API Key Required</div>
+  <div class="apidesc">
+    Yahoo Finance blocked free browser access in 2024. This scanner uses <a href="https://polygon.io" target="_blank">Polygon.io</a> — free tier works great for this tool.
+    <br><b style="color:var(--white)">Get your free key in 60 seconds:</b>
+    → <a href="https://polygon.io/dashboard/signup" target="_blank">polygon.io/dashboard/signup</a> → sign up → copy your API key below.
+  </div>
+  <div style="margin-top:10px;">
+    <div class="apirow">
+      <input class="apiinput" id="apiKey" type="text" placeholder="Paste your Polygon.io API key here…" autocomplete="off">
+      <button class="apibtn" onclick="testKey()">TEST KEY</button>
+      <span class="apistatus" id="apiStatus"></span>
+    </div>
+    <div class="freetier">
+      Free tier: unlimited calls · End-of-day data · 15-min delayed quotes · Full options chains with greeks · No credit card needed.
+      Your key is saved in your browser (localStorage) — never sent anywhere except Polygon.io.
+    </div>
+  </div>
 </div>
 
-<div class="controls">
+<!-- CONTROLS -->
+<div class="ctrl">
   <div class="cg">
     <div class="cl">Universe</div>
-    <select class="cs" id="universe" style="width:190px">
+    <select class="cs" id="universe" style="width:185px">
       <option value="top50">Top 50 — Fastest</option>
-      <option value="sp100" selected>S&amp;P 100 + ETFs</option>
+      <option value="sp100" selected>S&P 100 + ETFs</option>
       <option value="full">Full (~200 symbols)</option>
       <option value="etf">ETFs Only</option>
     </select>
@@ -185,17 +211,18 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
   <div class="cg"><div class="cl">Min OI</div><input type="number" class="ci" id="minOI" value="50" min="0"></div>
   <div class="cg"><div class="cl">σ Width</div><input type="number" class="ci" id="sdMult" value="1.0" min="0.5" max="2.5" step="0.25"></div>
   <div class="cg">
-    <div class="cl">Option Type</div>
-    <select class="cs" id="optType" style="width:90px">
+    <div class="cl">Type</div>
+    <select class="cs" id="optType" style="width:88px">
       <option value="both">Both</option>
       <option value="call">Calls</option>
       <option value="put">Puts</option>
     </select>
   </div>
-  <button class="btn-go" id="scanBtn" onclick="startScan()">⚡ SCAN</button>
-  <button class="btn-stop" id="stopBtn" onclick="stopScan()">■ STOP</button>
+  <button class="bgo" id="scanBtn" onclick="startScan()">⚡ SCAN</button>
+  <button class="bst" id="stopBtn" onclick="stopScan()">■ STOP</button>
 </div>
 
+<!-- FILTERS -->
 <div class="frow">
   <span class="flbl">Filter:</span>
   <div class="fc" id="f-0dte"  onclick="toggleF('0dte')">0DTE</div>
@@ -212,11 +239,6 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
 <div class="pw" id="pw"><div class="pf" id="pf" style="width:0%"></div></div>
 <div class="slog" id="slog"></div>
 
-<div class="debugpanel" id="dbpanel">
-  <div class="dbtitle">Connection Diagnostics</div>
-  <div class="dblog" id="dblog"></div>
-</div>
-
 <div class="sbar" id="sbar">
   <div class="sc"><div class="sl">Scanned</div><div class="sv" id="ss">0</div></div>
   <div class="sc"><div class="sl">Strikes</div><div class="sv" style="color:var(--cyan)" id="sk">0</div></div>
@@ -231,12 +253,12 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
     <div class="rt">SCAN RESULTS</div>
     <div class="rc" id="rcount"></div>
     <div class="sbs">
-      <button class="sb active" id="sb-edge" onclick="sortBy('edge',this)">Edge ↓</button>
-      <button class="sb" id="sb-sym"  onclick="sortBy('sym',this)">Symbol</button>
-      <button class="sb" id="sb-dte"  onclick="sortBy('dte',this)">DTE</button>
-      <button class="sb" id="sb-iv"   onclick="sortBy('iv',this)">IV%</button>
-      <button class="sb" id="sb-oi"   onclick="sortBy('oi',this)">OI</button>
-      <button class="sb" id="sb-vol"  onclick="sortBy('vol',this)">Vol</button>
+      <button class="sb active" onclick="sortBy('edge',this)">Edge ↓</button>
+      <button class="sb" onclick="sortBy('sym',this)">Symbol</button>
+      <button class="sb" onclick="sortBy('dte',this)">DTE</button>
+      <button class="sb" onclick="sortBy('iv',this)">IV%</button>
+      <button class="sb" onclick="sortBy('oi',this)">OI</button>
+      <button class="sb" onclick="sortBy('vol',this)">Vol</button>
     </div>
   </div>
   <div class="tw">
@@ -245,24 +267,25 @@ td{padding:8px 10px;font-size:12px;white-space:nowrap;}
         <th>#</th><th>Symbol</th><th>Type</th>
         <th>Price</th><th>Strike</th><th>Expiry</th><th>DTE</th>
         <th>Bid×Ask</th><th>IV%</th><th>IV/HV</th>
-        <th>Delta</th><th>OI</th><th>Volume</th>
-        <th>1σ Band</th><th>Edge</th><th>Tags</th>
+        <th>Delta</th><th>Gamma</th><th>Theta</th>
+        <th>OI</th><th>Volume</th><th>1σ Band</th><th>Edge</th><th>Tags</th>
       </tr></thead>
-      <tbody id="rbody"><tr><td colspan="16" class="empty">Run a scan to see results</td></tr></tbody>
+      <tbody id="rbody"><tr><td colspan="18" class="empty">Enter API key above, then click SCAN</td></tr></tbody>
     </table>
   </div>
 </div>
 
 <script>
-// ─── UNIVERSES ───────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// UNIVERSES
+// ═══════════════════════════════════════════════════════════
 const UNI = {
-  top50: ['SPY','QQQ','IWM','GLD','TLT','XLF','XLE','XLK','XLV',
+  top50:['SPY','QQQ','IWM','GLD','TLT','XLF','XLE','XLK','XLV',
     'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','AMD','INTC',
     'NFLX','CRM','PLTR','COIN','HOOD','BAC','JPM','GS','V','MA',
     'XOM','CVX','OXY','TQQQ','SQQQ','UPRO','SOXL','SOXS','UVXY','VXX',
-    'MSTR','RIOT','MARA','CRWD','NET','DDOG','ROKU','SQ','SOFI','NIO','RIVN'],
-
-  sp100: ['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','EEM',
+    'MSTR','RIOT','MARA','CRWD','NET','DDOG','ROKU','SQ','SOFI','NIO','RIVN','F'],
+  sp100:['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','EEM',
     'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB',
     'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','GOOG','AMD','INTC','QCOM','MU','AVGO',
     'NFLX','BABA','CRM','ORCL','UBER','SHOP','PLTR','COIN','HOOD','RBLX',
@@ -270,445 +293,382 @@ const UNI = {
     'XOM','CVX','OXY','COP','MRO','HAL',
     'JNJ','PFE','MRNA','ABBV','BMY','UNH','AMGN','GILD',
     'HD','WMT','TGT','COST','NKE','MCD','SBUX',
-    'BA','LMT','GE','CAT','HON',
-    'F','GM','RIVN','NIO',
-    'DIS','CMCSA','T','VZ','TMUS',
-    'SNAP','RDDT','PINS',
+    'BA','LMT','GE','CAT','HON','F','GM','RIVN','NIO',
+    'DIS','CMCSA','T','VZ','TMUS','SNAP','RDDT',
     'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX',
-    'MSTR','RIOT','MARA','CRWD','NET','DDOG','SNOW'],
-
-  full: ['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
+    'MSTR','RIOT','MARA','CRWD','NET','DDOG','SNOW','SQ','SOFI'],
+  full:['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
     'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB','XLRE','XLY',
     'AAPL','MSFT','NVDA','TSLA','AMZN','META','GOOGL','GOOG','AMD','INTC','QCOM','MU','AVGO','TXN',
-    'NFLX','BABA','CRM','ORCL','UBER','SHOP','PLTR','COIN','HOOD','RBLX','SNAP','RDDT','PINS','SPOT',
-    'BAC','JPM','GS','MS','C','WFC','V','MA','PYPL','AXP','COF','BRK-B',
-    'XOM','CVX','OXY','COP','MRO','HAL','SLB','BP',
+    'NFLX','BABA','CRM','ORCL','UBER','SHOP','PLTR','COIN','HOOD','RBLX','SNAP','RDDT','SPOT',
+    'BAC','JPM','GS','MS','C','WFC','V','MA','PYPL','AXP','COF',
+    'XOM','CVX','OXY','COP','MRO','HAL','SLB',
     'JNJ','PFE','MRNA','ABBV','BMY','UNH','AMGN','GILD','BIIB','REGN','VRTX',
-    'HD','LOW','WMT','TGT','COST','NKE','MCD','SBUX','CMG','YUM',
-    'BA','LMT','RTX','GE','CAT','DE','HON','MMM',
+    'HD','LOW','WMT','TGT','COST','NKE','MCD','SBUX','CMG',
+    'BA','LMT','RTX','GE','CAT','DE','HON',
     'F','GM','RIVN','NIO','LCID',
     'DIS','CMCSA','T','VZ','TMUS','PARA',
     'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX','LABD',
-    'MSTR','RIOT','MARA','CLSK','HUT',
+    'MSTR','RIOT','MARA','CLSK',
     'CRWD','NET','DDOG','SNOW','MDB','ZS','OKTA','TWLO',
     'ROKU','SQ','SOFI','AFRM','UPST','GME','AMC'],
-
-  etf: ['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
+  etf:['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
     'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB','XLRE','XLY',
     'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX','LABD',
     'USO','UNG','BOIL','UCO','ARKK','ARKG']
 };
-
-const ETF_SET = new Set([
-  'SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
+const ETF_SET=new Set(['SPY','QQQ','IWM','DIA','GLD','SLV','TLT','HYG','LQD','EEM',
   'XLF','XLE','XLK','XLV','XLI','XLP','XLU','XLB','XLRE','XLY',
   'TQQQ','SQQQ','UPRO','SPXU','SOXL','SOXS','UVXY','VXX','LABD',
-  'USO','UNG','BOIL','UCO','ARKK','ARKG'
-]);
+  'USO','UNG','BOIL','UCO','ARKK','ARKG']);
 
-// ─── PROXY SYSTEM ────────────────────────────────────────────────────
-// Multiple proxy strategies, tested in order
-const PROXY_STRATEGIES = [
-  {
-    name: 'corsproxy.io',
-    wrap: u => `https://corsproxy.io/?${encodeURIComponent(u)}`
-  },
-  {
-    name: 'allorigins',
-    wrap: u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`
-  },
-  {
-    name: 'corsproxy.org',
-    wrap: u => `https://corsproxy.org/?${encodeURIComponent(u)}`
-  },
-  {
-    name: 'htmldriven',
-    wrap: u => `https://cors.eu.org/${u}`
-  },
-  {
-    name: 'direct',
-    wrap: u => u
-  }
-];
+// ═══════════════════════════════════════════════════════════
+// POLYGON.IO API
+// Docs: https://polygon.io/docs/options
+// CORS: yes, native support
+// ═══════════════════════════════════════════════════════════
+const BASE = 'https://api.polygon.io';
 
-let activeProxy = null;
-
-function dlog(msg, cls = '') {
-  const el = document.getElementById('dblog');
-  const d = document.createElement('div');
-  d.className = cls;
-  d.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  el.appendChild(d);
-  el.scrollTop = el.scrollHeight;
-}
-
-async function pickProxy() {
-  document.getElementById('dbpanel').classList.add('show');
-  document.getElementById('pw').classList.add('show');
-  dlog('Testing data connections…');
-
-  const TEST = 'https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=2d';
-
-  for (const strat of PROXY_STRATEGIES) {
-    dlog(`Trying ${strat.name}…`);
-    try {
-      const res = await fetch(strat.wrap(TEST), {
-        signal: AbortSignal.timeout(7000),
-        headers: { 'Accept': '*/*', 'Cache-Control': 'no-cache' }
-      });
-      if (!res.ok) { dlog(`${strat.name}: ${res.status}`, 'dr'); continue; }
-      const txt = await res.text();
-      if (!txt || txt.length < 20 || txt.trimStart().startsWith('<')) {
-        dlog(`${strat.name}: invalid response`, 'dr'); continue;
-      }
-      let parsed;
-      try { parsed = JSON.parse(txt); } catch(e) { dlog(`${strat.name}: not JSON`, 'dr'); continue; }
-      const price = parsed?.chart?.result?.[0]?.meta?.regularMarketPrice;
-      if (!price) { dlog(`${strat.name}: no price in response`, 'dy'); continue; }
-
-      activeProxy = strat;
-      dlog(`✓ ${strat.name} works — AAPL $${price.toFixed(2)}`, 'dg');
-      document.getElementById('p1dot').className = 'pdot dok';
-      document.getElementById('p1txt').textContent = `Connected via ${strat.name}`;
-      document.getElementById('pnote').textContent = 'Yahoo Finance (15-min delayed)';
-      document.getElementById('liveDot').style.opacity = '1';
-      return true;
-    } catch(e) {
-      dlog(`${strat.name}: ${e.message}`, 'dr');
-    }
-  }
-
-  document.getElementById('p1dot').className = 'pdot dfail';
-  document.getElementById('p1txt').textContent = 'Connection failed';
-  document.getElementById('pnote').textContent = 'All proxies blocked';
-  dlog('─────────────────────────────', 'dy');
-  dlog('⚠ All proxies failed. Possible causes:', 'dy');
-  dlog('  • This tool is inside an iframe (try opening the HTML file directly)', 'dy');
-  dlog('  • Your browser has strict CORS or ad-block extensions', 'dy');
-  dlog('  • Yahoo Finance temporarily rate-limited this IP', 'dy');
-  dlog('  → Try: open the downloaded HTML file in Chrome/Edge directly', 'dy');
-  return false;
-}
-
-async function yf(path) {
-  if (!activeProxy) throw new Error('No proxy');
-  const url = `https://query1.finance.yahoo.com${path}`;
-  const url2 = `https://query2.finance.yahoo.com${path}`;
-  const target = path.includes('options') ? url2 : url;
-
-  const res = await fetch(activeProxy.wrap(target), {
-    signal: AbortSignal.timeout(9000),
-    headers: { 'Accept': '*/*' }
-  });
+async function polyFetch(path, apiKey) {
+  const sep = path.includes('?') ? '&' : '?';
+  const url = `${BASE}${path}${sep}apiKey=${apiKey}`;
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+  if (res.status === 403) throw new Error('Invalid API key');
+  if (res.status === 429) throw new Error('Rate limit — slow down');
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const txt = await res.text();
-  if (!txt || txt.trimStart().startsWith('<')) throw new Error('HTML response (blocked)');
-  return JSON.parse(txt);
+  return res.json();
 }
 
-// ─── MATH ────────────────────────────────────────────────────────────
-function normCDF(x) {
+let API_KEY = '';
+
+async function testKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return;
+  const btn = document.querySelector('.apibtn');
+  btn.textContent = 'TESTING…';
+  btn.disabled = true;
+  const st = document.getElementById('apiStatus');
+  try {
+    // Test with a simple quote
+    const d = await polyFetch('/v2/aggs/ticker/AAPL/prev', key);
+    if (d.resultsCount > 0) {
+      const px = d.results[0].c;
+      API_KEY = key;
+      localStorage.setItem('poly_key', key);
+      st.textContent = `✓ Connected — AAPL $${px}`;
+      st.className = 'apistatus ok';
+      document.getElementById('liveDot').style.opacity = '1';
+      document.getElementById('scanBtn').disabled = false;
+      loadHeaderTickers();
+    } else {
+      throw new Error('No data returned');
+    }
+  } catch(e) {
+    st.textContent = `✗ ${e.message}`;
+    st.className = 'apistatus fail';
+  }
+  btn.textContent = 'TEST KEY';
+  btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MATH
+// ═══════════════════════════════════════════════════════════
+function normCDF(x){
   const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
-  const s=x<0?-1:1; x=Math.abs(x)/Math.sqrt(2);
+  const s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);
   const t=1/(1+p*x);
   return 0.5*(1+s*(1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x)));
 }
-function bsDelta(S,K,T,iv,type) {
-  if(T<0.001||iv<=0||S<=0||K<=0) return type==='call'?0.3:-0.3;
+function bsDelta(S,K,T,iv,type){
+  if(T<0.001||iv<=0)return type==='call'?0.3:-0.3;
   const d1=(Math.log(S/K)+(0.05+.5*iv*iv)*T)/(iv*Math.sqrt(T));
   return type==='call'?normCDF(d1):normCDF(d1)-1;
 }
 
-function edgeScore(o, S, hv, dte, type) {
-  const iv  = o.impliedVolatility || 0;
-  const bid = o.bid  || 0;
-  const ask = o.ask  || 0;
-  const vol = o.volume        || 0;
-  const oi  = o.openInterest  || 0;
+function edgeScore(iv, hv, bid, ask, vol, oi, dte, delta) {
   if (iv <= 0) return 0;
-  const mid = bid > 0 && ask > 0 ? (bid+ask)/2 : null;
-
+  const mid = bid > 0 && ask > 0 ? (bid+ask)/2 : 0;
   const ivhv = hv > 0 ? iv/hv : 1;
   const ivS  = ivhv<0.7?100:ivhv<0.85?85:ivhv<1.0?70:ivhv<1.2?50:ivhv<1.5?30:15;
-
-  const spd  = mid && mid > 0 ? (ask-bid)/mid : 1;
+  const spd  = mid>0?(ask-bid)/mid:1;
   const spdS = spd<0.05?95:spd<0.10?80:spd<0.20?62:spd<0.40?42:15;
-
-  const voi  = oi > 0 ? vol/oi : (vol > 0 ? 0.5 : 0);
+  const voi  = oi>0?vol/oi:(vol>0?0.5:0);
   const voiS = voi>1?95:voi>0.5?80:voi>0.2?62:voi>0.05?42:20;
-
   const oiS  = oi>5000?95:oi>1000?80:oi>200?60:oi>50?40:18;
-
-  const T    = Math.max(dte/365, 0.001);
-  const dlt  = Math.abs(bsDelta(S, o.strike, T, iv, type));
-  const dS   = dlt>=0.20&&dlt<=0.45?90:dlt>=0.15&&dlt<=0.55?72:dlt>=0.10?50:25;
-
+  const absDlt = Math.abs(delta);
+  const dS   = absDlt>=0.20&&absDlt<=0.45?90:absDlt>=0.15&&absDlt<=0.55?72:absDlt>=0.10?50:25;
   const dteS = dte===0?65:dte<=2?92:dte<=5?83:dte<=7?70:52;
-
-  return Math.round(ivS*0.22 + spdS*0.20 + voiS*0.15 + oiS*0.15 + dS*0.15 + dteS*0.13);
+  return Math.round(ivS*0.22+spdS*0.20+voiS*0.15+oiS*0.15+dS*0.15+dteS*0.13);
 }
 
-// ─── STATE ──────────────────────────────────────────────────────────
-let scanning   = false;
-let allResults = [];
-let activeF    = new Set();
-let sortKey    = 'edge';
-let stats      = {s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let scanning=false, allResults=[], activeF=new Set(), sortKey='edge';
+let st={s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
 
-const setLog = m => { document.getElementById('slog').textContent = m; };
-const setProg = (d,t) => { document.getElementById('pf').style.width = (t>0?(d/t*100):0)+'%'; };
-function updSt() {
-  document.getElementById('ss').textContent = stats.s;
-  document.getElementById('sk').textContent = stats.k;
-  document.getElementById('sh').textContent = stats.h;
-  document.getElementById('sz').textContent = stats.z;
-  document.getElementById('se').textContent = stats.e;
-  document.getElementById('sr').textContent = stats.ivhvN>0?(stats.ivhvSum/stats.ivhvN).toFixed(2):'—';
+const setLog=m=>document.getElementById('slog').textContent=m;
+const setProg=(d,t)=>document.getElementById('pf').style.width=(t>0?(d/t*100):0)+'%';
+function updSt(){
+  document.getElementById('ss').textContent=st.s;
+  document.getElementById('sk').textContent=st.k;
+  document.getElementById('sh').textContent=st.h;
+  document.getElementById('sz').textContent=st.z;
+  document.getElementById('se').textContent=st.e;
+  document.getElementById('sr').textContent=st.ivhvN>0?(st.ivhvSum/st.ivhvN).toFixed(2):'—';
 }
 
-// ─── SCAN ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+// SCAN
+// ═══════════════════════════════════════════════════════════
 async function startScan() {
+  if (!API_KEY) { alert('Please enter and test your Polygon.io API key first.'); return; }
   if (scanning) return;
-  scanning = true;
-  allResults = [];
-  stats = {s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
+  scanning=true; allResults=[];
+  st={s:0,k:0,h:0,z:0,e:0,ivhvSum:0,ivhvN:0};
 
   const uKey   = document.getElementById('universe').value;
   const maxDte = parseInt(document.getElementById('maxDte').value);
-  const minEdg = parseInt(document.getElementById('minEdge').value) || 0;
-  const minOI  = parseInt(document.getElementById('minOI').value)   || 0;
-  const sdM    = parseFloat(document.getElementById('sdMult').value)  || 1;
+  const minEdg = parseInt(document.getElementById('minEdge').value)||0;
+  const minOI  = parseInt(document.getElementById('minOI').value)||0;
+  const sdM    = parseFloat(document.getElementById('sdMult').value)||1;
   const oType  = document.getElementById('optType').value;
 
   const syms = [...new Set(UNI[uKey])];
 
-  document.getElementById('scanBtn').disabled = true;
-  document.getElementById('scanBtn').textContent = 'SCANNING…';
+  document.getElementById('scanBtn').disabled=true;
+  document.getElementById('scanBtn').textContent='SCANNING…';
   document.getElementById('stopBtn').classList.add('show');
   document.getElementById('pw').classList.add('show');
   document.getElementById('slog').classList.add('show');
   document.getElementById('sbar').classList.add('show');
-  document.getElementById('rw').style.display = 'block';
-  document.getElementById('rbody').innerHTML = '<tr><td colspan="16" class="empty" style="color:var(--dim)">Scanning, results appear live…</td></tr>';
+  document.getElementById('rw').style.display='block';
+  document.getElementById('rbody').innerHTML='<tr><td colspan="18" class="empty" style="color:var(--dim)">Scanning… results appear live below</td></tr>';
 
-  if (!activeProxy) {
-    setLog('Testing connection…');
-    const ok = await pickProxy();
-    if (!ok) {
-      scanning = false;
-      document.getElementById('scanBtn').disabled = false;
-      document.getElementById('scanBtn').textContent = '⚡ SCAN';
-      document.getElementById('stopBtn').classList.remove('show');
-      setLog('⚠ Cannot connect — see diagnostics');
-      return;
-    }
-  }
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  const maxExpStr = new Date(today.getTime()+maxDte*86400000).toISOString().split('T')[0];
 
-  const now = Date.now();
-  // Compute "today midnight" timestamp for accurate DTE
-  const todayMid = new Date(); todayMid.setHours(16,0,0,0); // market close today
-  const todaySec = Math.floor(todayMid.getTime() / 1000);
-
-  for (let i = 0; i < syms.length && scanning; i += 3) {
-    const batch = syms.slice(i, i+3);
-    await Promise.allSettled(batch.map(sym => scanOne(sym, todaySec, maxDte, minEdg, minOI, sdM, oType)));
-    setProg(Math.min(i+3, syms.length), syms.length);
+  // Polygon free tier: 5 req/min — we need to be careful
+  // Strategy: batch by 2, with 1.5s delay between batches
+  for (let i=0; i<syms.length && scanning; i+=2) {
+    const batch = syms.slice(i, i+2);
+    await Promise.allSettled(batch.map(sym =>
+      scanOne(sym, todayStr, maxExpStr, maxDte, minEdg, minOI, sdM, oType)
+    ));
+    setProg(Math.min(i+2, syms.length), syms.length);
     renderResults();
-    await new Promise(r => setTimeout(r, 400));
+    // Respect free tier rate limit (5 calls/min = ~12s between calls)
+    // We use 2 calls per symbol (prev close + options), so ~2 per symbol
+    // With batch of 2 = 4 calls, wait 3s between batches
+    await new Promise(r=>setTimeout(r, 1500));
   }
 
-  scanning = false;
-  document.getElementById('scanBtn').disabled = false;
-  document.getElementById('scanBtn').textContent = '⚡ SCAN';
+  scanning=false;
+  document.getElementById('scanBtn').disabled=false;
+  document.getElementById('scanBtn').textContent='⚡ SCAN';
   document.getElementById('stopBtn').classList.remove('show');
-  setLog(`✓ Complete — ${stats.k} strikes | ${stats.s} symbols | ${stats.e} skipped`);
+  setLog(`✓ Complete — ${st.k} strikes across ${st.s} symbols (${st.e} skipped)`);
   renderResults();
 }
 
-function stopScan() {
-  scanning = false;
+function stopScan(){
+  scanning=false;
   document.getElementById('stopBtn').classList.remove('show');
-  document.getElementById('scanBtn').disabled = false;
-  document.getElementById('scanBtn').textContent = '⚡ SCAN';
-  setLog(`⏹ Stopped — ${stats.k} strikes so far`);
+  document.getElementById('scanBtn').disabled=false;
+  document.getElementById('scanBtn').textContent='⚡ SCAN';
+  setLog(`⏹ Stopped — ${st.k} strikes so far`);
 }
 
-async function scanOne(sym, todaySec, maxDte, minEdg, minOI, sdM, oType) {
+async function scanOne(sym, todayStr, maxExpStr, maxDte, minEdg, minOI, sdM, oType) {
   setLog(`${sym}…`);
   try {
-    // Quote + history
-    const qd = await yf(`/v8/finance/chart/${sym}?interval=1d&range=60d`);
-    const qr = qd?.chart?.result?.[0];
-    if (!qr) { stats.e++; updSt(); return; }
+    // Step 1: Get previous day close price + HV approximation
+    const prevData = await polyFetch(`/v2/aggs/ticker/${sym}/prev`, API_KEY);
+    if (!prevData.results?.length) { st.e++; updSt(); return; }
+    const S = prevData.results[0].c;
+    if (!S || S <= 0) { st.e++; updSt(); return; }
 
-    const S = qr.meta?.regularMarketPrice || qr.meta?.chartPreviousClose;
-    if (!S || S <= 0) { stats.e++; updSt(); return; }
-
-    // HV20
-    const cls = (qr.indicators?.quote?.[0]?.close || []).filter(v => v > 0);
+    // Get 30-day history for HV calculation
+    const thirtyAgo = new Date(Date.now()-30*86400000).toISOString().split('T')[0];
+    const histData = await polyFetch(
+      `/v2/aggs/ticker/${sym}/range/1/day/${thirtyAgo}/${todayStr}?adjusted=true&sort=asc&limit=30`,
+      API_KEY
+    );
     let hv = 0.25;
-    if (cls.length >= 5) {
-      const used = cls.slice(-21);
-      const logs = [];
-      for (let i = 1; i < used.length; i++) {
-        if (used[i] > 0 && used[i-1] > 0) logs.push(Math.log(used[i]/used[i-1]));
+    const bars = histData.results || [];
+    if (bars.length >= 5) {
+      const logs=[];
+      for (let i=1;i<bars.length;i++) {
+        if (bars[i].c>0&&bars[i-1].c>0) logs.push(Math.log(bars[i].c/bars[i-1].c));
       }
-      if (logs.length >= 4) {
-        const mu = logs.reduce((a,b)=>a+b,0)/logs.length;
-        const va = logs.reduce((s,v)=>s+(v-mu)**2,0)/(logs.length-1);
-        const h2 = Math.sqrt(va * 252);
-        if (h2 > 0 && !isNaN(h2)) hv = h2;
+      if (logs.length>=4){
+        const mu=logs.reduce((a,b)=>a+b,0)/logs.length;
+        const va=logs.reduce((s,v)=>s+(v-mu)**2,0)/(logs.length-1);
+        const h2=Math.sqrt(va*252);
+        if (h2>0&&!isNaN(h2)) hv=h2;
       }
     }
 
-    // Expirations
-    const od = await yf(`/v7/finance/options/${sym}`);
-    const or = od?.optionChain?.result?.[0];
-    if (!or) { stats.e++; updSt(); return; }
+    // Step 2: Options chain snapshot (Polygon options chain endpoint)
+    // https://api.polygon.io/v3/snapshot/options/{sym}
+    const chainData = await polyFetch(
+      `/v3/snapshot/options/${sym}?expiration_date.gte=${todayStr}&expiration_date.lte=${maxExpStr}&limit=250`,
+      API_KEY
+    );
 
-    const exps = (or.expirationDates || []).filter(exp => {
-      const dte = Math.round((exp - todaySec) / 86400);
-      return dte >= 0 && dte <= maxDte;
-    });
-
-    if (!exps.length) { stats.s++; updSt(); return; }
+    const contracts = chainData.results || [];
+    if (!contracts.length) { st.s++; updSt(); return; }
 
     const isETF = ETF_SET.has(sym);
-    let has0 = false;
+    let has0=false;
 
-    for (const exp of exps) {
-      if (!scanning) break;
-      const dte = Math.max(0, Math.round((exp - todaySec) / 86400));
-      if (dte === 0) has0 = true;
-
-      let cd;
-      try { cd = await yf(`/v7/finance/options/${sym}?date=${exp}`); }
-      catch(e) { continue; }
-
-      const chain = cd?.optionChain?.result?.[0]?.options?.[0];
-      if (!chain) continue;
-
-      const calls = chain.calls || [];
-      const puts  = chain.puts  || [];
-      const allOpts = [...calls, ...puts];
-
-      // Avg IV for 1-SD calculation
-      const ivVals = allOpts.map(o=>o.impliedVolatility).filter(v=>v&&v>0&&v<15);
-      const avgIV = ivVals.length ? ivVals.reduce((a,b)=>a+b,0)/ivVals.length : hv;
-
-      const T   = Math.max(dte/365, 0.001);
-      const sd1 = S * avgIV * Math.sqrt(T) * sdM;
-      const lo  = S - sd1, hi = S + sd1;
-      const ivhvR = hv > 0 ? avgIV/hv : 1;
-      stats.ivhvSum += ivhvR;
-      stats.ivhvN++;
-
-      const expStr = new Date(exp*1000).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-
-      const proc = (o, type) => {
-        if (!o.strike || o.strike <= 0) return;
-        if (o.strike < lo || o.strike > hi) return;
-        if ((o.openInterest||0) < minOI) return;
-        const e = edgeScore(o, S, hv, dte, type);
-        if (e < minEdg) return;
-        const delta = bsDelta(S, o.strike, T, o.impliedVolatility||avgIV, type);
-        if (e >= 65) stats.h++;
-        allResults.push({
-          sym, type:type.toUpperCase(), S, strike:o.strike,
-          expStr, dte, bid:o.bid||0, ask:o.ask||0,
-          iv:(o.impliedVolatility||avgIV)*100,
-          ivhv:ivhvR, delta, oi:o.openInterest||0, vol:o.volume||0,
-          edge:e, lo, hi, isETF, is0:(dte===0)
-        });
-        stats.k++;
-      };
-
-      if (oType !== 'put')  calls.forEach(c => proc(c, 'call'));
-      if (oType !== 'call') puts.forEach(p => proc(p, 'put'));
+    // Group by expiry to compute per-expiry 1-SD band
+    const byExp = {};
+    for (const c of contracts) {
+      const exp = c.details?.expiration_date;
+      if (!exp) continue;
+      if (!byExp[exp]) byExp[exp] = [];
+      byExp[exp].push(c);
     }
 
-    if (has0) stats.z++;
-    stats.s++;
+    for (const [exp, expContracts] of Object.entries(byExp)) {
+      if (!scanning) break;
+      const expDate = new Date(exp+'T16:00:00');
+      const todayDate = new Date(todayStr+'T16:00:00');
+      const dte = Math.max(0, Math.round((expDate-todayDate)/86400000));
+      if (dte === 0) has0=true;
+      if (dte > maxDte) continue;
+
+      const T = Math.max(dte/365, 0.001);
+
+      // Avg IV for this expiry
+      const ivVals = expContracts.map(c=>c.greeks?.implied_volatility||c.implied_volatility||0).filter(v=>v>0&&v<15);
+      const avgIV = ivVals.length ? ivVals.reduce((a,b)=>a+b,0)/ivVals.length : hv;
+      const sd1 = S * avgIV * Math.sqrt(T) * sdM;
+      const lo = S-sd1, hi = S+sd1;
+      const ivhvR = hv>0 ? avgIV/hv : 1;
+      st.ivhvSum += ivhvR;
+      st.ivhvN++;
+
+      const expStr = new Date(exp+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+      for (const c of expContracts) {
+        const type = c.details?.contract_type; // 'call' or 'put'
+        if (!type) continue;
+        if (oType==='call' && type!=='call') continue;
+        if (oType==='put'  && type!=='put') continue;
+
+        const K = c.details?.strike_price;
+        if (!K || K<lo || K>hi) continue;
+
+        const oi  = c.open_interest || 0;
+        const vol = c.day?.volume || 0;
+        if (oi < minOI) continue;
+
+        const iv  = c.greeks?.implied_volatility || c.implied_volatility || avgIV;
+        const bid = c.last_quote?.bid || 0;
+        const ask = c.last_quote?.ask || 0;
+        const delta  = c.greeks?.delta  || bsDelta(S,K,T,iv,type);
+        const gamma  = c.greeks?.gamma  || 0;
+        const theta  = c.greeks?.theta  || 0;
+
+        const e = edgeScore(iv, hv, bid, ask, vol, oi, dte, delta);
+        if (e < minEdg) continue;
+        if (e >= 65) st.h++;
+
+        allResults.push({
+          sym, type:type.toUpperCase(), S, strike:K,
+          expStr, dte, bid, ask,
+          iv:iv*100, ivhv:ivhvR,
+          delta, gamma, theta,
+          oi, vol, edge:e,
+          lo, hi, isETF, is0:(dte===0)
+        });
+        st.k++;
+      }
+    }
+
+    if (has0) st.z++;
+    st.s++;
     updSt();
 
   } catch(err) {
-    stats.e++;
+    if (err.message.includes('Rate limit')) {
+      // Back off and retry once
+      await new Promise(r=>setTimeout(r,15000));
+    }
+    st.e++;
     updSt();
-    dlog(`${sym}: ${err.message}`, 'dr');
   }
 }
 
-// ─── FILTER & SORT ───────────────────────────────────────────────────
-function toggleF(f) {
-  const el = document.getElementById('f-' + f);
-  if (activeF.has(f)) { activeF.delete(f); el.className = 'fc'; }
-  else { activeF.add(f); el.className = 'fc on'; }
+// ═══════════════════════════════════════════════════════════
+// FILTER / SORT / RENDER
+// ═══════════════════════════════════════════════════════════
+function toggleF(f){
+  const el=document.getElementById('f-'+f);
+  if(activeF.has(f)){activeF.delete(f);el.className='fc';}
+  else{activeF.add(f);el.className='fc on';}
   renderResults();
 }
-
-function applyF(rows) {
-  if (!activeF.size) return rows;
-  return rows.filter(r => {
-    if (activeF.has('0dte')  && !r.is0) return false;
-    if (activeF.has('cheap') && r.ivhv >= 1.0) return false;
-    if (activeF.has('liq')   && r.oi < 300 && r.vol < 100) return false;
-    if (activeF.has('etf')   && !r.isETF) return false;
-    if (activeF.has('stk')   && r.isETF) return false;
-    if (activeF.has('top')   && r.edge < 65) return false;
-    if (activeF.has('call')  && r.type !== 'CALL') return false;
-    if (activeF.has('put')   && r.type !== 'PUT') return false;
+function applyF(rows){
+  if(!activeF.size) return rows;
+  return rows.filter(r=>{
+    if(activeF.has('0dte') && !r.is0) return false;
+    if(activeF.has('cheap') && r.ivhv>=1.0) return false;
+    if(activeF.has('liq') && r.oi<300 && r.vol<100) return false;
+    if(activeF.has('etf') && !r.isETF) return false;
+    if(activeF.has('stk') && r.isETF) return false;
+    if(activeF.has('top') && r.edge<65) return false;
+    if(activeF.has('call') && r.type!=='CALL') return false;
+    if(activeF.has('put') && r.type!=='PUT') return false;
     return true;
   });
 }
-
-function sortBy(key, btn) {
-  sortKey = key;
-  document.querySelectorAll('.sb').forEach(b => b.classList.remove('active'));
+function sortBy(k,btn){
+  sortKey=k;
+  document.querySelectorAll('.sb').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   renderResults();
 }
-
-function getSorted(rows) {
-  return [...rows].sort((a,b) => {
-    switch(sortKey) {
+function getSorted(rows){
+  return [...rows].sort((a,b)=>{
+    switch(sortKey){
       case 'sym': return a.sym.localeCompare(b.sym);
-      case 'dte': return a.dte - b.dte;
-      case 'iv':  return b.iv  - a.iv;
-      case 'oi':  return b.oi  - a.oi;
-      case 'vol': return b.vol - a.vol;
-      default:    return b.edge - a.edge;
+      case 'dte': return a.dte-b.dte;
+      case 'iv':  return b.iv-a.iv;
+      case 'oi':  return b.oi-a.oi;
+      case 'vol': return b.vol-a.vol;
+      default:    return b.edge-a.edge;
     }
   });
 }
+function renderResults(){
+  const fil=applyF(allResults), srt=getSorted(fil);
+  document.getElementById('rcount').textContent=
+    `${srt.length.toLocaleString()} results`+
+    (allResults.length!==srt.length?` (of ${allResults.length.toLocaleString()})` : '');
+  document.getElementById('finfo').textContent=
+    activeF.size?`${activeF.size} filter${activeF.size>1?'s':''} active`:'';
 
-// ─── RENDER ──────────────────────────────────────────────────────────
-function renderResults() {
-  const filtered = applyF(allResults);
-  const sorted   = getSorted(filtered);
-
-  document.getElementById('rcount').textContent =
-    `${sorted.length.toLocaleString()} results` +
-    (allResults.length !== sorted.length ? ` (of ${allResults.length.toLocaleString()})` : '');
-  document.getElementById('finfo').textContent =
-    activeF.size ? `${activeF.size} filter${activeF.size>1?'s':''} active` : '';
-
-  const tbody = document.getElementById('rbody');
-  if (!sorted.length) {
-    tbody.innerHTML = '<tr><td colspan="16" class="empty">No matches — try lowering Min Edge/OI or adjusting filters</td></tr>';
+  const tb=document.getElementById('rbody');
+  if(!srt.length){
+    tb.innerHTML='<tr><td colspan="18" class="empty">No results — try lowering Min Edge / Min OI</td></tr>';
     return;
   }
-
-  tbody.innerHTML = sorted.slice(0, 500).map((r, i) => {
-    const ec  = r.edge>=70?'#00ff7f':r.edge>=55?'#ffcc00':r.edge>=40?'#00cfff':'#3a6080';
-    const ihc = r.ivhv<0.85?'var(--green)':r.ivhv<1.0?'var(--cyan)':r.ivhv<1.2?'var(--gold)':'var(--red)';
-    const dBC = r.dte===0?'br':r.dte<=2?'bo':r.dte<=5?'bgo':'bc';
-    const tBC = r.type==='CALL'?'bg':'br';
-    const mid = r.bid>0&&r.ask>0 ? ((r.bid+r.ask)/2).toFixed(2) : '—';
-    const tags = [];
-    if (r.is0) tags.push(`<span class="tag t0d">0DTE</span>`);
+  tb.innerHTML=srt.slice(0,500).map((r,i)=>{
+    const ec=r.edge>=70?'#00ff7f':r.edge>=55?'#ffcc00':r.edge>=40?'#00cfff':'#3a6080';
+    const ihc=r.ivhv<0.85?'var(--green)':r.ivhv<1.0?'var(--cyan)':r.ivhv<1.2?'var(--gold)':'var(--red)';
+    const dBC=r.dte===0?'br':r.dte<=2?'bo':r.dte<=5?'bgo2':'bc';
+    const tBC=r.type==='CALL'?'bg':'br';
+    const mid=r.bid>0&&r.ask>0?((r.bid+r.ask)/2).toFixed(2):'—';
+    const tags=[];
+    if(r.is0)tags.push(`<span class="tag t0d">0DTE</span>`);
     else tags.push(`<span class="tag twk">WKL</span>`);
-    if (r.ivhv < 1.0) tags.push(`<span class="tag tcp">CHEAP</span>`);
-    return `<tr class="${i<5?'toprow':''}">
+    if(r.ivhv<1.0)tags.push(`<span class="tag tcp">CHEAP</span>`);
+    return `<tr class="${i<5?'star':''}">
       <td class="mt" style="color:var(--dim)">${i<5?'★':(i+1)}</td>
       <td><b style="font-family:'JetBrains Mono',monospace;color:var(--white)">${r.sym}</b>${r.isETF?` <span class="badge bp" style="font-size:8px">ETF</span>`:''}</td>
       <td><span class="badge ${tBC}">${r.type}</span></td>
@@ -720,6 +680,8 @@ function renderResults() {
       <td class="mt" style="color:var(--purple)">${r.iv.toFixed(1)}%</td>
       <td class="mt" style="color:${ihc}">${r.ivhv.toFixed(2)}×</td>
       <td class="mt" style="color:${r.type==='CALL'?'var(--green)':'var(--red)'}">${r.delta.toFixed(3)}</td>
+      <td class="mt" style="color:var(--gold)">${r.gamma?r.gamma.toFixed(4):'—'}</td>
+      <td class="mt" style="color:var(--red)">${r.theta?r.theta.toFixed(3):'—'}</td>
       <td class="mt">${r.oi.toLocaleString()}</td>
       <td class="mt" style="color:${r.vol>1000?'var(--cyan)':'var(--text)'}">${r.vol.toLocaleString()}</td>
       <td class="mt" style="font-size:10px;color:var(--dim)">${r.lo.toFixed(1)}–${r.hi.toFixed(1)}</td>
@@ -727,33 +689,40 @@ function renderResults() {
       <td><div style="display:flex;gap:3px">${tags.join('')}</div></td>
     </tr>`;
   }).join('');
-
-  if (sorted.length > 500)
-    document.getElementById('rbody').innerHTML += `<tr><td colspan="16" style="text-align:center;padding:9px;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:10px">
-      Top 500 shown of ${sorted.length.toLocaleString()} — use filters to narrow down
-    </td></tr>`;
+  if(srt.length>500)
+    document.getElementById('rbody').innerHTML+=`<tr><td colspan="18" style="text-align:center;padding:8px;color:var(--dim);font-family:'JetBrains Mono',monospace;font-size:10px">
+      Top 500 shown of ${srt.length.toLocaleString()} — use filters to narrow down</td></tr>`;
 }
 
-// ─── HEADER TICKERS ──────────────────────────────────────────────────
-async function loadTick(sym, pxId, cId) {
-  try {
-    const d = await yf(`/v8/finance/chart/${sym}?interval=1d&range=2d`);
-    const m = d.chart.result[0].meta;
-    const px = m.regularMarketPrice, pv = m.previousClose||m.chartPreviousClose;
-    const pct = ((px-pv)/pv*100).toFixed(2);
-    document.getElementById(pxId).textContent = px.toFixed(2);
-    document.getElementById(cId).textContent = (px>=pv?'+':'')+pct+'%';
-    document.getElementById(cId).className = 'mchg '+(px>=pv?'up':'dn');
-  } catch(e) {}
+// ═══════════════════════════════════════════════════════════
+// HEADER TICKERS
+// ═══════════════════════════════════════════════════════════
+async function loadHeaderTickers(){
+  for(const [sym,pxId,cId] of [['SPY','h-spy','h-spy-c'],['QQQ','h-qqq','h-qqq-c'],['SPY','h-vix','h-vix-c']]){
+    try{
+      const d=await polyFetch(`/v2/aggs/ticker/${sym}/prev`,API_KEY);
+      if(!d.results?.length) continue;
+      const r=d.results[0];
+      const pct=((r.c-r.o)/r.o*100).toFixed(2);
+      document.getElementById(pxId).textContent=r.c.toFixed(2);
+      document.getElementById(cId).textContent=(r.c>=r.o?'+':'')+pct+'%';
+      document.getElementById(cId).className='mc '+(r.c>=r.o?'up':'dn');
+    }catch(e){}
+    await new Promise(r=>setTimeout(r,500));
+  }
 }
 
-// ─── INIT ─────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  const ok = await pickProxy();
-  if (ok) {
-    loadTick('SPY','h-spy','h-spy-c');
-    loadTick('QQQ','h-qqq','h-qqq-c');
-    loadTick('%5EVIX','h-vix','h-vix-c');
+// ═══════════════════════════════════════════════════════════
+// INIT — restore saved key
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('scanBtn').disabled=true;
+  const saved=localStorage.getItem('poly_key');
+  if(saved){
+    document.getElementById('apiKey').value=saved;
+    API_KEY=saved;
+    // Auto-test saved key
+    testKey();
   }
 });
 </script>
