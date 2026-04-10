@@ -620,25 +620,34 @@ const UNIVERSE=[
 // ══════════════════════════════════════════════════════════════════
 async function fetchBars(sym,range,iv){
   const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${iv}&range=${range}&includePrePost=false`;
-  const proxy=`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-  try{
-    const r=await fetch(proxy,{signal:AbortSignal.timeout(9000)});
-    if(!r.ok) throw 0;
-    const data=await r.json();
-    const res=data?.chart?.result?.[0];
-    if(!res?.timestamp) throw 0;
-    const ts=res.timestamp,q=res.indicators?.quote?.[0]||{};
-    return ts.map((t,i)=>{
-      const dt=new Date(t*1000);
-      if(!isRegHours(dt)) return null;
-      const o=q.open?.[i],c=q.close?.[i],h=q.high?.[i],l=q.low?.[i];
-      if(c==null||o==null) return null;
-      return{ts:t,dt,open:o,close:c,high:h,low:l,vol:q.volume?.[i]||0};
-    }).filter(Boolean);
-  }catch(e){return synth(sym,range,iv);}
+  const proxies=[
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`
+  ];
+  for(const proxy of proxies){
+    try{
+      const controller=new AbortController();
+      const tid=setTimeout(()=>controller.abort(),8000);
+      const r=await fetch(proxy,{signal:controller.signal});
+      clearTimeout(tid);
+      if(!r.ok) continue;
+      const data=await r.json();
+      const res=data?.chart?.result?.[0];
+      if(!res?.timestamp||!res.indicators?.quote?.[0]) continue;
+      const ts=res.timestamp,q=res.indicators.quote[0];
+      const bars=ts.map((t,i)=>{
+        const dt=new Date(t*1000);
+        if(!isRegHours(dt)) return null;
+        const o=q.open?.[i],c=q.close?.[i],h=q.high?.[i],l=q.low?.[i];
+        if(c==null||o==null||isNaN(c)||isNaN(o)) return null;
+        return{ts:t,dt,open:+o,close:+c,high:+(h||c),low:+(l||c),vol:+(q.volume?.[i]||0)};
+      }).filter(Boolean);
+      if(bars.length>5) return bars;
+    }catch(e){/* next proxy */}
+  }
+  return synth(sym,range,iv);
 }
 
-// Synthetic with realistic intraday patterns
 function synth(sym,range,iv){
   const dayMap={'5d':5,'10d':10,'1mo':22,'2mo':44,'3mo':66};
   const bpdMap={'5m':78,'15m':26,'30m':13};
@@ -1138,7 +1147,7 @@ let loopCount=0;
 async function startScan(){
   stopFlag=false;
   const bs=document.getElementById('btn-scan');bs.disabled=true;
-  document.getElementById('stop-wrap').style.display='';
+  document.getElementById('stop-wrap').style.display='flex';
   document.getElementById('prog-wrap').style.display='block';
 
   const range=document.getElementById('tf').value;
@@ -1535,7 +1544,7 @@ function renderForecast(){
         <div class="fcs"><div class="k">Events</div><div class="v">${spikes.length}</div></div>
         <div class="fcs"><div class="k">Avg Move</div><div class="v" style="color:${pc}">${analysis.avgSize.toFixed(2)}%</div></div>
         <div class="fcs"><div class="k">ATR%</div><div class="v">${ta.atrPct.toFixed(2)}%</div></div>
-        <div class="fcs"><div class="k">RSI</div><div class="v ${ta.rsi<35?'':'ta.rsi>65?'':''}" style="color:${ta.rsi<35?'var(--up)':ta.rsi>65?'var(--dn)':'var(--ghost)'}">${ta.rsi.toFixed(1)}</div></div>
+        <div class="fcs"><div class="k">RSI</div><div class="v" style="color:${ta.rsi<35?'var(--up)':ta.rsi>65?'var(--dn)':'var(--ghost)'}">${ta.rsi.toFixed(1)}</div></div>
         <div class="fcs"><div class="k">Conf Score</div><div class="v" style="color:${ta.confluenceScore>1?'var(--up)':ta.confluenceScore<-1?'var(--dn)':'var(--ghost)'}">${ta.confluenceScore.toFixed(1)}</div></div>
         <div class="fcs"><div class="k">ML Conf</div><div class="v" style="color:var(--violet)">${pred.confidence}%</div></div>
       </div>
