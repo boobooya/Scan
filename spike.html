@@ -946,10 +946,11 @@ function genPredictions(sym,sp,ta,an,mlProb,mlConf,fwin){
         const nowMins=now.getHours()*60+now.getMinutes();
         if(slotMins<=nowMins-30) return; // skip past slots
       }
+      // slotHist declared at slot scope so all methods can access it
+      const slotHist=daySpikes.filter(s=>s.hourPST===h);
 
       // === Method 1: TA Confluence per slot ===
       {
-        const slotHist=daySpikes.filter(s=>s.hourPST===h);
         const histFreq=slotHist.length/(daySpikes.length||1);
         const taDir=ta.confluenceScore>0.5?'up':ta.confluenceScore<-0.5?'dn':
           (ta.rsi<40?'up':ta.rsi>60?'dn':'up');
@@ -1364,7 +1365,7 @@ function buildDet(r){
           <span class="badge badge-conf">CONF ${p.conf}%</span>
           <span class="badge badge-move">~${p.move.toFixed(2)}%</span>
         </div>
-        <div class="pf-reasons">${p.reasons.map(rr=>`· ${rr}`).join('<br>')}</div>
+        <div class="pf-reasons">${p.reasons.map(rr=>'· '+rr).join('<br>')}</div>
       </div>`;
     }).join('');
   };
@@ -1412,11 +1413,11 @@ function buildDet(r){
     {n:'ROC(10)',d:ta.roc>0?'up':'dn',v:ta.roc.toFixed(2)+'%',note:''},
     {n:'Confluence',d:ta.confluenceScore>1?'up':ta.confluenceScore<-1?'dn':'neu',v:(ta.confluenceScore>0?'+':'')+ta.confluenceScore.toFixed(2),note:''},
   ];
-  const sigRows=sigs.map(s=>`
-    <div class="ta-row">
-      <span class="ta-k">${s.n}</span>
-      <span class="ta-v ${s.d==='up'?'g':s.d==='dn'?'r':'w'}">${s.v}${s.note?` <span style="font-size:8px;opacity:.7">${s.note}</span>`:''}</span>
-    </div>`).join('');
+  const sigRows=sigs.map(s=>{
+    const noteHtml=s.note?' <span style="font-size:8px;opacity:.7">'+s.note+'</span>':'';
+    const vc=s.d==='up'?'g':s.d==='dn'?'r':'w';
+    return '<div class="ta-row"><span class="ta-k">'+s.n+'</span><span class="ta-v '+vc+'">'+s.v+noteHtml+'</span></div>';
+  }).join('');;
 
   // Spike history
   const histHTML=sp.slice().reverse().slice(0,20).map(s=>`
@@ -1445,7 +1446,7 @@ function buildDet(r){
     <div class="det-col" style="overflow-y:auto;max-height:500px">
       <h5>Past Predictions (${past.length}) &amp; Patterns</h5>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
-        ${an.patterns.map(p=>`<span class="badge badge-conf">${p}</span>`).join('')||'<span style="color:var(--dim);font-size:9px">No strong patterns</span>'}
+        ${an.patterns.map(p=>'<span class="badge badge-conf">'+p+'</span>').join('')||'<span style="color:var(--dim);font-size:9px">No strong patterns</span>'}
       </div>
       <div class="ta-row"><span class="ta-k">Dir Bias</span><span class="ta-v ${an.dirBias==='bullish'?'g':an.dirBias==='bearish'?'r':'w'}">${an.dirBias.toUpperCase()}</span></div>
       <div class="ta-row"><span class="ta-k">Peak Hour</span><span class="ta-v">${an.topHour||'—'}</span></div>
