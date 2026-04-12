@@ -150,8 +150,12 @@ canvas{width:100%!important;display:block;}
 ::-webkit-scrollbar{width:3px;height:3px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--wire2);border-radius:2px;}
+.btn-export{color:var(--up);border-color:rgba(0,238,160,.35);background:transparent;}
+.btn-export:hover{background:rgba(0,238,160,.08);}
+.btn-export:disabled{opacity:.35;cursor:not-allowed;}
 @media(max-width:600px){.top,.ctrl,.sbar,.tabs,.main{padding-left:10px;padding-right:10px;}}
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -216,6 +220,10 @@ canvas{width:100%!important;display:block;}
   <div class="cg">
     <div class="cl">&nbsp;</div>
     <button class="btn btn-clr" onclick="clearAll()">✕ CLEAR</button>
+  </div>
+  <div class="cg">
+    <div class="cl">&nbsp;</div>
+    <button class="btn btn-export" id="btn-export" onclick="exportXLSX()" disabled>⬇ EXPORT EXCEL</button>
   </div>
 </div>
 
@@ -1162,6 +1170,608 @@ function clearAll() {
   ['st-s','st-sp','st-tr'].forEach(function(id){document.getElementById(id).textContent='0';});
   ['st-sw3','st-sw4','st-gw3','st-gw4'].forEach(function(id){document.getElementById(id).textContent='—';});
 }
+
+
+// =================================================================
+// ENABLE EXPORT BUTTON when results ready
+// =================================================================
+function checkExportBtn() {
+  document.getElementById('btn-export').disabled = ALL.length === 0;
+}
+
+// Override renderAll to also enable export
+var _origRenderAll = renderAll;
+renderAll = function() { _origRenderAll(); checkExportBtn(); };
+
+// =================================================================
+// EXCEL EXPORT via SheetJS
+// =================================================================
+function exportXLSX() {
+  if (!ALL.length) { alert('Run backtest first.'); return; }
+  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded yet. Check internet connection.'); return; }
+
+  var btn = document.getElementById('btn-export');
+  btn.textContent = '⟳ BUILDING...';
+  btn.disabled = true;
+
+  setTimeout(function() {
+    try {
+      var wb = XLSX.utils.book_new();
+      buildSummarySheet(wb);
+      buildTimeSlotSheet(wb);
+      buildSymbolSummarySheet(wb);
+      buildTradesSheet30(wb);
+      buildTradesSheet45(wb);
+      buildRawSpikesSheet(wb);
+
+      var now = new Date();
+      var fname = '0DTE_Backtest_' +
+        now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2) +
+        '_' + ('0'+now.getHours()).slice(-2) + ('0'+now.getMinutes()).slice(-2) + '.xlsx';
+
+      XLSX.writeFile(wb, fname);
+      log('Excel exported: ' + fname, 'ok');
+    } catch(e) {
+      log('Export error: ' + e.message, 'err');
+      alert('Export failed: ' + e.message);
+    }
+    btn.textContent = 'EXPORT EXCEL';
+    btn.disabled = false;
+  }, 10);
+}
+
+// --- STYLES HELPER ---
+function hdrStyle(bg, fgColor) {
+  return { font: { bold: true, color: { rgb: fgColor || 'FFFFFF' }, sz: 10 },
+           fill: { fgColor: { rgb: bg || '1C3A5A' } },
+           alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+           border: { bottom: { style: 'thin', color: { rgb: '2A5080' } } } };
+}
+function numStyle(dec, pct) {
+  var fmt = pct ? '0.0%' : (dec === 0 ? '#,##0' : '#,##0.' + '0'.repeat(dec));
+  return { numFmt: fmt, alignment: { horizontal: 'right' } };
+}
+function colorCell(val, goodIfPositive) {
+  var positive = goodIfPositive ? val >= 0 : val >= 50;
+  return { font: { color: { rgb: positive ? '00CC88' : 'FF3355' }, bold: true } };
+}
+function wbStyle(val) {
+  return { font: { color: { rgb: val ? '00CC88' : 'FF3355' }, bold: true },
+           alignment: { horizontal: 'center' } };
+}
+function dollarStyle() { return { numFmt: '"$"#,##0.000', alignment: { horizontal: 'right' } }; }
+function pctRetStyle(val) {
+  return { numFmt: '+0.0%;-0.0%;"-"', font: { color: { rgb: val >= 0 ? '00CC88' : 'FF3355' }, bold: true }, alignment: { horizontal: 'right' } };
+}
+
+function applyStyles(ws, styleMap) {
+  Object.keys(styleMap).forEach(function(ref) {
+    if (!ws[ref]) return;
+    var existing = ws[ref].s || {};
+    ws[ref].s = Object.assign({}, existing, styleMap[ref]);
+  });
+}
+
+// Auto-width helper
+function autoWidth(ws, data) {
+  var widths = [];
+  data.forEach(function(row) {
+    row.forEach(function(cell, ci) {
+      var len = cell == null ? 0 : String(cell).length;
+      widths[ci] = Math.max(widths[ci] || 6, Math.min(len + 2, 40));
+    });
+  });
+  ws['!cols'] = widths.map(function(w) { return { wch: w }; });
+}
+
+// =================================================================
+// SHEET 1: EXECUTIVE SUMMARY
+// =================================================================
+function buildSummarySheet(wb) {
+  var all30 = [].concat.apply([], ALL.map(function(r){return r.t30;}));
+  var all45 = [].concat.apply([], ALL.map(function(r){return r.t45;}));
+  var s30 = stats(all30) || {};
+  var s45 = stats(all45) || {};
+
+  var rows = [
+    ['0DTE BACKTEST — EXECUTIVE SUMMARY', '', '', ''],
+    ['Generated:', new Date().toLocaleString(), '', ''],
+    ['Symbols:', ALL.map(function(r){return r.sym;}).join(', '), '', ''],
+    ['', '', '', ''],
+    ['METRIC', 'STRADDLE 30m', 'STRANGLE 30m', 'STRADDLE 45m', 'STRANGLE 45m'],
+    ['Total Trades', s30.n||0, s30.n||0, s45.n||0, s45.n||0],
+    ['Win Count', s30.sw||0, s30.gw||0, s45.sw||0, s45.gw||0],
+    ['Loss Count', (s30.n||0)-(s30.sw||0), (s30.n||0)-(s30.gw||0), (s45.n||0)-(s45.sw||0), (s45.n||0)-(s45.gw||0)],
+    ['Win Rate %', (s30.sWR||0)/100, (s30.gWR||0)/100, (s45.sWR||0)/100, (s45.gWR||0)/100],
+    ['Avg Return %', (s30.sAvgRet||0)/100, (s30.gAvgRet||0)/100, (s45.sAvgRet||0)/100, (s45.gAvgRet||0)/100],
+    ['Total PnL (x100)', s30.sPnLSum||0, s30.gPnLSum||0, s45.sPnLSum||0, s45.gPnLSum||0],
+    ['Avg Move at Spike %', (s30.avgMove||0)/100, (s30.avgMove||0)/100, (s45.avgMove||0)/100, (s45.avgMove||0)/100],
+    ['Best Trade Return %', (s30.sRetMax||0)/100, '', (s45.sRetMax||0)/100, ''],
+    ['Worst Trade Return %', (s30.sRetMin||0)/100, '', (s45.sRetMin||0)/100, ''],
+    ['Sharpe Ratio', s30.sSharpe||0, s30.gSharpe||0, s45.sSharpe||0, s45.gSharpe||0],
+    ['', '', '', ''],
+    ['SYMBOLS TESTED', ALL.length, '', ''],
+    ['TOTAL SPIKE EVENTS', ALL.reduce(function(a,r){return a+r.spikes.length;},0), '', ''],
+    ['LOOKBACK DAYS', document.getElementById('lbdays').value, '', ''],
+    ['SPIKE THRESHOLD %', document.getElementById('thr').value+'%', '', ''],
+    ['STRANGLE WINGS', document.getElementById('wings').value+' strikes', '', ''],
+    ['SLIPPAGE $', '$'+document.getElementById('slip').value, '', ''],
+  ];
+
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:4} }];
+  autoWidth(ws, rows);
+  ws['!rows'] = [{hpt:22},{hpt:16},{hpt:16},{hpt:8},{hpt:20}];
+
+  // Format percentage and number cells
+  var pctRows = [8,9,11,12,13]; // 0-indexed rows with % values
+  pctRows.forEach(function(ri) {
+    ['B','C','D','E'].forEach(function(col) {
+      var ref = col + (ri+1);
+      if (ws[ref] && typeof ws[ref].v === 'number') {
+        ws[ref].s = { numFmt: '0.0%', alignment: { horizontal: 'right' },
+          font: { color: { rgb: ws[ref].v >= 0 ? '00CC88' : 'FF3355' } } };
+      }
+    });
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Summary');
+}
+
+// =================================================================
+// SHEET 2: TIME SLOT OCCURRENCE & WIN RATES
+// =================================================================
+function buildTimeSlotSheet(wb) {
+  var slots30 = {}, slots45 = {};
+  ALL.forEach(function(r) {
+    r.t30.forEach(function(t) {
+      var k = t.sp.h + ':00 PST';
+      if (!slots30[k]) slots30[k] = { label: k, h: t.sp.h, trades: [] };
+      slots30[k].trades.push(t);
+    });
+    r.t45.forEach(function(t) {
+      var k = t.sp.h + ':00 PST';
+      if (!slots45[k]) slots45[k] = { label: k, h: t.sp.h, trades: [] };
+      slots45[k].trades.push(t);
+    });
+  });
+
+  // Also do 30-min sub-slots (hour:00 and hour:30)
+  var subSlots30 = {}, subSlots45 = {};
+  ALL.forEach(function(r) {
+    r.t30.forEach(function(t) {
+      var half = t.sp.m < 30 ? ':00' : ':30';
+      var k = t.sp.h + half + ' PST';
+      if (!subSlots30[k]) subSlots30[k] = { label:k, h:t.sp.h, m: t.sp.m<30?0:30, trades:[] };
+      subSlots30[k].trades.push(t);
+    });
+    r.t45.forEach(function(t) {
+      var half = t.sp.m < 30 ? ':00' : ':30';
+      var k = t.sp.h + half + ' PST';
+      if (!subSlots45[k]) subSlots45[k] = { label:k, h:t.sp.h, m: t.sp.m<30?0:30, trades:[] };
+      subSlots45[k].trades.push(t);
+    });
+  });
+
+  var allKeys = Object.keys(subSlots30).concat(Object.keys(subSlots45));
+  allKeys = allKeys.filter(function(k,i){ return allKeys.indexOf(k) === i; });
+  allKeys.sort();
+
+  var totalTrades = [].concat.apply([], ALL.map(function(r){return r.t30;})).length || 1;
+
+  var hdr = [
+    'Time Slot (PST)',
+    'Occurrence Count',
+    'Occurrence Rate %',
+    'Strad WR 30m',
+    'Strad Avg Ret 30m',
+    'Strad Total PnL 30m',
+    'Gla WR 30m',
+    'Gla Avg Ret 30m',
+    'Gla Total PnL 30m',
+    'Strad WR 45m',
+    'Strad Avg Ret 45m',
+    'Gla WR 45m',
+    'Gla Avg Ret 45m',
+    'Avg Underlying Move %',
+    'Avg IV at Entry %',
+    'Best Slot Strategy'
+  ];
+
+  var dataRows = [];
+  allKeys.forEach(function(k) {
+    var s30d = subSlots30[k], s45d = subSlots45[k];
+    var t30 = s30d ? s30d.trades : [];
+    var t45 = s45d ? s45d.trades : [];
+    if (!t30.length && !t45.length) return;
+    var st30 = stats(t30) || { sWR:0, gWR:0, sAvgRet:0, gAvgRet:0, avgMove:0, sPnLSum:0, gPnLSum:0 };
+    var st45 = stats(t45) || { sWR:0, gWR:0, sAvgRet:0, gAvgRet:0 };
+    var occRate = t30.length / totalTrades;
+    var avgIV = t30.length ? t30.reduce(function(a,t){return a+t.iv;},0)/t30.length : 0;
+    var best = Math.max(st30.sWR, st30.gWR, st45.sWR, st45.gWR);
+    var bestLabel = best === st30.sWR ? 'STR 30m' : best === st30.gWR ? 'GLA 30m' : best === st45.sWR ? 'STR 45m' : 'GLA 45m';
+    dataRows.push([
+      k,
+      t30.length,
+      occRate,
+      st30.sWR/100,
+      st30.sAvgRet/100,
+      st30.sPnLSum,
+      st30.gWR/100,
+      st30.gAvgRet/100,
+      st30.gPnLSum,
+      st45.sWR/100,
+      st45.sAvgRet/100,
+      st45.gWR/100,
+      st45.gAvgRet/100,
+      st30.avgMove/100,
+      avgIV/100,
+      bestLabel
+    ]);
+  });
+
+  var sheetData = [hdr].concat(dataRows);
+  var ws = XLSX.utils.aoa_to_sheet(sheetData);
+  autoWidth(ws, sheetData);
+
+  // Format % columns
+  var pctCols = ['C','D','E','G','H','J','K','L','M','N','O']; // 0-indexed: col 2,3,4,6,7,9,10,11,12,13,14
+  for (var ri = 1; ri < sheetData.length; ri++) {
+    pctCols.forEach(function(col) {
+      var ref = col + (ri + 1);
+      if (ws[ref] && typeof ws[ref].v === 'number') {
+        ws[ref].s = { numFmt: '0.0%', alignment: { horizontal: 'right' },
+          font: { color: { rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244' } } };
+      }
+    });
+    // PnL cols F, I
+    ['F','I'].forEach(function(col) {
+      var ref = col + (ri+1);
+      if (ws[ref] && typeof ws[ref].v === 'number') {
+        ws[ref].s = { numFmt: '#,##0.00', alignment:{horizontal:'right'},
+          font:{color:{rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244'}} };
+      }
+    });
+  }
+
+  // Bold header row
+  hdr.forEach(function(_, ci) {
+    var ref = XLSX.utils.encode_cell({r:0, c:ci});
+    if (ws[ref]) ws[ref].s = { font:{bold:true, color:{rgb:'FFFFFF'}, sz:9},
+      fill:{fgColor:{rgb:'0E1D2C'}}, alignment:{horizontal:'center', wrapText:true} };
+  });
+
+  // Freeze header row
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+  // Add a chart data block for the spike occurrence bar chart (separate table for charting)
+  var chartStartRow = sheetData.length + 2;
+  XLSX.utils.sheet_add_aoa(ws, [
+    ['CHART DATA — SPIKE OCCURRENCE BY HOUR (PST)', ''],
+    ['Time Slot', 'Spike Count', 'Strad Win Rate 30m', 'Strangle Win Rate 30m']
+  ], { origin: { r: chartStartRow, c: 0 } });
+
+  // Hour-level aggregation for chart
+  var hourMap = {};
+  ALL.forEach(function(r) {
+    r.spikes.forEach(function(sp) {
+      var hk = sp.h + ':00 PST';
+      if (!hourMap[hk]) hourMap[hk] = { count: 0, sWins: 0, gWins: 0, total: 0 };
+      hourMap[hk].count++;
+    });
+    r.t30.forEach(function(t) {
+      var hk = t.sp.h + ':00 PST';
+      if (!hourMap[hk]) hourMap[hk] = { count: 0, sWins: 0, gWins: 0, total: 0 };
+      hourMap[hk].total++;
+      if (t.sWin) hourMap[hk].sWins++;
+      if (t.gWin) hourMap[hk].gWins++;
+    });
+  });
+  var hkeys = Object.keys(hourMap).sort();
+  var chartDataRows = hkeys.map(function(k) {
+    var d = hourMap[k];
+    return [k, d.count, d.total > 0 ? d.sWins/d.total : 0, d.total > 0 ? d.gWins/d.total : 0];
+  });
+  XLSX.utils.sheet_add_aoa(ws, chartDataRows, { origin: { r: chartStartRow + 2, c: 0 } });
+
+  // Format chart data % cells
+  chartDataRows.forEach(function(_, ri) {
+    var r = chartStartRow + 2 + ri;
+    ['C','D'].forEach(function(col) {
+      var ref = col + (r+1);
+      if (ws[ref]) ws[ref].s = { numFmt: '0.0%', alignment:{horizontal:'right'} };
+    });
+  });
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Time Slots');
+}
+
+// =================================================================
+// SHEET 3: SYMBOL SUMMARY
+// =================================================================
+function buildSymbolSummarySheet(wb) {
+  var hdr = [
+    'Symbol', 'Last Price', 'ATM Strike', 'Strike Inc',
+    'Total Spikes', 'Total Trades',
+    'STR Win Rate 30m', 'STR Avg Ret 30m', 'STR Win Rate 45m', 'STR Avg Ret 45m',
+    'GLA Win Rate 30m', 'GLA Avg Ret 30m', 'GLA Win Rate 45m', 'GLA Avg Ret 45m',
+    'STR Total PnL 30m', 'GLA Total PnL 30m',
+    'Avg Spike Move %', 'Avg IV %',
+    'Best Trade Ret 30m', 'Worst Trade Ret 30m',
+    'Strad Sharpe 30m', 'Best Strategy'
+  ];
+
+  var sorted = ALL.slice().sort(function(a,b) {
+    var sa = stats(a.t30), sb = stats(b.t30);
+    return (sb?sb.sWR:0) - (sa?sa.sWR:0);
+  });
+
+  var rows = sorted.map(function(r) {
+    var s30 = stats(r.t30) || { sWR:0,gWR:0,sAvgRet:0,gAvgRet:0,sPnLSum:0,gPnLSum:0,avgMove:0,sRetMax:0,sRetMin:0,sSharpe:0,n:0 };
+    var s45 = stats(r.t45) || { sWR:0,gWR:0,sAvgRet:0,gAvgRet:0 };
+    var inc = strikeInc(r.price);
+    var atm = Math.round(r.price/inc)*inc;
+    var avgIV = r.t30.length ? r.t30.reduce(function(a,t){return a+t.iv;},0)/r.t30.length : 0;
+    var best = Math.max(s30.sWR, s30.gWR, s45.sWR, s45.gWR);
+    var bestL = best===s30.sWR?'STR 30m':best===s30.gWR?'GLA 30m':best===s45.sWR?'STR 45m':'GLA 45m';
+    return [
+      r.sym, r.price, atm, inc,
+      r.spikes.length, s30.n,
+      s30.sWR/100, s30.sAvgRet/100, s45.sWR/100, s45.sAvgRet/100,
+      s30.gWR/100, s30.gAvgRet/100, s45.gWR/100, s45.gAvgRet/100,
+      s30.sPnLSum, s30.gPnLSum,
+      s30.avgMove/100, avgIV/100,
+      s30.sRetMax/100, s30.sRetMin/100,
+      s30.sSharpe, bestL
+    ];
+  });
+
+  var sheetData = [hdr].concat(rows);
+  var ws = XLSX.utils.aoa_to_sheet(sheetData);
+  autoWidth(ws, sheetData);
+
+  var pctCols = ['G','H','I','J','K','L','M','N','Q','R','S','T'];
+  for (var ri = 1; ri < sheetData.length; ri++) {
+    pctCols.forEach(function(col) {
+      var ref = col + (ri+1);
+      if (ws[ref] && typeof ws[ref].v === 'number') {
+        ws[ref].s = { numFmt: '0.0%', alignment:{horizontal:'right'},
+          font:{color:{rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244'}} };
+      }
+    });
+    // price/dollar cols B,C
+    ['B','C'].forEach(function(col) {
+      var ref = col+(ri+1);
+      if (ws[ref]) ws[ref].s = { numFmt: '"$"#,##0.00', alignment:{horizontal:'right'} };
+    });
+    // PnL
+    ['O','P'].forEach(function(col) {
+      var ref = col+(ri+1);
+      if (ws[ref] && typeof ws[ref].v === 'number') {
+        ws[ref].s = { numFmt:'#,##0.00', alignment:{horizontal:'right'},
+          font:{color:{rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244'}} };
+      }
+    });
+  }
+
+  hdr.forEach(function(_, ci) {
+    var ref = XLSX.utils.encode_cell({r:0,c:ci});
+    if (ws[ref]) ws[ref].s = {font:{bold:true,color:{rgb:'FFFFFF'},sz:9},
+      fill:{fgColor:{rgb:'0E1D2C'}},alignment:{horizontal:'center',wrapText:true}};
+  });
+  ws['!freeze'] = {xSplit:0,ySplit:1};
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Symbol Summary');
+}
+
+// =================================================================
+// SHEET 4: TRADE LOG 30MIN (line by line)
+// =================================================================
+function buildTradesSheet30(wb) {
+  buildTradesSheet(wb, '30m', 'Trades_30min');
+}
+function buildTradesSheet45(wb) {
+  buildTradesSheet(wb, '45m', 'Trades_45min');
+}
+
+function buildTradesSheet(wb, holdLabel, sheetName) {
+  var allTrades = holdLabel === '30m'
+    ? [].concat.apply([], ALL.map(function(r){return r.t30;}))
+    : [].concat.apply([], ALL.map(function(r){return r.t45;}));
+
+  allTrades.sort(function(a,b){ return a.entryDt - b.entryDt; });
+
+  var hdr = [
+    'Symbol', 'Entry Date', 'Entry Time (PST)', 'Exit Time (PST)',
+    'Entry Price $', 'Exit Price $', 'Price Change $', 'Price Change %',
+    'ATM Strike $', 'OTM Call $', 'OTM Put $', 'Strike Inc $',
+    'IV at Entry %', 'IV at Exit %', 'Mins Left in Day',
+    'Hold Duration (min)',
+    'STRADDLE Buy Price $', 'STRADDLE Sell Price $', 'STRADDLE PnL $', 'STRADDLE Return %', 'STRADDLE W/L',
+    'STRANGLE Buy Price $', 'STRANGLE Sell Price $', 'STRANGLE PnL $', 'STRANGLE Return %', 'STRANGLE W/L',
+    'Spike Direction', 'Spike % Move'
+  ];
+
+  var rows = allTrades.map(function(t, i) {
+    return [
+      t.sym,
+      t.entryDate,
+      t.entryTime,
+      t.exitTime,
+      t.S, t.Sx,
+      Math.round((t.Sx - t.S)*100)/100,
+      (t.Sx - t.S) / t.S,
+      t.atm, t.kCall, t.kPut, t.inc,
+      t.iv/100, t.iv/100,
+      t.minsLeft, t.holdMins,
+      t.sPrem, t.sExit, t.sPnL, t.sRet/100, t.sWin ? 'WIN' : 'LOSS',
+      t.gPrem, t.gExit, t.gPnL, t.gRet/100, t.gWin ? 'WIN' : 'LOSS',
+      t.sp.dir === 'up' ? 'UP' : 'DOWN',
+      t.sp.pct/100
+    ];
+  });
+
+  // Totals/summary row
+  if (rows.length) {
+    var sWins = allTrades.filter(function(t){return t.sWin;}).length;
+    var gWins = allTrades.filter(function(t){return t.gWin;}).length;
+    var n = allTrades.length;
+    rows.push([
+      'TOTALS', '', '', '', '', '', '', '',
+      '', '', '', '', '', '', '', '',
+      '', '',
+      allTrades.reduce(function(a,t){return a+t.sPnL;},0),
+      allTrades.reduce(function(a,t){return a+t.sRet;},0)/n/100,
+      sWins + '/' + n + ' (' + Math.round(sWins/n*100) + '%)',
+      '', '',
+      allTrades.reduce(function(a,t){return a+t.gPnL;},0),
+      allTrades.reduce(function(a,t){return a+t.gRet;},0)/n/100,
+      gWins + '/' + n + ' (' + Math.round(gWins/n*100) + '%)',
+      '', ''
+    ]);
+  }
+
+  var sheetData = [hdr].concat(rows);
+  var ws = XLSX.utils.aoa_to_sheet(sheetData);
+  autoWidth(ws, sheetData);
+
+  // Format each data row
+  for (var ri = 1; ri <= allTrades.length; ri++) {
+    var r = ri + 1; // Excel row
+    // Price change %
+    var pcRef = 'H'+r;
+    if (ws[pcRef]) ws[pcRef].s = { numFmt:'0.00%', alignment:{horizontal:'right'} };
+    // Dollar prices
+    ['E','F','G','I','J','K','Q','R','V','W'].forEach(function(col) {
+      var ref = col+r;
+      if (ws[ref] && typeof ws[ref].v === 'number') ws[ref].s = {numFmt:'"$"#,##0.000', alignment:{horizontal:'right'}};
+    });
+    // IV %
+    ['M','N'].forEach(function(col) {
+      var ref = col+r;
+      if (ws[ref]) ws[ref].s = { numFmt:'0.0%', alignment:{horizontal:'right'} };
+    });
+    // PnL $
+    ['S','X'].forEach(function(col) {
+      var ref = col+r;
+      if (ws[ref] && typeof ws[ref].v === 'number') ws[ref].s = {
+        numFmt: '#,##0.000',
+        font: { color: { rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244' }, bold: true },
+        alignment: { horizontal: 'right' }
+      };
+    });
+    // Return %
+    ['T','Y'].forEach(function(col) {
+      var ref = col+r;
+      if (ws[ref] && typeof ws[ref].v === 'number') ws[ref].s = {
+        numFmt: '+0.0%;-0.0%',
+        font: { color: { rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244' }, bold: true },
+        alignment: { horizontal: 'right' }
+      };
+    });
+    // WIN/LOSS cells
+    ['U','Z'].forEach(function(col) {
+      var ref = col+r;
+      if (ws[ref]) ws[ref].s = {
+        font: { color: { rgb: ws[ref].v === 'WIN' ? '00AA66' : 'CC2244' }, bold: true },
+        alignment: { horizontal: 'center' }
+      };
+    });
+    // Spike %
+    var spkRef = 'AB'+r;
+    if (ws[spkRef]) ws[spkRef].s = { numFmt: '+0.000%;-0.000%', alignment:{horizontal:'right'} };
+  }
+
+  // Header style
+  hdr.forEach(function(_, ci) {
+    var ref = XLSX.utils.encode_cell({r:0,c:ci});
+    if (ws[ref]) ws[ref].s = {font:{bold:true,color:{rgb:'FFFFFF'},sz:9},
+      fill:{fgColor:{rgb:'0A1520'}},alignment:{horizontal:'center',wrapText:true,vertical:'center'}};
+  });
+
+  // Total row style
+  if (rows.length) {
+    var totalRow = sheetData.length;
+    hdr.forEach(function(_, ci) {
+      var ref = XLSX.utils.encode_cell({r:totalRow-1,c:ci});
+      if (ws[ref]) ws[ref].s = { font:{bold:true,color:{rgb:'FFCC00'}},
+        fill:{fgColor:{rgb:'0E1D2C'}}, alignment:{horizontal:'right'} };
+    });
+  }
+
+  ws['!freeze'] = { xSplit: 1, ySplit: 1 }; // freeze Symbol col + header row
+  ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({r:0,c:hdr.length-1}) };
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+}
+
+// =================================================================
+// SHEET 5: RAW SPIKES LOG
+// =================================================================
+function buildRawSpikesSheet(wb) {
+  var hdr = [
+    'Symbol', 'Date', 'Time (PST)', 'Weekday',
+    'Hour (PST)', 'Minute', 'Time Slot',
+    'Price at Spike $', 'Spike % Move', 'Direction',
+    'ATM Strike $', 'IV Estimate %'
+  ];
+
+  var rows = [];
+  ALL.forEach(function(r) {
+    r.spikes.forEach(function(sp) {
+      var inc = strikeInc(r.bars[sp.idx].close);
+      var atm = Math.round(r.bars[sp.idx].close / inc) * inc;
+      var iv = estimateIV(r.bars.slice(0, sp.idx+1), 20);
+      rows.push([
+        r.sym,
+        fmtDate(sp.dt),
+        fmtT(sp.dt),
+        sp.day,
+        sp.h,
+        sp.m,
+        sp.h + ':' + (sp.m < 30 ? '00' : '30') + ' PST',
+        r.bars[sp.idx].close,
+        sp.pct/100,
+        sp.dir === 'up' ? 'UP' : 'DOWN',
+        atm,
+        iv
+      ]);
+    });
+  });
+
+  // Sort by date/time
+  rows.sort(function(a,b) { return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0; });
+
+  var sheetData = [hdr].concat(rows);
+  var ws = XLSX.utils.aoa_to_sheet(sheetData);
+  autoWidth(ws, sheetData);
+
+  for (var ri = 1; ri < sheetData.length; ri++) {
+    var r2 = ri + 1;
+    var pctRef = 'I'+r2;
+    if (ws[pctRef]) ws[pctRef].s = { numFmt:'+0.000%;-0.000%',
+      font:{color:{rgb: ws[pctRef].v >= 0 ? '00AA66' : 'CC2244'}},
+      alignment:{horizontal:'right'} };
+    var priceRef = 'H'+r2;
+    if (ws[priceRef]) ws[priceRef].s = {numFmt:'"$"#,##0.00',alignment:{horizontal:'right'}};
+    var atmRef = 'K'+r2;
+    if (ws[atmRef]) ws[atmRef].s = {numFmt:'"$"#,##0.00',alignment:{horizontal:'right'}};
+    var ivRef = 'L'+r2;
+    if (ws[ivRef]) ws[ivRef].s = {numFmt:'0.0%',alignment:{horizontal:'right'}};
+  }
+
+  hdr.forEach(function(_, ci) {
+    var ref = XLSX.utils.encode_cell({r:0,c:ci});
+    if (ws[ref]) ws[ref].s = {font:{bold:true,color:{rgb:'FFFFFF'},sz:9},
+      fill:{fgColor:{rgb:'0A1520'}},alignment:{horizontal:'center',wrapText:true}};
+  });
+
+  ws['!freeze'] = { xSplit: 1, ySplit: 1 };
+  ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({r:0,c:hdr.length-1}) };
+
+  XLSX.utils.book_append_sheet(wb, ws, 'All Spikes');
+}
+
 
 // Init message
 log('0DTE Backtest ready. Select symbols and press RUN BACKTEST.', 'ok');
