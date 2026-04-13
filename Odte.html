@@ -321,14 +321,17 @@ function seededRng(seed) {
 // SYNTHETIC BAR GENERATOR  
 // Anchored to 6:30 AM PST = 14:30 UTC each trading day
 // ═══════════════════════════════════════════════════════════
-function makeBars(sym, tradingDays) {
+function makeBars(sym, tradingDays, startPrice) {
   var MS_PER_BAR = 300000; // 5 minutes
   var BARS_PER_DAY = 78;   // 6:30-13:00 PST = 390 mins / 5 = 78 bars
   var PST_OPEN_UTC_MS = 14 * 3600000 + 30 * 60000; // 14:30 UTC = 6:30 PST
 
   var rng = seededRng(sym.split('').reduce(function(a, c) { return a + c.charCodeAt(0); }, 0));
   var baseVol = 0.002 + rng() * 0.018;
-  var price = 20 + rng() * 450;
+  // Use real current price if provided, otherwise use seeded random
+  var price = (startPrice && startPrice > 0) ? startPrice : (20 + rng() * 450);
+  // consume the rng slot so vol profile stays consistent regardless
+  if (startPrice && startPrice > 0) rng();
   var bars = [];
   var nowMs = Date.now();
 
@@ -364,6 +367,42 @@ function makeBars(sym, tradingDays) {
     }
   }
   return bars;
+}
+
+// Cache of fetched real prices
+var REAL_PRICES = {};
+
+// ═══════════════════════════════════════════════════════════
+// FETCH CURRENT PRICE (fast — 1-day range, used to anchor synth data)
+// ═══════════════════════════════════════════════════════════
+function fetchCurrentPrice(sym, callback) {
+  var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+    encodeURIComponent(sym) + '?interval=1d&range=5d&includePrePost=false';
+  var proxies = [
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+    'https://corsproxy.io/?' + encodeURIComponent(url)
+  ];
+  var tried = 0;
+  function tryNext() {
+    if (tried >= proxies.length) { callback(null); return; }
+    var proxy = proxies[tried++];
+    var ctrl = new AbortController();
+    var tid = setTimeout(function() { ctrl.abort(); tryNext(); }, 5000);
+    fetch(proxy, { signal: ctrl.signal })
+      .then(function(r) { clearTimeout(tid); return r.ok ? r.json() : Promise.reject(); })
+      .then(function(data) {
+        var res = data && data.chart && data.chart.result && data.chart.result[0];
+        var q = res && res.indicators && res.indicators.quote && res.indicators.quote[0];
+        if (!q || !q.close) { tryNext(); return; }
+        // Get last non-null close
+        var closes = q.close.filter(function(c) { return c != null && !isNaN(c) && c > 0; });
+        if (!closes.length) { tryNext(); return; }
+        var lastPrice = closes[closes.length - 1];
+        callback(lastPrice);
+      })
+      .catch(function() { clearTimeout(tid); tryNext(); });
+  }
+  tryNext();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -635,42 +674,59 @@ function startBT() {
     var sym = syms[si];
     setProg(Math.round((si / syms.length) * 85));
 
-    // Generate synth bars immediately (always works)
-    var synthBars = makeBars(sym, days);
-    processSymbol(sym, synthBars, thr, wings, slip);
-    processed++;
+    // Step 1: Fetch real current price first (fast 1-day query, ~1s)
+    // This ensures synth bars are anchored to the correct stock price level
+    fetchCurrentPrice(sym, function(realPrice) {
+      if (realPrice && realPrice > 0) {
+        REAL_PRICES[sym] = realPrice;
+        log(sym + ': current price $' + realPrice.toFixed(2), 'ok');
+      } else {
+        log(sym + ': could not fetch price, using estimated seed price', 'warn');
+      }
 
-    log(sym + ': synth ' + synthBars.length + ' bars, ' + (ALL[ALL.length-1] ? ALL[ALL.length-1].spikes.length : 0) + ' spikes, ' + (ALL[ALL.length-1] ? ALL[ALL.length-1].t30.length : 0) + ' trades', 'dim');
-    updateStatus();
+      // Step 2: Generate synth bars anchored to real price (or seed fallback)
+      var startPrice = REAL_PRICES[sym] || null;
+      var synthBars = makeBars(sym, days, startPrice);
+      processSymbol(sym, synthBars, thr, wings, slip);
+      processed++;
 
-    // Try real data in background (non-blocking)
-    (function(symCopy, idxCopy) {
-      fetchReal(symCopy, days, function(realBars) {
-        if (realBars && realBars.length > 20) {
-          // Replace with real data
-          var existing = ALL.find(function(r) { return r.sym === symCopy; });
-          if (existing) {
-            existing.bars = realBars;
-            existing.price = realBars[realBars.length-1].close;
-            existing.spikes = detectSpikes(realBars, thr);
-            existing.t30 = [];
-            existing.t45 = [];
-            existing.spikes.forEach(function(sp) {
-              var t3 = calcTrade(realBars, sp, 6, wings, slip);
-              var t4 = calcTrade(realBars, sp, 9, wings, slip);
-              if (t3) { t3.sym = symCopy; existing.t30.push(t3); }
-              if (t4) { t4.sym = symCopy; existing.t45.push(t4); }
-            });
-            log(symCopy + ': upgraded to REAL data — ' + realBars.length + ' bars, ' + existing.spikes.length + ' spikes', 'ok');
-            updateStatus();
-            renderAll();
+      var lastResult = ALL[ALL.length-1];
+      log(sym + ': ' + synthBars.length + ' bars, ' +
+          (lastResult ? lastResult.spikes.length : 0) + ' spikes, ' +
+          (lastResult ? lastResult.t30.length : 0) + ' trades' +
+          (startPrice ? ' @ $' + startPrice.toFixed(2) : ''), 'dim');
+      updateStatus();
+
+      // Step 3: Try to fetch full intraday history in background to replace synth
+      (function(symCopy) {
+        fetchReal(symCopy, days, function(realBars) {
+          if (realBars && realBars.length > 20) {
+            var existing = ALL.find(function(r) { return r.sym === symCopy; });
+            if (existing) {
+              existing.bars = realBars;
+              existing.price = realBars[realBars.length-1].close;
+              REAL_PRICES[symCopy] = existing.price;
+              existing.spikes = detectSpikes(realBars, thr);
+              existing.t30 = [];
+              existing.t45 = [];
+              existing.spikes.forEach(function(sp) {
+                var t3 = calcTrade(realBars, sp, 6, wings, slip);
+                var t4 = calcTrade(realBars, sp, 9, wings, slip);
+                if (t3) { t3.sym = symCopy; existing.t30.push(t3); }
+                if (t4) { t4.sym = symCopy; existing.t45.push(t4); }
+              });
+              log(symCopy + ': upgraded to REAL intraday — ' + realBars.length +
+                  ' bars, price $' + existing.price.toFixed(2), 'ok');
+              updateStatus();
+              renderAll();
+            }
           }
-        }
-      });
-    })(sym, si);
+        });
+      })(sym);
 
-    // Next symbol on next tick to keep UI responsive
-    setTimeout(function() { processOne(si + 1); }, 0);
+      // Next symbol
+      setTimeout(function() { processOne(si + 1); }, 0);
+    });
   }
 
   processOne(0);
