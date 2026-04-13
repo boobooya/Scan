@@ -369,41 +369,111 @@ function makeBars(sym, tradingDays, startPrice) {
   return bars;
 }
 
+// ═══════════════════════════════════════════════════════════
+// KNOWN PRICE TABLE — updated estimates, used as instant fallback
+// so bars are at least in the right order of magnitude immediately
+// ═══════════════════════════════════════════════════════════
+var KNOWN_PRICES = {
+  'SPY':590,'QQQ':511,'IWM':202,'DIA':425,'GLD':311,'TLT':92,'HYG':78,
+  'USO':73,'GDX':48,'SLV':32,'XLF':48,'XLK':225,'XLE':93,'XLV':155,
+  'XLI':135,'XLP':80,'XLU':72,'XLB':92,'XLRE':40,'XLC':105,
+  'SQQQ':8,'TQQQ':55,'UPRO':82,'SPXU':12,'UVXY':14,'VXX':48,
+  'SOXS':12,'SOXX':240,'ARKK':55,'ARKG':38,
+  'AAPL':207,'MSFT':415,'NVDA':110,'AMZN':202,'META':571,
+  'GOOGL':165,'TSLA':272,'AVGO':205,'AMD':108,'ADBE':390,
+  'CRM':322,'ORCL':168,'INTC':21,'QCOM':155,'TXN':178,
+  'MU':90,'AMAT':175,'LRCX':820,'MRVL':72,'KLAC':720,
+  'JPM':261,'BAC':42,'GS':588,'MS':125,'C':75,'WFC':72,
+  'BLK':1040,'SCHW':80,'AXP':290,'V':355,'MA':562,'PYPL':72,
+  'UNH':520,'LLY':790,'JNJ':155,'MRK':98,'ABBV':182,'PFE':27,
+  'AMGN':290,'GILD':110,'BIIB':155,'MRNA':38,
+  'COST':1040,'WMT':92,'HD':395,'TGT':110,'NKE':72,'SBUX':82,
+  'MCD':295,'CMG':52,'YUM':132,'DKNG':48,
+  'XOM':108,'CVX':155,'COP':112,'SLB':41,'HAL':28,'OXY':48,
+  'MPC':182,'PSX':145,'VLO':148,
+  'CAT':385,'DE':465,'RTX':128,'HON':238,'GE':205,'MMM':155,
+  'LMT':525,'NOC':515,'BA':182,
+  'NFLX':1080,'DIS':110,'CMCSA':40,'T':22,'VZ':42,'TMUS':248,
+  'CCI':112,'AMT':210,'PLD':115,'EQIX':878,
+  'NOW':985,'INTU':728,'PANW':185,'CRWD':418,'ZS':218,'FTNT':95,
+  'NET':130,'DDOG':125,'SNOW':155,'MDB':252,
+  'GME':28,'AMC':3,'PLTR':110,'COIN':198,'MSTR':358,
+  'RIOT':8,'MARA':14,'SOFI':13,'HOOD':46,'RIVN':12,
+  'UBER':82,'LYFT':14,'ABNB':145,'BKNG':5100,'SNAP':9,
+  'PINS':32,'RBLX':42,'PENN':18,'MGM':32
+};
+
 // Cache of fetched real prices
 var REAL_PRICES = {};
 
 // ═══════════════════════════════════════════════════════════
-// FETCH CURRENT PRICE (fast — 1-day range, used to anchor synth data)
+// FETCH CURRENT PRICE
+// Tries: direct Yahoo query1 → direct Yahoo query2 → allorigins proxy
+// Falls back to KNOWN_PRICES table if all fail
 // ═══════════════════════════════════════════════════════════
 function fetchCurrentPrice(sym, callback) {
-  var url = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+  // Immediate fallback available
+  var knownPrice = KNOWN_PRICES[sym] || null;
+
+  var baseUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' +
     encodeURIComponent(sym) + '?interval=1d&range=5d&includePrePost=false';
-  var proxies = [
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
-    'https://corsproxy.io/?' + encodeURIComponent(url)
+
+  var attempts = [
+    // Direct calls - Yahoo sends Access-Control-Allow-Origin: * on these endpoints
+    baseUrl,
+    baseUrl.replace('query1', 'query2'),
+    // Proxy fallbacks
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(baseUrl),
+    'https://corsproxy.io/?' + encodeURIComponent(baseUrl)
   ];
+
   var tried = 0;
+
+  function parsePrice(data) {
+    try {
+      var res = data.chart.result[0];
+      var closes = (res.indicators.quote[0].close || []).filter(function(c){
+        return c != null && !isNaN(c) && c > 0;
+      });
+      return closes.length ? closes[closes.length - 1] : null;
+    } catch(e) { return null; }
+  }
+
   function tryNext() {
-    if (tried >= proxies.length) { callback(null); return; }
-    var proxy = proxies[tried++];
+    if (tried >= attempts.length) {
+      // All failed — use known price table
+      if (knownPrice) {
+        log(sym + ': using reference price $' + knownPrice + ' (live fetch unavailable)', 'warn');
+        callback(knownPrice);
+      } else {
+        callback(null);
+      }
+      return;
+    }
+    var url = attempts[tried++];
     var ctrl = new AbortController();
-    var tid = setTimeout(function() { ctrl.abort(); tryNext(); }, 5000);
-    fetch(proxy, { signal: ctrl.signal })
-      .then(function(r) { clearTimeout(tid); return r.ok ? r.json() : Promise.reject(); })
+    var tid = setTimeout(function() { ctrl.abort(); tryNext(); }, 6000);
+    fetch(url, { signal: ctrl.signal })
+      .then(function(r) {
+        clearTimeout(tid);
+        if (!r.ok) { tryNext(); return; }
+        return r.json();
+      })
       .then(function(data) {
-        var res = data && data.chart && data.chart.result && data.chart.result[0];
-        var q = res && res.indicators && res.indicators.quote && res.indicators.quote[0];
-        if (!q || !q.close) { tryNext(); return; }
-        // Get last non-null close
-        var closes = q.close.filter(function(c) { return c != null && !isNaN(c) && c > 0; });
-        if (!closes.length) { tryNext(); return; }
-        var lastPrice = closes[closes.length - 1];
-        callback(lastPrice);
+        if (!data) return;
+        var price = parsePrice(data);
+        if (price && price > 0) {
+          callback(price);
+        } else {
+          tryNext();
+        }
       })
       .catch(function() { clearTimeout(tid); tryNext(); });
   }
+
   tryNext();
 }
+
 
 // ═══════════════════════════════════════════════════════════
 // REAL DATA FETCH (optional enhancement, non-blocking)
@@ -462,19 +532,26 @@ function bsPrice(S, K, T, r, sigma, isCall) {
   return Math.max(0, K*Math.exp(-r*T)*normCDF(-d2) - S*normCDF(-d1));
 }
 
-function estimateIV(bars, n) {
+function estimateIV(bars, n, barsPerDay) {
+  // barsPerDay: 78 for 5m intervals, 26 for 15m, 13 for 30m
+  var bpd = barsPerDay || 78;
   n = Math.min(n, bars.length);
-  if (n < 2) return 0.30;
+  if (n < 2) return 0.25;
   var sl = bars.slice(-n);
   var rets = [];
   for (var i = 1; i < sl.length; i++) {
     if (sl[i].close > 0 && sl[i-1].close > 0)
       rets.push(Math.log(sl[i].close / sl[i-1].close));
   }
-  if (rets.length < 2) return 0.30;
+  if (rets.length < 2) return 0.25;
   var avg = rets.reduce(function(a,b){return a+b;},0) / rets.length;
+  // Annualize correctly: variance per bar * bars per day * trading days per year
   var variance = rets.reduce(function(a,b){return a+(b-avg)*(b-avg);},0) / rets.length;
-  return Math.max(0.10, Math.min(4.0, Math.sqrt(variance * 252)));
+  var annualIV = Math.sqrt(variance * bpd * 252);
+  // Floor: realistic 0DTE minimum IV (ETFs ~15%, stocks ~25%)
+  var price = sl[sl.length-1].close;
+  var floor = price > 300 ? 0.18 : price > 100 ? 0.22 : 0.28;
+  return Math.max(floor, Math.min(2.5, annualIV));
 }
 
 function strikeInc(price) {
@@ -526,8 +603,14 @@ function calcTrade(bars, sp, holdBars, wings, slip) {
   var minsLeft = Math.max(5, 780 - entMin);
   var T0 = minsLeft / (252 * 390);
 
-  // IV from last 20 bars
-  var iv = estimateIV(bars.slice(0, ei + 1), 20);
+  // IV from last 20 bars — correct annualization for 5-min bars (78 bars/day)
+  var iv = estimateIV(bars.slice(0, ei + 1), 20, 78);
+  // Apply realistic IV floor based on symbol volatility profile
+  var sym2 = (typeof sym !== 'undefined' ? sym : '');
+  // For major ETFs use lower IV floor; high-vol names get higher floor
+  if (sym2 && /^(SPY|QQQ|IWM|DIA)$/.test(sym2)) iv = Math.max(0.16, iv);
+  else if (sym2 && /^(TSLA|NVDA|GME|AMC|MSTR|RIOT|MARA|COIN)$/.test(sym2)) iv = Math.max(0.50, iv);
+  else if (sym2 && /^(AAPL|MSFT|AMZN|META|GOOGL|AMD|PLTR)$/.test(sym2)) iv = Math.max(0.25, iv);
   var r = 0.05;
 
   // Entry premiums
@@ -550,7 +633,9 @@ function calcTrade(bars, sp, holdBars, wings, slip) {
   var exMin = px.getHours() * 60 + px.getMinutes();
   var minsLeftX = Math.max(1, 780 - exMin);
   var T1 = minsLeftX / (252 * 390);
-  var ivX = iv * (T1 / T0 < 0.5 ? 0.85 : 1.0);
+  // 0DTE IV crush: vol compresses as time-to-close shrinks
+  var tRatio = T0 > 0 ? T1 / T0 : 1.0;
+  var ivX = iv * (tRatio < 0.3 ? 0.70 : tRatio < 0.5 ? 0.82 : tRatio < 0.75 ? 0.92 : 1.0);
 
   var sCallX = bsPrice(Sx, atm,  T1, r, ivX, true);
   var sPutX  = bsPrice(Sx, atm,  T1, r, ivX, false);
