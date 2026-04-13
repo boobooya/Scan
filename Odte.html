@@ -1191,800 +1191,645 @@ function clearAll() {
 
 
 // =================================================================
-// ENABLE EXPORT BUTTON when results ready
+// ENABLE EXPORT BUTTON
 // =================================================================
 function checkExportBtn() {
-  document.getElementById('btn-export').disabled = ALL.length === 0;
+  document.getElementById('btn-export').disabled = (ALL.length === 0);
 }
-
-// Override renderAll to also enable export
 var _origRenderAll = renderAll;
 renderAll = function() { _origRenderAll(); checkExportBtn(); };
 
 // =================================================================
-// EXCEL EXPORT via SheetJS
+// MAIN EXPORT ENTRY
 // =================================================================
 function exportXLSX() {
   if (!ALL.length) { alert('Run backtest first.'); return; }
-  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded yet. Check internet connection.'); return; }
-
+  if (typeof XLSX === 'undefined') { alert('SheetJS not loaded. Check internet connection.'); return; }
   var btn = document.getElementById('btn-export');
-  btn.textContent = '⟳ BUILDING...';
-  btn.disabled = true;
-
+  btn.textContent = '⟳ BUILDING...'; btn.disabled = true;
   setTimeout(function() {
     try {
       var wb = XLSX.utils.book_new();
-      buildSummarySheet(wb);
+      buildExecutiveSummary(wb);
+      buildExecutionSheet(wb, 't30', 'Execution_30min');
+      buildExecutionSheet(wb, 't45', 'Execution_45min');
       buildTimeSlotSheet(wb);
-      buildSymbolSummarySheet(wb);
-      buildTradesSheet30(wb);
-      buildTradesSheet45(wb);
-      buildRawSpikesSheet(wb);
-
+      buildSymbolSummary(wb);
       var now = new Date();
-      var fname = '0DTE_Backtest_' +
-        now.getFullYear() + ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2) +
-        '_' + ('0'+now.getHours()).slice(-2) + ('0'+now.getMinutes()).slice(-2) + '.xlsx';
-
+      var fname = '0DTE_Backtest_' + now.getFullYear() +
+        ('0'+(now.getMonth()+1)).slice(-2) + ('0'+now.getDate()).slice(-2) + '.xlsx';
       XLSX.writeFile(wb, fname);
-      log('Excel exported: ' + fname, 'ok');
-    } catch(e) {
-      log('Export error: ' + e.message, 'err');
-      alert('Export failed: ' + e.message);
-    }
-    btn.textContent = 'EXPORT EXCEL';
-    btn.disabled = false;
+      log('Exported: ' + fname, 'ok');
+    } catch(e) { log('Export error: ' + e.message, 'err'); alert('Export failed: ' + e.message); }
+    btn.textContent = '\u2B07 EXPORT EXCEL'; btn.disabled = false;
   }, 10);
 }
 
-// --- STYLES HELPER ---
-function hdrStyle(bg, fgColor) {
-  return { font: { bold: true, color: { rgb: fgColor || 'FFFFFF' }, sz: 10 },
-           fill: { fgColor: { rgb: bg || '1C3A5A' } },
-           alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-           border: { bottom: { style: 'thin', color: { rgb: '2A5080' } } } };
-}
-function numStyle(dec, pct) {
-  var fmt = pct ? '0.0%' : (dec === 0 ? '#,##0' : '#,##0.' + '0'.repeat(dec));
-  return { numFmt: fmt, alignment: { horizontal: 'right' } };
-}
-function colorCell(val, goodIfPositive) {
-  var positive = goodIfPositive ? val >= 0 : val >= 50;
-  return { font: { color: { rgb: positive ? '00CC88' : 'FF3355' }, bold: true } };
-}
-function wbStyle(val) {
-  return { font: { color: { rgb: val ? '00CC88' : 'FF3355' }, bold: true },
-           alignment: { horizontal: 'center' } };
-}
-function dollarStyle() { return { numFmt: '"$"#,##0.000', alignment: { horizontal: 'right' } }; }
-function pctRetStyle(val) {
-  return { numFmt: '+0.0%;-0.0%;"-"', font: { color: { rgb: val >= 0 ? '00CC88' : 'FF3355' }, bold: true }, alignment: { horizontal: 'right' } };
+// =================================================================
+// HELPERS
+// =================================================================
+function r2(v) { return typeof v === 'number' ? Math.round(v*100)/100 : v; }
+function r4(v) { return typeof v === 'number' ? Math.round(v*10000)/10000 : v; }
+
+function mkCell(v, s) { return { v: v, t: typeof v === 'number' ? 'n' : (v instanceof Date ? 'd' : 's'), s: s }; }
+
+// Standard color palette
+var C = {
+  BG1:'040C16', BG2:'071420', BG3:'0A1520',
+  HDR_INFO:'0A1A2A', HDR_UND:'0A1A20', HDR_OPT:'101820',
+  HDR_SC:'001830', HDR_SP:'001425', HDR_SCOMB:'001F30',
+  HDR_GC:'160020', HDR_GP:'130018', HDR_GCOMB:'1A0030',
+  WIN:'002818', LOSS:'200010',
+  GREEN:'00CC88', RED:'FF3355', YELLOW:'FFCC00',
+  CYAN:'00CCFF', VIOLET:'AA88FF', WHITE:'E8F6FF',
+  GRAY:'AACCDD', DARK:'334466'
+};
+
+function hdrCell(v, bg, fc, wrap) {
+  return { v: v, t: 's', s: {
+    font: { bold: true, color: { rgb: fc || 'FFFFFF' }, sz: 9 },
+    fill: { fgColor: { rgb: bg || C.BG3 } },
+    alignment: { horizontal: 'center', vertical: 'center', wrapText: !!wrap },
+    border: { bottom: { style: 'medium', color: { rgb: C.DARK } },
+              right:  { style: 'thin',   color: { rgb: '1A2A3A' } } }
+  }};
 }
 
-function applyStyles(ws, styleMap) {
-  Object.keys(styleMap).forEach(function(ref) {
-    if (!ws[ref]) return;
-    var existing = ws[ref].s || {};
-    ws[ref].s = Object.assign({}, existing, styleMap[ref]);
-  });
+function dataCell(v, bg, fc, fmt, halign, bold) {
+  var cell = { v: v, s: {
+    font: { color: { rgb: fc || C.GRAY }, sz: 9, bold: !!bold },
+    fill: { fgColor: { rgb: bg || C.BG1 } },
+    alignment: { horizontal: halign || 'right', vertical: 'center' },
+    border: { right: { style: 'thin', color: { rgb: '1A2A3A' } },
+              bottom:{ style: 'thin', color: { rgb: '0D1A25' } } }
+  }};
+  if (fmt) cell.s.numFmt = fmt;
+  if (typeof v === 'number') cell.t = 'n';
+  else cell.t = 's';
+  return cell;
 }
 
-// Auto-width helper
-function autoWidth(ws, data) {
-  var widths = [];
-  data.forEach(function(row) {
+function pnlCell(v, bg) {
+  var clr = (v >= 0) ? C.GREEN : C.RED;
+  return { v: v, t: 'n', s: {
+    font: { bold: true, color: { rgb: clr }, sz: 9 },
+    fill: { fgColor: { rgb: bg || C.BG1 } },
+    alignment: { horizontal: 'right', vertical: 'center' },
+    numFmt: '_("$"* #,##0.0000_);_("$"* (#,##0.0000);_("$"* "-"??_)',
+    border: { right: { style: 'thin', color: { rgb: '1A2A3A' } },
+              bottom:{ style: 'thin', color: { rgb: '0D1A25' } } }
+  }};
+}
+
+function pctCell(v, bg, fmt) {
+  var clr = (v >= 0) ? C.GREEN : C.RED;
+  return { v: v, t: 'n', s: {
+    font: { bold: true, color: { rgb: clr }, sz: 9 },
+    fill: { fgColor: { rgb: bg || C.BG1 } },
+    alignment: { horizontal: 'right', vertical: 'center' },
+    numFmt: fmt || '+0.00%;-0.00%',
+    border: { right: { style: 'thin', color: { rgb: '1A2A3A' } },
+              bottom:{ style: 'thin', color: { rgb: '0D1A25' } } }
+  }};
+}
+
+function winLossCell(win, bg) {
+  return { v: win ? 'WIN' : 'LOSS', t: 's', s: {
+    font: { bold: true, color: { rgb: win ? C.GREEN : C.RED }, sz: 10 },
+    fill: { fgColor: { rgb: win ? '003322' : '220011' } },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: { right: { style: 'medium', color: { rgb: C.DARK } },
+              bottom:{ style: 'thin',   color: { rgb: '0D1A25' } } }
+  }};
+}
+
+function moneyCell(v, bg, bold, fc) {
+  return { v: v, t: 'n', s: {
+    font: { color: { rgb: fc || 'DDEEFF' }, sz: 9, bold: !!bold },
+    fill: { fgColor: { rgb: bg || C.BG1 } },
+    alignment: { horizontal: 'right', vertical: 'center' },
+    numFmt: '"$"#,##0.0000',
+    border: { right: { style: 'thin', color: { rgb: '1A2A3A' } },
+              bottom:{ style: 'thin', color: { rgb: '0D1A25' } } }
+  }};
+}
+
+function totCell(v, fmt, clrOverride) {
+  var clr = clrOverride || ((typeof v === 'number' && v >= 0) ? C.GREEN : (typeof v === 'number' ? C.RED : C.YELLOW));
+  var cell = { v: v, t: (typeof v === 'number' ? 'n' : 's'), s: {
+    font: { bold: true, color: { rgb: clr }, sz: 10 },
+    fill: { fgColor: { rgb: '0A1A28' } },
+    alignment: { horizontal: typeof v === 'number' ? 'right' : 'center', vertical: 'center' },
+    border: { top: { style: 'medium', color: { rgb: C.YELLOW } },
+              bottom: { style: 'medium', color: { rgb: C.YELLOW } },
+              right: { style: 'thin', color: { rgb: C.DARK } } }
+  }};
+  if (fmt) cell.s.numFmt = fmt;
+  return cell;
+}
+
+function setSheet(ws, aoa) {
+  // Write array-of-cell-objects (not plain values)
+  aoa.forEach(function(row, ri) {
     row.forEach(function(cell, ci) {
-      var len = cell == null ? 0 : String(cell).length;
-      widths[ci] = Math.max(widths[ci] || 6, Math.min(len + 2, 40));
+      if (cell === null || cell === undefined) return;
+      var ref = XLSX.utils.encode_cell({ r: ri, c: ci });
+      ws[ref] = (typeof cell === 'object' && cell.s !== undefined) ? cell :
+                { v: cell, t: (typeof cell === 'number' ? 'n' : 's') };
     });
   });
-  ws['!cols'] = widths.map(function(w) { return { wch: w }; });
+  var range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+  var maxR = 0, maxC = 0;
+  aoa.forEach(function(row, ri) { row.forEach(function(_, ci) { if(ri>maxR)maxR=ri; if(ci>maxC)maxC=ci; }); });
+  ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:maxR,c:maxC} });
 }
+
+function avg(arr) { return arr.length ? arr.reduce(function(a,b){return a+b;},0)/arr.length : 0; }
+function sum(arr) { return arr.reduce(function(a,b){return a+b;},0); }
 
 // =================================================================
 // SHEET 1: EXECUTIVE SUMMARY
 // =================================================================
-function buildSummarySheet(wb) {
+function buildExecutiveSummary(wb) {
+  var ws = {};
   var all30 = [].concat.apply([], ALL.map(function(r){return r.t30;}));
   var all45 = [].concat.apply([], ALL.map(function(r){return r.t45;}));
-  var s30 = stats(all30) || {};
-  var s45 = stats(all45) || {};
+  var n30 = all30.length || 1;
+  var n45 = all45.length || 1;
+  var sW30 = all30.filter(function(t){return t.sWin;}).length;
+  var sW45 = all45.filter(function(t){return t.sWin;}).length;
+  var gW30 = all30.filter(function(t){return t.gWin;}).length;
+  var gW45 = all45.filter(function(t){return t.gWin;}).length;
+
+  var title = { v:'0DTE STRADDLE & STRANGLE BACKTEST \u2014 EXECUTIVE SUMMARY', t:'s', s:{
+    font:{bold:true,color:{rgb:C.YELLOW},sz:14},
+    fill:{fgColor:{rgb:'050E18'}},
+    alignment:{horizontal:'center',vertical:'center'}
+  }};
 
   var rows = [
-    ['0DTE BACKTEST — EXECUTIVE SUMMARY', '', '', ''],
-    ['Generated:', new Date().toLocaleString(), '', ''],
-    ['Symbols:', ALL.map(function(r){return r.sym;}).join(', '), '', ''],
-    ['', '', '', ''],
-    ['METRIC', 'STRADDLE 30m', 'STRANGLE 30m', 'STRADDLE 45m', 'STRANGLE 45m'],
-    ['Total Trades', s30.n||0, s30.n||0, s45.n||0, s45.n||0],
-    ['Win Count', s30.sw||0, s30.gw||0, s45.sw||0, s45.gw||0],
-    ['Loss Count', (s30.n||0)-(s30.sw||0), (s30.n||0)-(s30.gw||0), (s45.n||0)-(s45.sw||0), (s45.n||0)-(s45.gw||0)],
-    ['Win Rate %', (s30.sWR||0)/100, (s30.gWR||0)/100, (s45.sWR||0)/100, (s45.gWR||0)/100],
-    ['Avg Return %', (s30.sAvgRet||0)/100, (s30.gAvgRet||0)/100, (s45.sAvgRet||0)/100, (s45.gAvgRet||0)/100],
-    ['Total PnL (x100)', s30.sPnLSum||0, s30.gPnLSum||0, s45.sPnLSum||0, s45.gPnLSum||0],
-    ['Avg Move at Spike %', (s30.avgMove||0)/100, (s30.avgMove||0)/100, (s45.avgMove||0)/100, (s45.avgMove||0)/100],
-    ['Best Trade Return %', (s30.sRetMax||0)/100, '', (s45.sRetMax||0)/100, ''],
-    ['Worst Trade Return %', (s30.sRetMin||0)/100, '', (s45.sRetMin||0)/100, ''],
-    ['Sharpe Ratio', s30.sSharpe||0, s30.gSharpe||0, s45.sSharpe||0, s45.gSharpe||0],
-    ['', '', '', ''],
-    ['SYMBOLS TESTED', ALL.length, '', ''],
-    ['TOTAL SPIKE EVENTS', ALL.reduce(function(a,r){return a+r.spikes.length;},0), '', ''],
-    ['LOOKBACK DAYS', document.getElementById('lbdays').value, '', ''],
-    ['SPIKE THRESHOLD %', document.getElementById('thr').value+'%', '', ''],
-    ['STRANGLE WINGS', document.getElementById('wings').value+' strikes', '', ''],
-    ['SLIPPAGE $', '$'+document.getElementById('slip').value, '', ''],
+    [title, null, null, null, null, null],
+    [hdrCell('METRIC','0A1828',C.CYAN), hdrCell('30-MIN HOLD','0A1828',C.CYAN), null,
+     hdrCell('45-MIN HOLD','0A1828',C.VIOLET), null, null],
+    [dataCell('Total Trades',C.BG2,C.GRAY,'',   'left'), dataCell(n30,C.BG1,C.WHITE,'#,##0'), null, dataCell(n45,C.BG1,C.WHITE,'#,##0'), null, null],
+    [dataCell('Straddle Wins',C.BG2,C.GRAY,'',  'left'), dataCell(sW30,C.BG1,C.GREEN,'#,##0'), null, dataCell(sW45,C.BG1,C.GREEN,'#,##0'), null, null],
+    [dataCell('Straddle Losses',C.BG2,C.GRAY,'','left'), dataCell(n30-sW30,C.BG1,C.RED,'#,##0'), null, dataCell(n45-sW45,C.BG1,C.RED,'#,##0'), null, null],
+    [dataCell('Straddle Win Rate',C.BG2,C.GRAY,'','left'), pctCell(sW30/n30,C.BG1,'0.0%'), null, pctCell(sW45/n45,C.BG1,'0.0%'), null, null],
+    [dataCell('Strangle Win Rate',C.BG2,C.GRAY,'','left'), pctCell(gW30/n30,C.BG1,'0.0%'), null, pctCell(gW45/n45,C.BG1,'0.0%'), null, null],
+    [dataCell('Avg Straddle Return',C.BG2,C.GRAY,'','left'), pctCell(avg(all30.map(function(t){return t.sRet/100;})),C.BG1), null, pctCell(avg(all45.map(function(t){return t.sRet/100;})),C.BG1), null, null],
+    [dataCell('Avg Strangle Return',C.BG2,C.GRAY,'','left'), pctCell(avg(all30.map(function(t){return t.gRet/100;})),C.BG1), null, pctCell(avg(all45.map(function(t){return t.gRet/100;})),C.BG1), null, null],
+    [dataCell('Total Straddle PnL',C.BG2,C.GRAY,'','left'), pnlCell(r2(sum(all30.map(function(t){return t.sPnL;}))),C.BG1), null, pnlCell(r2(sum(all45.map(function(t){return t.sPnL;}))),C.BG1), null, null],
+    [dataCell('Total Strangle PnL',C.BG2,C.GRAY,'','left'), pnlCell(r2(sum(all30.map(function(t){return t.gPnL;}))),C.BG1), null, pnlCell(r2(sum(all45.map(function(t){return t.gPnL;}))),C.BG1), null, null],
+    [dataCell('Avg Move at Spike',C.BG2,C.GRAY,'', 'left'), pctCell(avg(all30.map(function(t){return t.move/100;})),C.BG1,'0.00%'), null, dataCell('—',C.BG1,C.GRAY), null, null],
+    [dataCell('Symbols Tested',C.BG2,C.GRAY,'',   'left'), dataCell(ALL.length,C.BG1,C.WHITE,'#,##0'), null, dataCell(ALL.length,C.BG1,C.WHITE,'#,##0'), null, null],
+    [dataCell('Total Spike Events',C.BG2,C.GRAY,'','left'), dataCell(ALL.reduce(function(a,r){return a+r.spikes.length;},0),C.BG1,C.YELLOW,'#,##0'), null, dataCell('—',C.BG1,C.GRAY), null, null],
   ];
 
-  var ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:4} }];
-  autoWidth(ws, rows);
-  ws['!rows'] = [{hpt:22},{hpt:16},{hpt:16},{hpt:8},{hpt:20}];
-
-  // Format percentage and number cells
-  var pctRows = [8,9,11,12,13]; // 0-indexed rows with % values
-  pctRows.forEach(function(ri) {
-    ['B','C','D','E'].forEach(function(col) {
-      var ref = col + (ri+1);
-      if (ws[ref] && typeof ws[ref].v === 'number') {
-        ws[ref].s = { numFmt: '0.0%', alignment: { horizontal: 'right' },
-          font: { color: { rgb: ws[ref].v >= 0 ? '00CC88' : 'FF3355' } } };
-      }
-    });
-  });
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Summary');
+  setSheet(ws, rows);
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:5}},
+    {s:{r:1,c:1},e:{r:1,c:2}},
+    {s:{r:1,c:3},e:{r:1,c:4}}
+  ];
+  ws['!cols'] = [{wch:22},{wch:18},{wch:4},{wch:18},{wch:4},{wch:4}];
+  ws['!rows'] = [{hpt:28},{hpt:22}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Executive_Summary');
 }
 
 // =================================================================
-// SHEET 2: TIME SLOT OCCURRENCE & WIN RATES
+// SHEET 2 & 3: EXECUTION DETAIL (all 56 columns, per-leg)
 // =================================================================
-function buildTimeSlotSheet(wb) {
-  var slots30 = {}, slots45 = {};
-  ALL.forEach(function(r) {
-    r.t30.forEach(function(t) {
-      var k = t.sp.h + ':00 PST';
-      if (!slots30[k]) slots30[k] = { label: k, h: t.sp.h, trades: [] };
-      slots30[k].trades.push(t);
-    });
-    r.t45.forEach(function(t) {
-      var k = t.sp.h + ':00 PST';
-      if (!slots45[k]) slots45[k] = { label: k, h: t.sp.h, trades: [] };
-      slots45[k].trades.push(t);
-    });
+function buildExecutionSheet(wb, holdKey, sheetName) {
+  var allTrades = [].concat.apply([], ALL.map(function(r){ return r[holdKey]; }));
+  allTrades.sort(function(a,b){ return (a.entryDt||0)-(b.entryDt||0); });
+
+  var ws = {};
+
+  // ── ROW 1: GROUP LABELS (merged) ──
+  var groups = [
+    { label:'EXECUTION INFO',       cols:10, bg:C.HDR_INFO, fc:'AACCEE' },
+    { label:'UNDERLYING STOCK',     cols:6,  bg:C.HDR_UND,  fc:'AADDCC' },
+    { label:'OPTION SETUP',         cols:8,  bg:C.HDR_OPT,  fc:'AABBDD' },
+    { label:'STRADDLE \u2014 CALL LEG', cols:5,  bg:C.HDR_SC,   fc:'66DDFF' },
+    { label:'STRADDLE \u2014 PUT LEG',  cols:5,  bg:C.HDR_SP,   fc:'44CCFF' },
+    { label:'STRADDLE COMBINED',    cols:6,  bg:C.HDR_SCOMB,fc:'00EEFF' },
+    { label:'STRANGLE \u2014 CALL LEG', cols:5,  bg:C.HDR_GC,   fc:'CC99FF' },
+    { label:'STRANGLE \u2014 PUT LEG',  cols:5,  bg:C.HDR_GP,   fc:'BB88FF' },
+    { label:'STRANGLE COMBINED',    cols:6,  bg:C.HDR_GCOMB,fc:'AA80FF' },
+  ];
+  var grpRow = [];
+  var colStart = 0;
+  var merges = [];
+  groups.forEach(function(g) {
+    var cell = { v: g.label, t:'s', s:{
+      font:{bold:true,color:{rgb:g.fc},sz:10},
+      fill:{fgColor:{rgb:g.bg}},
+      alignment:{horizontal:'center',vertical:'center'},
+      border:{bottom:{style:'medium',color:{rgb:C.DARK}}}
+    }};
+    grpRow.push(cell);
+    for(var i=1;i<g.cols;i++) grpRow.push(null);
+    if(g.cols > 1) merges.push({s:{r:0,c:colStart},e:{r:0,c:colStart+g.cols-1}});
+    colStart += g.cols;
   });
 
-  // Also do 30-min sub-slots (hour:00 and hour:30)
-  var subSlots30 = {}, subSlots45 = {};
-  ALL.forEach(function(r) {
-    r.t30.forEach(function(t) {
-      var half = t.sp.m < 30 ? ':00' : ':30';
-      var k = t.sp.h + half + ' PST';
-      if (!subSlots30[k]) subSlots30[k] = { label:k, h:t.sp.h, m: t.sp.m<30?0:30, trades:[] };
-      subSlots30[k].trades.push(t);
-    });
-    r.t45.forEach(function(t) {
-      var half = t.sp.m < 30 ? ':00' : ':30';
-      var k = t.sp.h + half + ' PST';
-      if (!subSlots45[k]) subSlots45[k] = { label:k, h:t.sp.h, m: t.sp.m<30?0:30, trades:[] };
-      subSlots45[k].trades.push(t);
-    });
-  });
-
-  var allKeys = Object.keys(subSlots30).concat(Object.keys(subSlots45));
-  allKeys = allKeys.filter(function(k,i){ return allKeys.indexOf(k) === i; });
-  allKeys.sort();
-
-  var totalTrades = [].concat.apply([], ALL.map(function(r){return r.t30;})).length || 1;
-
-  var hdr = [
-    'Time Slot (PST)',
-    'Occurrence Count',
-    'Occurrence Rate %',
-    'Strad WR 30m',
-    'Strad Avg Ret 30m',
-    'Strad Total PnL 30m',
-    'Gla WR 30m',
-    'Gla Avg Ret 30m',
-    'Gla Total PnL 30m',
-    'Strad WR 45m',
-    'Strad Avg Ret 45m',
-    'Gla WR 45m',
-    'Gla Avg Ret 45m',
-    'Avg Underlying Move %',
-    'Avg IV at Entry %',
-    'Best Slot Strategy'
+  // ── ROW 2: COLUMN HEADERS (56 cols) ──
+  var colDefs = [
+    // EXECUTION INFO (10)
+    {h:'No.',            bg:C.HDR_INFO,  fc:'AACCEE', w:5 },
+    {h:'Symbol',         bg:C.HDR_INFO,  fc:C.YELLOW, w:9 },
+    {h:'Date',           bg:C.HDR_INFO,  fc:'AACCEE', w:12},
+    {h:'Entry Time PST', bg:C.HDR_INFO,  fc:'88CCEE', w:13},
+    {h:'Exit Time PST',  bg:C.HDR_INFO,  fc:'88CCEE', w:13},
+    {h:'Weekday',        bg:C.HDR_INFO,  fc:'AACCEE', w:9 },
+    {h:'Time Slot PST',  bg:C.HDR_INFO,  fc:C.CYAN,   w:13},
+    {h:'Hold (min)',     bg:C.HDR_INFO,  fc:'AACCEE', w:9 },
+    {h:'Mins to Close',  bg:C.HDR_INFO,  fc:'AACCEE', w:11},
+    {h:'IV Entry %',     bg:C.HDR_INFO,  fc:'AAAADD', w:10},
+    // UNDERLYING (6)
+    {h:'Entry Price $',  bg:C.HDR_UND,   fc:'AADDCC', w:13},
+    {h:'Exit Price $',   bg:C.HDR_UND,   fc:'AADDCC', w:13},
+    {h:'Change $',       bg:C.HDR_UND,   fc:'AADDCC', w:11},
+    {h:'Change %',       bg:C.HDR_UND,   fc:'AADDCC', w:10},
+    {h:'Direction',      bg:C.HDR_UND,   fc:'AADDCC', w:9 },
+    {h:'Spike %',        bg:C.HDR_UND,   fc:'AADDCC', w:10},
+    // OPTION SETUP (8)
+    {h:'ATM Strike $',   bg:C.HDR_OPT,   fc:C.YELLOW, w:12},
+    {h:'Strike Inc $',   bg:C.HDR_OPT,   fc:'AABBDD', w:10},
+    {h:'Call Strike $',  bg:C.HDR_OPT,   fc:'88DDFF', w:13},
+    {h:'Put Strike $',   bg:C.HDR_OPT,   fc:'FFAACC', w:13},
+    {h:'BE Up $',        bg:C.HDR_OPT,   fc:'AABBDD', w:11},
+    {h:'BE Down $',      bg:C.HDR_OPT,   fc:'AABBDD', w:11},
+    {h:'IV Exit %',      bg:C.HDR_OPT,   fc:'AAAADD', w:10},
+    {h:'Dte (days)',     bg:C.HDR_OPT,   fc:'888899', w:9 },
+    // STRADDLE CALL (5)
+    {h:'S.CALL Strike $',bg:C.HDR_SC,    fc:'66DDFF', w:13},
+    {h:'S.CALL Buy $',   bg:C.HDR_SC,    fc:'66DDFF', w:12},
+    {h:'S.CALL Sell $',  bg:C.HDR_SC,    fc:'66DDFF', w:12},
+    {h:'S.CALL PnL $',   bg:C.HDR_SC,    fc:'66DDFF', w:12},
+    {h:'S.CALL Ret %',   bg:C.HDR_SC,    fc:'66DDFF', w:11},
+    // STRADDLE PUT (5)
+    {h:'S.PUT Strike $', bg:C.HDR_SP,    fc:'44CCFF', w:13},
+    {h:'S.PUT Buy $',    bg:C.HDR_SP,    fc:'44CCFF', w:12},
+    {h:'S.PUT Sell $',   bg:C.HDR_SP,    fc:'44CCFF', w:12},
+    {h:'S.PUT PnL $',    bg:C.HDR_SP,    fc:'44CCFF', w:12},
+    {h:'S.PUT Ret %',    bg:C.HDR_SP,    fc:'44CCFF', w:11},
+    // STRADDLE COMBINED (6)
+    {h:'STR Premium $',  bg:C.HDR_SCOMB, fc:'00EEFF', w:13},
+    {h:'STR Collected $',bg:C.HDR_SCOMB, fc:'00EEFF', w:14},
+    {h:'STR PnL $',      bg:C.HDR_SCOMB, fc:'00EEFF', w:12},
+    {h:'STR PnL x100 $', bg:C.HDR_SCOMB, fc:'00EEFF', w:13},
+    {h:'STR Return %',   bg:C.HDR_SCOMB, fc:'00EEFF', w:12},
+    {h:'STR Result',     bg:C.HDR_SCOMB, fc:'00EEFF', w:10},
+    // STRANGLE CALL (5)
+    {h:'G.CALL Strike $',bg:C.HDR_GC,    fc:'CC99FF', w:13},
+    {h:'G.CALL Buy $',   bg:C.HDR_GC,    fc:'CC99FF', w:12},
+    {h:'G.CALL Sell $',  bg:C.HDR_GC,    fc:'CC99FF', w:12},
+    {h:'G.CALL PnL $',   bg:C.HDR_GC,    fc:'CC99FF', w:12},
+    {h:'G.CALL Ret %',   bg:C.HDR_GC,    fc:'CC99FF', w:11},
+    // STRANGLE PUT (5)
+    {h:'G.PUT Strike $', bg:C.HDR_GP,    fc:'BB88FF', w:13},
+    {h:'G.PUT Buy $',    bg:C.HDR_GP,    fc:'BB88FF', w:12},
+    {h:'G.PUT Sell $',   bg:C.HDR_GP,    fc:'BB88FF', w:12},
+    {h:'G.PUT PnL $',    bg:C.HDR_GP,    fc:'BB88FF', w:12},
+    {h:'G.PUT Ret %',    bg:C.HDR_GP,    fc:'BB88FF', w:11},
+    // STRANGLE COMBINED (6)
+    {h:'GLA Premium $',  bg:C.HDR_GCOMB, fc:'AA80FF', w:13},
+    {h:'GLA Collected $',bg:C.HDR_GCOMB, fc:'AA80FF', w:14},
+    {h:'GLA PnL $',      bg:C.HDR_GCOMB, fc:'AA80FF', w:12},
+    {h:'GLA PnL x100 $', bg:C.HDR_GCOMB, fc:'AA80FF', w:13},
+    {h:'GLA Return %',   bg:C.HDR_GCOMB, fc:'AA80FF', w:12},
+    {h:'GLA Result',     bg:C.HDR_GCOMB, fc:'AA80FF', w:10},
   ];
 
-  var dataRows = [];
-  allKeys.forEach(function(k) {
-    var s30d = subSlots30[k], s45d = subSlots45[k];
-    var t30 = s30d ? s30d.trades : [];
-    var t45 = s45d ? s45d.trades : [];
-    if (!t30.length && !t45.length) return;
-    var st30 = stats(t30) || { sWR:0, gWR:0, sAvgRet:0, gAvgRet:0, avgMove:0, sPnLSum:0, gPnLSum:0 };
-    var st45 = stats(t45) || { sWR:0, gWR:0, sAvgRet:0, gAvgRet:0 };
-    var occRate = t30.length / totalTrades;
-    var avgIV = t30.length ? t30.reduce(function(a,t){return a+t.iv;},0)/t30.length : 0;
-    var best = Math.max(st30.sWR, st30.gWR, st45.sWR, st45.gWR);
-    var bestLabel = best === st30.sWR ? 'STR 30m' : best === st30.gWR ? 'GLA 30m' : best === st45.sWR ? 'STR 45m' : 'GLA 45m';
-    dataRows.push([
-      k,
-      t30.length,
-      occRate,
-      st30.sWR/100,
-      st30.sAvgRet/100,
-      st30.sPnLSum,
-      st30.gWR/100,
-      st30.gAvgRet/100,
-      st30.gPnLSum,
-      st45.sWR/100,
-      st45.sAvgRet/100,
-      st45.gWR/100,
-      st45.gAvgRet/100,
-      st30.avgMove/100,
-      avgIV/100,
-      bestLabel
-    ]);
-  });
+  var hdrRow = colDefs.map(function(d) { return hdrCell(d.h, d.bg, d.fc, true); });
+  var aoa = [grpRow, hdrRow];
 
-  var sheetData = [hdr].concat(dataRows);
-  var ws = XLSX.utils.aoa_to_sheet(sheetData);
-  autoWidth(ws, sheetData);
+  // ── DATA ROWS ──
+  allTrades.forEach(function(t, i) {
+    var sBG  = t.sWin ? C.WIN : C.LOSS;
+    var gBG  = t.gWin ? C.WIN : C.LOSS;
+    var rBG  = i%2===0 ? C.BG1 : C.BG2;
+    var dte  = t.T0 ? Math.round(t.T0*252*10)/10 : 0;
+    var cPnL = r4((t.sCallSell||0)-(t.sCallBuy||0));
+    var pPnL = r4((t.sPutSell||0)-(t.sPutBuy||0));
+    var cRet = (t.sCallBuy||0) > 0 ? (cPnL/(t.sCallBuy||1))*100 : 0;
+    var pRet = (t.sPutBuy||0)  > 0 ? (pPnL/(t.sPutBuy||1))*100  : 0;
+    var gcPnL= r4((t.gCallSell||0)-(t.gCallBuy||0));
+    var gpPnL= r4((t.gPutSell||0)-(t.gPutBuy||0));
+    var gcRet= (t.gCallBuy||0) > 0 ? (gcPnL/(t.gCallBuy||1))*100 : 0;
+    var gpRet= (t.gPutBuy||0)  > 0 ? (gpPnL/(t.gPutBuy||1))*100  : 0;
+    var chg  = r4((t.Sx||0)-(t.S||0));
+    var chgPct = (t.S||0)>0 ? chg/(t.S||1) : 0;
+    var spikePct = (t.sp&&t.sp.pct||t.spike_pct||0)/100;
+    var dirClr = (t.moveDir||t.sp&&t.sp.dir)==='UP'||((t.sp&&t.sp.dir)==='up') ? C.GREEN : C.RED;
+    var slotH  = t.sp ? t.sp.h : (t.entry_h||0);
+    var slotM  = t.sp ? t.sp.m : (t.entry_m||0);
+    var slotLbl= slotH+':'+(slotM<30?'00':'30')+' PST';
 
-  // Format % columns
-  var pctCols = ['C','D','E','G','H','J','K','L','M','N','O']; // 0-indexed: col 2,3,4,6,7,9,10,11,12,13,14
-  for (var ri = 1; ri < sheetData.length; ri++) {
-    pctCols.forEach(function(col) {
-      var ref = col + (ri + 1);
-      if (ws[ref] && typeof ws[ref].v === 'number') {
-        ws[ref].s = { numFmt: '0.0%', alignment: { horizontal: 'right' },
-          font: { color: { rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244' } } };
-      }
-    });
-    // PnL cols F, I
-    ['F','I'].forEach(function(col) {
-      var ref = col + (ri+1);
-      if (ws[ref] && typeof ws[ref].v === 'number') {
-        ws[ref].s = { numFmt: '#,##0.00', alignment:{horizontal:'right'},
-          font:{color:{rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244'}} };
-      }
-    });
-  }
-
-  // Bold header row
-  hdr.forEach(function(_, ci) {
-    var ref = XLSX.utils.encode_cell({r:0, c:ci});
-    if (ws[ref]) ws[ref].s = { font:{bold:true, color:{rgb:'FFFFFF'}, sz:9},
-      fill:{fgColor:{rgb:'0E1D2C'}}, alignment:{horizontal:'center', wrapText:true} };
-  });
-
-  // Freeze header row
-  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
-
-  // Add a chart data block for the spike occurrence bar chart (separate table for charting)
-  var chartStartRow = sheetData.length + 2;
-  XLSX.utils.sheet_add_aoa(ws, [
-    ['CHART DATA — SPIKE OCCURRENCE BY HOUR (PST)', ''],
-    ['Time Slot', 'Spike Count', 'Strad Win Rate 30m', 'Strangle Win Rate 30m']
-  ], { origin: { r: chartStartRow, c: 0 } });
-
-  // Hour-level aggregation for chart
-  var hourMap = {};
-  ALL.forEach(function(r) {
-    r.spikes.forEach(function(sp) {
-      var hk = sp.h + ':00 PST';
-      if (!hourMap[hk]) hourMap[hk] = { count: 0, sWins: 0, gWins: 0, total: 0 };
-      hourMap[hk].count++;
-    });
-    r.t30.forEach(function(t) {
-      var hk = t.sp.h + ':00 PST';
-      if (!hourMap[hk]) hourMap[hk] = { count: 0, sWins: 0, gWins: 0, total: 0 };
-      hourMap[hk].total++;
-      if (t.sWin) hourMap[hk].sWins++;
-      if (t.gWin) hourMap[hk].gWins++;
-    });
-  });
-  var hkeys = Object.keys(hourMap).sort();
-  var chartDataRows = hkeys.map(function(k) {
-    var d = hourMap[k];
-    return [k, d.count, d.total > 0 ? d.sWins/d.total : 0, d.total > 0 ? d.gWins/d.total : 0];
-  });
-  XLSX.utils.sheet_add_aoa(ws, chartDataRows, { origin: { r: chartStartRow + 2, c: 0 } });
-
-  // Format chart data % cells
-  chartDataRows.forEach(function(_, ri) {
-    var r = chartStartRow + 2 + ri;
-    ['C','D'].forEach(function(col) {
-      var ref = col + (r+1);
-      if (ws[ref]) ws[ref].s = { numFmt: '0.0%', alignment:{horizontal:'right'} };
-    });
-  });
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Time Slots');
-}
-
-// =================================================================
-// SHEET 3: SYMBOL SUMMARY
-// =================================================================
-function buildSymbolSummarySheet(wb) {
-  var hdr = [
-    'Symbol', 'Last Price', 'ATM Strike', 'Strike Inc',
-    'Total Spikes', 'Total Trades',
-    'STR Win Rate 30m', 'STR Avg Ret 30m', 'STR Win Rate 45m', 'STR Avg Ret 45m',
-    'GLA Win Rate 30m', 'GLA Avg Ret 30m', 'GLA Win Rate 45m', 'GLA Avg Ret 45m',
-    'STR Total PnL 30m', 'GLA Total PnL 30m',
-    'Avg Spike Move %', 'Avg IV %',
-    'Best Trade Ret 30m', 'Worst Trade Ret 30m',
-    'Strad Sharpe 30m', 'Best Strategy'
-  ];
-
-  var sorted = ALL.slice().sort(function(a,b) {
-    var sa = stats(a.t30), sb = stats(b.t30);
-    return (sb?sb.sWR:0) - (sa?sa.sWR:0);
-  });
-
-  var rows = sorted.map(function(r) {
-    var s30 = stats(r.t30) || { sWR:0,gWR:0,sAvgRet:0,gAvgRet:0,sPnLSum:0,gPnLSum:0,avgMove:0,sRetMax:0,sRetMin:0,sSharpe:0,n:0 };
-    var s45 = stats(r.t45) || { sWR:0,gWR:0,sAvgRet:0,gAvgRet:0 };
-    var inc = strikeInc(r.price);
-    var atm = Math.round(r.price/inc)*inc;
-    var avgIV = r.t30.length ? r.t30.reduce(function(a,t){return a+t.iv;},0)/r.t30.length : 0;
-    var best = Math.max(s30.sWR, s30.gWR, s45.sWR, s45.gWR);
-    var bestL = best===s30.sWR?'STR 30m':best===s30.gWR?'GLA 30m':best===s45.sWR?'STR 45m':'GLA 45m';
-    return [
-      r.sym, r.price, atm, inc,
-      r.spikes.length, s30.n,
-      s30.sWR/100, s30.sAvgRet/100, s45.sWR/100, s45.sAvgRet/100,
-      s30.gWR/100, s30.gAvgRet/100, s45.gWR/100, s45.gAvgRet/100,
-      s30.sPnLSum, s30.gPnLSum,
-      s30.avgMove/100, avgIV/100,
-      s30.sRetMax/100, s30.sRetMin/100,
-      s30.sSharpe, bestL
+    var row = [
+      // EXECUTION INFO
+      dataCell(i+1,            rBG,'446688','#,##0','center'),
+      dataCell(t.sym,          rBG,C.YELLOW,'',    'center',true),
+      dataCell(t.entryDate||'',rBG,'88BBDD','',    'center'),
+      dataCell(t.entryTime||'',rBG,'88CCEE','',    'center'),
+      dataCell(t.exitTime||'', rBG,'88CCEE','',    'center'),
+      dataCell(t.sp ? t.sp.day : (t.day||''), rBG,'AACCEE','','center'),
+      dataCell(slotLbl,        rBG, C.CYAN,'',     'center',true),
+      dataCell(t.holdMins||0,  rBG,C.GRAY, '#,##0'),
+      dataCell(t.minsLeft||0,  rBG,C.GRAY, '#,##0'),
+      dataCell((t.iv||0)/100,  rBG,'AAAADD','0.0%'),
+      // UNDERLYING
+      moneyCell(t.S||0,        rBG),
+      moneyCell(t.Sx||0,       rBG),
+      pnlCell(chg,             rBG),
+      pctCell(chgPct,          rBG,'0.00%'),
+      { v: t.moveDir||(t.sp&&t.sp.dir==='up'?'UP':'DOWN'), t:'s', s:{
+          font:{bold:true,color:{rgb:dirClr},sz:9},fill:{fgColor:{rgb:rBG}},
+          alignment:{horizontal:'center',vertical:'center'},
+          border:{right:{style:'thin',color:{rgb:'1A2A3A'}},bottom:{style:'thin',color:{rgb:'0D1A25'}}}
+        }},
+      pctCell(spikePct,        rBG, '+0.000%;-0.000%'),
+      // OPTION SETUP
+      moneyCell(t.atm||0,      rBG, true, C.YELLOW),
+      moneyCell(t.inc||0,      rBG),
+      moneyCell(t.kCall||0,    rBG, true, '88DDFF'),
+      moneyCell(t.kPut||0,     rBG, true, 'FFAACC'),
+      moneyCell(t.sBEup||r2((t.atm||0)+(t.sPrem||0)), rBG, false, 'AABBDD'),
+      moneyCell(t.sBEdn||r2((t.atm||0)-(t.sPrem||0)), rBG, false, 'AABBDD'),
+      dataCell((t.ivExit!==undefined?t.ivExit:t.iv||0)/100, rBG,'AAAADD','0.0%'),
+      dataCell(dte, rBG,'888899','0.0'),
+      // STRADDLE CALL LEG
+      moneyCell(t.atm||0,      sBG, true, '66DDFF'),
+      moneyCell(t.sCallBuy||0, sBG),
+      moneyCell(t.sCallSell||0,sBG),
+      pnlCell(cPnL,            sBG),
+      pctCell(cRet/100,        sBG),
+      // STRADDLE PUT LEG
+      moneyCell(t.atm||0,      sBG, true, '44CCFF'),
+      moneyCell(t.sPutBuy||0,  sBG),
+      moneyCell(t.sPutSell||0, sBG),
+      pnlCell(pPnL,            sBG),
+      pctCell(pRet/100,        sBG),
+      // STRADDLE COMBINED
+      moneyCell(t.sPrem||0,    sBG),
+      moneyCell(t.sExit||0,    sBG),
+      pnlCell(t.sPnL||0,       sBG),
+      pnlCell(r2((t.sPnL||0)*100), sBG),
+      pctCell((t.sRet||0)/100, sBG),
+      winLossCell(t.sWin),
+      // STRANGLE CALL LEG
+      moneyCell(t.kCall||0,    gBG, true, 'CC99FF'),
+      moneyCell(t.gCallBuy||0, gBG),
+      moneyCell(t.gCallSell||0,gBG),
+      pnlCell(gcPnL,           gBG),
+      pctCell(gcRet/100,       gBG),
+      // STRANGLE PUT LEG
+      moneyCell(t.kPut||0,     gBG, true, 'BB88FF'),
+      moneyCell(t.gPutBuy||0,  gBG),
+      moneyCell(t.gPutSell||0, gBG),
+      pnlCell(gpPnL,           gBG),
+      pctCell(gpRet/100,       gBG),
+      // STRANGLE COMBINED
+      moneyCell(t.gPrem||0,    gBG),
+      moneyCell(t.gExit||0,    gBG),
+      pnlCell(t.gPnL||0,       gBG),
+      pnlCell(r2((t.gPnL||0)*100), gBG),
+      pctCell((t.gRet||0)/100, gBG),
+      winLossCell(t.gWin),
     ];
+    aoa.push(row);
   });
 
-  var sheetData = [hdr].concat(rows);
-  var ws = XLSX.utils.aoa_to_sheet(sheetData);
-  autoWidth(ws, sheetData);
-
-  var pctCols = ['G','H','I','J','K','L','M','N','Q','R','S','T'];
-  for (var ri = 1; ri < sheetData.length; ri++) {
-    pctCols.forEach(function(col) {
-      var ref = col + (ri+1);
-      if (ws[ref] && typeof ws[ref].v === 'number') {
-        ws[ref].s = { numFmt: '0.0%', alignment:{horizontal:'right'},
-          font:{color:{rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244'}} };
-      }
-    });
-    // price/dollar cols B,C
-    ['B','C'].forEach(function(col) {
-      var ref = col+(ri+1);
-      if (ws[ref]) ws[ref].s = { numFmt: '"$"#,##0.00', alignment:{horizontal:'right'} };
-    });
-    // PnL
-    ['O','P'].forEach(function(col) {
-      var ref = col+(ri+1);
-      if (ws[ref] && typeof ws[ref].v === 'number') {
-        ws[ref].s = { numFmt:'#,##0.00', alignment:{horizontal:'right'},
-          font:{color:{rgb: ws[ref].v >= 0 ? '00AA66' : 'CC2244'}} };
-      }
-    });
-  }
-
-  hdr.forEach(function(_, ci) {
-    var ref = XLSX.utils.encode_cell({r:0,c:ci});
-    if (ws[ref]) ws[ref].s = {font:{bold:true,color:{rgb:'FFFFFF'},sz:9},
-      fill:{fgColor:{rgb:'0E1D2C'}},alignment:{horizontal:'center',wrapText:true}};
-  });
-  ws['!freeze'] = {xSplit:0,ySplit:1};
-
-  XLSX.utils.book_append_sheet(wb, ws, 'Symbol Summary');
-}
-
-// =================================================================
-// SHEET 4: TRADE LOG 30MIN (line by line)
-// =================================================================
-function buildTradesSheet30(wb) {
-  buildTradesSheet(wb, '30m', 'Trades_30min');
-}
-function buildTradesSheet45(wb) {
-  buildTradesSheet(wb, '45m', 'Trades_45min');
-}
-
-function buildTradesSheet(wb, holdLabel, sheetName) {
-  var allTrades = holdLabel === '30m'
-    ? [].concat.apply([], ALL.map(function(r){return r.t30;}))
-    : [].concat.apply([], ALL.map(function(r){return r.t45;}));
-
-  allTrades.sort(function(a,b){ return a.entryDt - b.entryDt; });
-
-  if (!allTrades.length) {
-    var ws0 = XLSX.utils.aoa_to_sheet([['No trades for ' + holdLabel + ' hold']]);
-    XLSX.utils.book_append_sheet(wb, ws0, sheetName);
-    return;
-  }
-
-  /* ── HEADER: every execution detail ── */
-  var hdr = [
-    'No.',
-    'Symbol',
-    'Entry Date',
-    'Entry Time PST',
-    'Exit Time PST',
-    'Weekday',
-    'Hour (PST)',
-    'Time Slot',
-    'Hold (min)',
-    'Mins Left in Day',
-    // Underlying
-    'Entry Stock Price $',
-    'Exit Stock Price $',
-    'Underlying Change $',
-    'Underlying Change %',
-    'Spike Direction',
-    'Spike Magnitude %',
-    // Option parameters
-    'ATM Strike $',
-    'Strike Increment $',
-    'Straddle OTM Wing N',
-    'Strangle Call Strike $',
-    'Strangle Put Strike $',
-    'IV at Entry %',
-    'IV at Exit %',
-    'Time to Exp (days)',
-    // STRADDLE — individual legs
-    'STR CALL Buy $',
-    'STR PUT Buy $',
-    'STR Total Premium $',
-    'STR CALL Sell $',
-    'STR PUT Sell $',
-    'STR Total Collected $',
-    'STR PnL $ (x100 shares)',
-    'STR Return %',
-    'STR Break-Even Up $',
-    'STR Break-Even Down $',
-    'STR Result',
-    // STRANGLE — individual legs
-    'GLA CALL Buy $',
-    'GLA PUT Buy $',
-    'GLA Total Premium $',
-    'GLA CALL Sell $',
-    'GLA PUT Sell $',
-    'GLA Total Collected $',
-    'GLA PnL $ (x100 shares)',
-    'GLA Return %',
-    'GLA Break-Even Up $',
-    'GLA Break-Even Down $',
-    'GLA Result'
-  ];
-
-  var wings = parseInt(document.getElementById('wings').value) || 2;
-  var slip  = parseFloat(document.getElementById('slip').value) || 0.05;
-
-  var rows = allTrades.map(function(t, i) {
-    var dte = Math.round(t.T0 * 252 * 10) / 10;
-    return [
-      i + 1,
-      t.sym,
-      t.entryDate,
-      t.entryTime,
-      t.exitTime,
-      t.sp.day,
-      t.sp.h,
-      t.sp.h + ':' + (t.sp.m < 30 ? '00' : '30') + ' PST',
-      t.holdMins,
-      t.minsLeft,
-      // Underlying
-      t.S,
-      t.Sx,
-      Math.round((t.Sx - t.S) * 1000) / 1000,
-      (t.Sx - t.S) / t.S,
-      t.moveDir || (t.sp.dir === 'up' ? 'UP' : 'DOWN'),
-      t.sp.pct / 100,
-      // Option params
-      t.atm,
-      t.inc,
-      wings,
-      t.kCall,
-      t.kPut,
-      t.iv / 100,
-      (t.ivExit !== undefined ? t.ivExit : t.iv) / 100,
-      dte || 0,
-      // STRADDLE legs
-      t.sCallBuy  !== undefined ? t.sCallBuy  : Math.round(t.sPrem/2*1000)/1000,
-      t.sPutBuy   !== undefined ? t.sPutBuy   : Math.round(t.sPrem/2*1000)/1000,
-      t.sPrem,
-      t.sCallSell !== undefined ? t.sCallSell : Math.round(t.sExit/2*1000)/1000,
-      t.sPutSell  !== undefined ? t.sPutSell  : Math.round(t.sExit/2*1000)/1000,
-      t.sExit,
-      t.sPnL,
-      t.sRet / 100,
-      t.sBEup !== undefined ? t.sBEup : Math.round((t.atm + t.sPrem)*100)/100,
-      t.sBEdn !== undefined ? t.sBEdn : Math.round((t.atm - t.sPrem)*100)/100,
-      t.sWin ? 'WIN' : 'LOSS',
-      // STRANGLE legs
-      t.gCallBuy  !== undefined ? t.gCallBuy  : Math.round(t.gPrem/2*1000)/1000,
-      t.gPutBuy   !== undefined ? t.gPutBuy   : Math.round(t.gPrem/2*1000)/1000,
-      t.gPrem,
-      t.gCallSell !== undefined ? t.gCallSell : Math.round(t.gExit/2*1000)/1000,
-      t.gPutSell  !== undefined ? t.gPutSell  : Math.round(t.gExit/2*1000)/1000,
-      t.gExit,
-      t.gPnL,
-      t.gRet / 100,
-      t.gBEup !== undefined ? t.gBEup : Math.round((t.kCall + t.gPrem)*100)/100,
-      t.gBEdn !== undefined ? t.gBEdn : Math.round((t.kPut  - t.gPrem)*100)/100,
-      t.gWin ? 'WIN' : 'LOSS'
-    ];
-  });
-
-  /* ── TOTALS ROW ── */
+  // ── TOTALS ROW ──
   var n = allTrades.length;
-  var sWins = allTrades.filter(function(t){return t.sWin;}).length;
-  var gWins = allTrades.filter(function(t){return t.gWin;}).length;
-  var sPnLtot = allTrades.reduce(function(a,t){return a+t.sPnL;},0);
-  var gPnLtot = allTrades.reduce(function(a,t){return a+t.gPnL;},0);
-  var sRetAvg = allTrades.reduce(function(a,t){return a+t.sRet;},0)/n/100;
-  var gRetAvg = allTrades.reduce(function(a,t){return a+t.gRet;},0)/n/100;
-  var totRow = new Array(hdr.length).fill('');
-  totRow[0]  = 'TOTALS';
-  totRow[1]  = n + ' trades';
-  totRow[30] = Math.round(sPnLtot*100)/100;
-  totRow[31] = sRetAvg;
-  totRow[34] = sWins + '/' + n + ' = ' + Math.round(sWins/n*100) + '%';
-  totRow[38] = Math.round(gPnLtot*100)/100;
-  totRow[39] = gRetAvg;
-  totRow[42] = gWins + '/' + n + ' = ' + Math.round(gWins/n*100) + '%';
-  rows.push(totRow);
+  if (n > 0) {
+    var sW  = allTrades.filter(function(t){return t.sWin;}).length;
+    var gW  = allTrades.filter(function(t){return t.gWin;}).length;
+    var sPtot = r2(sum(allTrades.map(function(t){return t.sPnL||0;})));
+    var gPtot = r2(sum(allTrades.map(function(t){return t.gPnL||0;})));
+    var sRavg = avg(allTrades.map(function(t){return (t.sRet||0)/100;}));
+    var gRavg = avg(allTrades.map(function(t){return (t.gRet||0)/100;}));
+    var cPtot = r2(sum(allTrades.map(function(t){return r4((t.sCallSell||0)-(t.sCallBuy||0));})));
+    var pPtot = r2(sum(allTrades.map(function(t){return r4((t.sPutSell||0)-(t.sPutBuy||0));})));
+    var gcPtot= r2(sum(allTrades.map(function(t){return r4((t.gCallSell||0)-(t.gCallBuy||0));})));
+    var gpPtot= r2(sum(allTrades.map(function(t){return r4((t.gPutSell||0)-(t.gPutBuy||0));})));
 
-  var sheetData = [hdr].concat(rows);
-  var ws = XLSX.utils.aoa_to_sheet(sheetData);
-
-  /* ── COLUMN WIDTHS ── */
-  var colWidths = [
-    5,10,12,13,13,10,7,14,8,12,
-    15,15,16,16,12,14,
-    13,13,8,16,15,12,12,14,
-    14,14,15,14,14,16,16,12,16,16,10,
-    14,14,15,14,14,16,16,12,16,16,10
-  ];
-  ws['!cols'] = colWidths.map(function(w){return{wch:w};});
-  ws['!rows'] = [{hpt:32}];
-
-  /* ── COLUMN INDEX MAP ── */
-  // Build a map of column letter to column index for easy reference
-  var colMap = {};
-  hdr.forEach(function(_, ci) {
-    var letter = ci < 26 ? String.fromCharCode(65+ci) : 'A'+String.fromCharCode(65+ci-26);
-    colMap[ci] = letter;
-  });
-
-  /* ── HEADER STYLE ── */
-  var hdrGroups = [
-    {start:0, end:0,  color:'1C3A5A', label:'#'},
-    {start:1, end:8,  color:'0A2040', label:'Trade Info'},
-    {start:9, end:9,  color:'0A2040', label:''},
-    {start:10,end:15, color:'1A3550', label:'Underlying'},
-    {start:16,end:23, color:'152540', label:'Options Setup'},
-    {start:24,end:34, color:'001830', label:'STRADDLE'},
-    {start:35,end:42, color:'180030', label:'STRANGLE'},
-  ];
-  var stradColor = '003050';
-  var strangColor = '200040';
-
-  hdr.forEach(function(h, ci) {
-    var ref = XLSX.utils.encode_cell({r:0, c:ci});
-    var isStrad = ci >= 24 && ci <= 34;
-    var isStrang = ci >= 35 && ci <= 42;
-    var bg = isStrad ? stradColor : isStrang ? strangColor : '0A1A2A';
-    ws[ref] = {
-      v: h, t: 's',
-      s: {
-        font: { bold: true, color: { rgb: isStrad ? '80DDFF' : isStrang ? 'CCAAFF' : 'C0D8F0' }, sz: 9 },
-        fill: { fgColor: { rgb: bg } },
-        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
-        border: {
-          bottom: { style: 'medium', color: { rgb: isStrad ? '0088CC' : isStrang ? '8844CC' : '334466' } },
-          right:  { style: 'thin',   color: { rgb: '223344' } }
-        }
-      }
-    };
-  });
-
-  /* ── DATA ROW STYLES ── */
-  for (var ri = 0; ri < allTrades.length; ri++) {
-    var excelRow = ri + 2; // 1=header, 2=first data
-    var t = allTrades[ri];
-    var rowBg = ri % 2 === 0 ? 'F8FBFF' : 'FFFFFF';
-    var sWinColor = t.sWin ? '004422' : '330011';
-    var gWinColor = t.gWin ? '004422' : '330011';
-
-    hdr.forEach(function(_, ci) {
-      var ref = XLSX.utils.encode_cell({r: excelRow - 1, c: ci});
-      if (!ws[ref]) return;
-      var cell = ws[ref];
-      var isStrad = ci >= 24 && ci <= 34;
-      var isStrang = ci >= 35 && ci <= 42;
-      var bg = isStrad ? sWinColor : isStrang ? gWinColor : (ri % 2 === 0 ? '050F18' : '020A12');
-      var baseStyle = {
-        fill: { fgColor: { rgb: bg } },
-        alignment: { horizontal: 'right', vertical: 'center' },
-        border: { right: { style: 'thin', color: { rgb: '1A2A3A' } } }
-      };
-
-      // Column-specific formatting
-      if (ci === 0) { // Row number
-        cell.s = Object.assign({}, baseStyle, { alignment: { horizontal: 'center' }, font: { color: { rgb: '446688' }, sz: 9 } });
-      } else if (ci === 1) { // Symbol
-        cell.s = Object.assign({}, baseStyle, { font: { bold: true, color: { rgb: 'FFCC00' }, sz: 11 }, alignment: { horizontal: 'center' } });
-      } else if (ci === 2 || ci === 3 || ci === 4) { // Date, times
-        cell.s = Object.assign({}, baseStyle, { alignment: { horizontal: 'center' }, font: { color: { rgb: '88BBDD' } } });
-      } else if (ci === 5) { // Weekday
-        cell.s = Object.assign({}, baseStyle, { alignment: { horizontal: 'center' }, font: { color: { rgb: 'AACCEE' } } });
-      } else if (ci === 7) { // Time slot
-        cell.s = Object.assign({}, baseStyle, { alignment: { horizontal: 'center' }, font: { bold: true, color: { rgb: '00CCFF' } } });
-      } else if (ci === 10 || ci === 11) { // Stock prices
-        cell.s = Object.assign({}, baseStyle, { numFmt: '"$"#,##0.00', font: { color: { rgb: 'DDEEFF' } } });
-        cell.t = 'n';
-      } else if (ci === 12) { // $ change
-        var chgColor = typeof cell.v === 'number' && cell.v >= 0 ? '00CC88' : 'FF4466';
-        cell.s = Object.assign({}, baseStyle, { numFmt: '"$"#,##0.000;("-$"#,##0.000)', font: { bold: true, color: { rgb: chgColor } } });
-        cell.t = 'n';
-      } else if (ci === 13) { // % change
-        var pchgColor = typeof cell.v === 'number' && cell.v >= 0 ? '00CC88' : 'FF4466';
-        cell.s = Object.assign({}, baseStyle, { numFmt: '+0.00%;-0.00%', font: { bold: true, color: { rgb: pchgColor } } });
-        cell.t = 'n';
-      } else if (ci === 14) { // Direction
-        var dirColor = cell.v === 'UP' ? '00EEA0' : 'FF3355';
-        cell.s = Object.assign({}, baseStyle, { alignment: { horizontal: 'center' }, font: { bold: true, color: { rgb: dirColor } } });
-      } else if (ci === 15) { // Spike %
-        var spkColor = typeof cell.v === 'number' && cell.v >= 0 ? '00EEA0' : 'FF3355';
-        cell.s = Object.assign({}, baseStyle, { numFmt: '+0.000%;-0.000%', font: { bold: true, color: { rgb: spkColor } } });
-        cell.t = 'n';
-      } else if (ci === 16 || ci === 19 || ci === 20) { // Strike prices
-        cell.s = Object.assign({}, baseStyle, { numFmt: '"$"#,##0.00', font: { bold: true, color: { rgb: 'FFCC44' } } });
-        cell.t = 'n';
-      } else if (ci === 21 || ci === 22) { // IV %
-        cell.s = Object.assign({}, baseStyle, { numFmt: '0.0%', font: { color: { rgb: 'AAAADD' } } });
-        cell.t = 'n';
-      } else if (ci >= 24 && ci <= 33) { // Straddle prices + pnl + return
-        var isDollar = [24,25,26,27,28,29,30,32,33].indexOf(ci) >= 0;
-        var isRet = ci === 31;
-        var isPnL = ci === 30;
-        var fmt = isDollar ? '"$"#,##0.000' : isRet ? '+0.00%;-0.00%' : '"$"#,##0.000';
-        var fcolor = (isPnL || isRet) ? (typeof cell.v === 'number' && cell.v >= 0 ? '00EEA0' : 'FF4466') : '88DDFF';
-        cell.s = Object.assign({}, baseStyle, {
-          numFmt: fmt, fill: { fgColor: { rgb: sWinColor } },
-          font: { bold: isPnL || isRet, color: { rgb: fcolor } }
-        });
-        if (typeof cell.v === 'number') cell.t = 'n';
-      } else if (ci === 34) { // STR WIN/LOSS
-        var wlColor = cell.v === 'WIN' ? '00EEA0' : 'FF3355';
-        cell.s = Object.assign({}, baseStyle, {
-          fill: { fgColor: { rgb: cell.v === 'WIN' ? '003322' : '220011' } },
-          font: { bold: true, color: { rgb: wlColor }, sz: 10 },
-          alignment: { horizontal: 'center' }
-        });
-      } else if (ci >= 35 && ci <= 41) { // Strangle prices + pnl + return
-        var isDollarG = [35,36,37,38,39,40,41,43,44].indexOf(ci) >= 0;
-        var isRetG = ci === 39;
-        var isPnLG = ci === 38;
-        var fmtG = '"$"#,##0.000';
-        if (isRetG) fmtG = '+0.00%;-0.00%';
-        var fcolorG = (isPnLG || isRetG) ? (typeof cell.v === 'number' && cell.v >= 0 ? '00EEA0' : 'FF4466') : 'CCAAFF';
-        cell.s = Object.assign({}, baseStyle, {
-          numFmt: fmtG, fill: { fgColor: { rgb: gWinColor } },
-          font: { bold: isPnLG || isRetG, color: { rgb: fcolorG } }
-        });
-        if (typeof cell.v === 'number') cell.t = 'n';
-      } else if (ci === 42) { // GLA WIN/LOSS
-        var gwlColor = cell.v === 'WIN' ? '00EEA0' : 'FF3355';
-        cell.s = Object.assign({}, baseStyle, {
-          fill: { fgColor: { rgb: cell.v === 'WIN' ? '1A003A' : '220011' } },
-          font: { bold: true, color: { rgb: gwlColor }, sz: 10 },
-          alignment: { horizontal: 'center' }
-        });
-      } else {
-        cell.s = Object.assign({}, baseStyle, { font: { color: { rgb: 'AACCEE' } } });
-        if (typeof cell.v === 'number') cell.t = 'n';
-      }
-    });
+    var blank = function() { return totCell('', null, C.YELLOW); };
+    var totRow = [];
+    for(var ci=0; ci<56; ci++) totRow.push(blank());
+    totRow[0]  = totCell('TOTALS', null, C.YELLOW);
+    totRow[1]  = totCell(n + ' trades', null, C.YELLOW);
+    totRow[27] = totCell(cPtot, '"$"#,##0.0000');   // S.CALL PnL
+    totRow[32] = totCell(pPtot, '"$"#,##0.0000');   // S.PUT PnL
+    totRow[36] = totCell(sPtot, '"$"#,##0.0000');   // STR PnL
+    totRow[37] = totCell(r2(sPtot*100), '"$"#,##0.00'); // x100
+    totRow[38] = totCell(sRavg, '+0.00%;-0.00%');
+    totRow[39] = totCell(sW+'/'+n+'='+Math.round(sW/n*100)+'%', null, sW/n>=0.5?C.GREEN:C.RED);
+    totRow[43] = totCell(gcPtot,'"$"#,##0.0000');   // G.CALL PnL
+    totRow[48] = totCell(gpPtot,'"$"#,##0.0000');   // G.PUT PnL
+    totRow[52] = totCell(gPtot, '"$"#,##0.0000');   // GLA PnL
+    totRow[53] = totCell(r2(gPtot*100),'"$"#,##0.00');
+    totRow[54] = totCell(gRavg, '+0.00%;-0.00%');
+    totRow[55] = totCell(gW+'/'+n+'='+Math.round(gW/n*100)+'%', null, gW/n>=0.5?C.GREEN:C.RED);
+    aoa.push(totRow);
   }
 
-  /* ── TOTALS ROW STYLE ── */
-  var totIdx = allTrades.length + 1; // 0-indexed row
-  hdr.forEach(function(_, ci) {
-    var ref = XLSX.utils.encode_cell({r: totIdx, c: ci});
-    if (!ws[ref]) return;
-    ws[ref].s = {
-      font: { bold: true, color: { rgb: 'FFCC00' }, sz: 10 },
-      fill: { fgColor: { rgb: '0A1A28' } },
-      alignment: { horizontal: ci === 0 || ci === 1 ? 'left' : 'right', vertical: 'center' },
-      border: { top: { style: 'medium', color: { rgb: 'FFCC00' } }, bottom: { style: 'medium', color: { rgb: 'FFCC00' } } }
-    };
-    if (ci === 30 || ci === 38) { // PnL totals
-      ws[ref].s.numFmt = '#,##0.00';
-      ws[ref].s.font.color = { rgb: ws[ref].v >= 0 ? '00EEA0' : 'FF3355' };
-      ws[ref].t = 'n';
-    }
-    if (ci === 31 || ci === 39) { // Return avg totals
-      ws[ref].s.numFmt = '+0.00%;-0.00%';
-      ws[ref].s.font.color = { rgb: ws[ref].v >= 0 ? '00EEA0' : 'FF3355' };
-      ws[ref].t = 'n';
-    }
-  });
+  setSheet(ws, aoa);
+  ws['!merges'] = merges;
+  ws['!cols']   = colDefs.map(function(d){return{wch:d.w};});
+  ws['!rows']   = [{hpt:20},{hpt:32}];
+  ws['!freeze'] = {xSplit:2, ySplit:2};
 
-  ws['!freeze'] = { xSplit: 2, ySplit: 1 };
-  ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({r:0, c:hdr.length-1}) };
-
+  // Autofilter on header row (row index 1)
+  ws['!autofilter'] = {ref: 'A2:' + XLSX.utils.encode_cell({r:1, c:55})};
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
 }
 
 // =================================================================
-// SHEET 5: RAW SPIKES LOG
+// SHEET 4: TIME SLOT SUMMARY
 // =================================================================
-function buildRawSpikesSheet(wb) {
-  var hdr = [
-    'Symbol', 'Date', 'Time (PST)', 'Weekday',
-    'Hour (PST)', 'Minute', 'Time Slot',
-    'Price at Spike $', 'Spike % Move', 'Direction',
-    'ATM Strike $', 'IV Estimate %'
+function buildTimeSlotSheet(wb) {
+  var ws = {};
+  var all30 = [].concat.apply([], ALL.map(function(r){return r.t30;}));
+
+  // Bucket by 30-min PST slot
+  var slotMap = {};
+  all30.forEach(function(t) {
+    var h = t.sp ? t.sp.h : (t.entry_h||0);
+    var m = t.sp ? t.sp.m : (t.entry_m||0);
+    var key = h+':'+(m<30?'00':'30')+' PST';
+    if (!slotMap[key]) slotMap[key] = {key:key, h:h, trades:[]};
+    slotMap[key].trades.push(t);
+  });
+  var slots = Object.values(slotMap).sort(function(a,b){return a.h-b.h;});
+
+  var titleRow = [{ v:'0DTE STRADDLE \u2014 TIME SLOT OCCURRENCE & WIN RATE SUMMARY', t:'s', s:{
+    font:{bold:true,color:{rgb:C.YELLOW},sz:13},
+    fill:{fgColor:{rgb:'0A1520'}},
+    alignment:{horizontal:'center',vertical:'center'}
+  }}];
+  for(var i=1;i<16;i++) titleRow.push(null);
+
+  var hdrs = [
+    {h:'Time Slot (PST)',   bg:'0A1828',fc:C.CYAN,   w:15},
+    {h:'Count',            bg:'0A1828',fc:C.YELLOW,  w:8 },
+    {h:'Occurrence %',     bg:'0A1828',fc:C.YELLOW,  w:13},
+    {h:'Up Spikes',        bg:'0A1828',fc:'AADDCC',  w:9 },
+    {h:'Down Spikes',      bg:'0A1828',fc:'FFAACC',  w:10},
+    {h:'STR Wins',         bg:'001830',fc:'66DDFF',  w:9 },
+    {h:'STR Losses',       bg:'001830',fc:'FF8899',  w:9 },
+    {h:'STR Win Rate',     bg:'001830',fc:C.CYAN,    w:12},
+    {h:'STR Avg Return',   bg:'001830',fc:C.CYAN,    w:13},
+    {h:'STR Total PnL',    bg:'001830',fc:C.CYAN,    w:13},
+    {h:'CALL Avg Buy $',   bg:'001520',fc:'66DDFF',  w:13},
+    {h:'CALL Avg Sell $',  bg:'001520',fc:'66DDFF',  w:13},
+    {h:'CALL Avg PnL $',   bg:'001520',fc:'66DDFF',  w:13},
+    {h:'PUT Avg Buy $',    bg:'001228',fc:'44CCFF',  w:13},
+    {h:'PUT Avg Sell $',   bg:'001228',fc:'44CCFF',  w:13},
+    {h:'PUT Avg PnL $',    bg:'001228',fc:'44CCFF',  w:13},
   ];
+  var hdrRow = hdrs.map(function(d){return hdrCell(d.h,d.bg,d.fc,true);});
 
-  var rows = [];
-  ALL.forEach(function(r) {
-    r.spikes.forEach(function(sp) {
-      var inc = strikeInc(r.bars[sp.idx].close);
-      var atm = Math.round(r.bars[sp.idx].close / inc) * inc;
-      var iv = estimateIV(r.bars.slice(0, sp.idx+1), 20);
-      rows.push([
-        r.sym,
-        fmtDate(sp.dt),
-        fmtT(sp.dt),
-        sp.day,
-        sp.h,
-        sp.m,
-        sp.h + ':' + (sp.m < 30 ? '00' : '30') + ' PST',
-        r.bars[sp.idx].close,
-        sp.pct/100,
-        sp.dir === 'up' ? 'UP' : 'DOWN',
-        atm,
-        iv
-      ]);
-    });
+  var total = all30.length || 1;
+  var dataRows = slots.map(function(sl, ri) {
+    var tr = sl.trades;
+    var n  = tr.length;
+    if (!n) return null;
+    var sW = tr.filter(function(t){return t.sWin;}).length;
+    var sWR = sW/n;
+    var sRet = avg(tr.map(function(t){return t.sRet||0;}))/100;
+    var sPnLtot = r2(sum(tr.map(function(t){return t.sPnL||0;})));
+    var upCt = tr.filter(function(t){return (t.moveDir||'UP')==='UP';}).length;
+    var cBuy  = r4(avg(tr.map(function(t){return t.sCallBuy||0;})));
+    var cSell = r4(avg(tr.map(function(t){return t.sCallSell||0;})));
+    var cPnL  = r4(avg(tr.map(function(t){return (t.sCallSell||0)-(t.sCallBuy||0);})));
+    var pBuy  = r4(avg(tr.map(function(t){return t.sPutBuy||0;})));
+    var pSell = r4(avg(tr.map(function(t){return t.sPutSell||0;})));
+    var pPnL  = r4(avg(tr.map(function(t){return (t.sPutSell||0)-(t.sPutBuy||0);})));
+    var rBG   = ri%2===0 ? C.BG1 : C.BG2;
+    var wrClr = sWR>=0.55 ? C.GREEN : (sWR>=0.45 ? C.YELLOW : C.RED);
+
+    return [
+      {v:sl.key,t:'s',s:{font:{bold:true,color:{rgb:C.CYAN},sz:10},fill:{fgColor:{rgb:rBG}},alignment:{horizontal:'center',vertical:'center'},border:{right:{style:'thin',color:{rgb:'1A2A3A'}},bottom:{style:'thin',color:{rgb:'0D1A25'}}}}},
+      dataCell(n,           rBG, C.YELLOW,'#,##0'),
+      pctCell(n/total,      rBG, '0.0%'),
+      dataCell(upCt,        rBG,'AADDCC','#,##0'),
+      dataCell(n-upCt,      rBG,'FFAACC','#,##0'),
+      dataCell(sW,          rBG, C.GREEN,'#,##0'),
+      dataCell(n-sW,        rBG, C.RED,  '#,##0'),
+      {v:sWR,t:'n',s:{font:{bold:true,color:{rgb:wrClr},sz:11},fill:{fgColor:{rgb:rBG}},alignment:{horizontal:'right',vertical:'center'},numFmt:'0.0%',border:{right:{style:'thin',color:{rgb:'1A2A3A'}},bottom:{style:'thin',color:{rgb:'0D1A25'}}}}},
+      pctCell(sRet,         rBG),
+      pnlCell(sPnLtot,      rBG),
+      moneyCell(cBuy,       rBG),
+      moneyCell(cSell,      rBG),
+      pnlCell(cPnL,         rBG),
+      moneyCell(pBuy,       rBG),
+      moneyCell(pSell,      rBG),
+      pnlCell(pPnL,         rBG),
+    ];
+  }).filter(Boolean);
+
+  var aoa2 = [titleRow, hdrRow].concat(dataRows);
+  setSheet(ws, aoa2);
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:15}}];
+  ws['!cols'] = hdrs.map(function(d){return{wch:d.w};});
+  ws['!rows'] = [{hpt:26},{hpt:30}];
+  ws['!freeze'] = {xSplit:1, ySplit:2};
+  XLSX.utils.book_append_sheet(wb, ws, 'Time_Slot_Summary');
+}
+
+// =================================================================
+// SHEET 5: SYMBOL SUMMARY
+// =================================================================
+function buildSymbolSummary(wb) {
+  var ws = {};
+
+  var titleRow = [{v:'0DTE BACKTEST \u2014 SYMBOL PERFORMANCE SUMMARY',t:'s',s:{
+    font:{bold:true,color:{rgb:C.YELLOW},sz:13},
+    fill:{fgColor:{rgb:'0A1520'}},
+    alignment:{horizontal:'center',vertical:'center'}
+  }}];
+  for(var i=1;i<18;i++) titleRow.push(null);
+
+  var hdrs2 = [
+    {h:'Symbol',          bg:'0A1520',fc:C.YELLOW, w:11},
+    {h:'Last Price $',    bg:'0A1520',fc:'AACCEE', w:11},
+    {h:'ATM Strike $',    bg:'0A1520',fc:C.YELLOW, w:11},
+    {h:'Strike Inc $',    bg:'0A1520',fc:'AACCEE', w:9 },
+    {h:'Spikes',          bg:'0A1520',fc:'AACCEE', w:8 },
+    {h:'Trades',          bg:'0A1520',fc:'AACCEE', w:8 },
+    {h:'STR WR 30m',      bg:'001830',fc:C.CYAN,   w:12},
+    {h:'STR Avg Ret 30m', bg:'001830',fc:C.CYAN,   w:14},
+    {h:'STR Total PnL',   bg:'001830',fc:C.CYAN,   w:13},
+    {h:'STR WR 45m',      bg:'001428',fc:'88CCEE', w:11},
+    {h:'STR Ret 45m',     bg:'001428',fc:'88CCEE', w:12},
+    {h:'GLA WR 30m',      bg:'160020',fc:C.VIOLET, w:12},
+    {h:'GLA Avg Ret 30m', bg:'160020',fc:C.VIOLET, w:14},
+    {h:'GLA Total PnL',   bg:'160020',fc:C.VIOLET, w:13},
+    {h:'Avg Move %',      bg:'0A1520',fc:'AACCEE', w:11},
+    {h:'Best Ret %',      bg:'0A1520',fc:C.GREEN,  w:11},
+    {h:'Worst Ret %',     bg:'0A1520',fc:C.RED,    w:11},
+    {h:'Sharpe',          bg:'0A1520',fc:'AACCEE', w:8 },
+  ];
+  var hdrRow2 = hdrs2.map(function(d){return hdrCell(d.h,d.bg,d.fc,true);});
+
+  var symRows = ALL.slice().sort(function(a,b){
+    var sa = a.t30.filter(function(t){return t.sWin;}).length/(a.t30.length||1);
+    var sb = b.t30.filter(function(t){return t.sWin;}).length/(b.t30.length||1);
+    return sb-sa;
+  }).map(function(r, ri) {
+    var t30=r.t30, t45=r.t45;
+    var n30=t30.length||1, n45=t45.length||1;
+    var sW30=t30.filter(function(t){return t.sWin;}).length;
+    var sW45=t45.filter(function(t){return t.sWin;}).length;
+    var gW30=t30.filter(function(t){return t.gWin;}).length;
+    var sWR30=sW30/n30, sWR45=sW45/n45, gWR30=gW30/n30;
+    var sRet30=avg(t30.map(function(t){return t.sRet/100;}));
+    var sRet45=avg(t45.map(function(t){return t.sRet/100;}));
+    var gRet30=avg(t30.map(function(t){return t.gRet/100;}));
+    var sPnL=r2(sum(t30.map(function(t){return t.sPnL;})));
+    var gPnL=r2(sum(t30.map(function(t){return t.gPnL;})));
+    var avgMv=avg(t30.map(function(t){return t.move/100;}));
+    var sRets=t30.map(function(t){return t.sRet;});
+    var best=sRets.length?Math.max.apply(null,sRets)/100:0;
+    var worst=sRets.length?Math.min.apply(null,sRets)/100:0;
+    var std2=sRets.length?Math.sqrt(avg(sRets.map(function(v){var a2=avg(sRets);return (v-a2)*(v-a2);})))||1:1;
+    var sharpe=r2(avg(sRets)/std2);
+    var inc=r.price<100?5:(r.price<200?10:25);
+    var atm=Math.round(r.price/inc)*inc;
+    var rBG=ri%2===0?C.BG1:C.BG2;
+    var wrClr=sWR30>=0.55?C.GREEN:(sWR30>=0.45?C.YELLOW:C.RED);
+
+    return [
+      {v:r.sym,t:'s',s:{font:{bold:true,color:{rgb:wrClr},sz:11},fill:{fgColor:{rgb:rBG}},alignment:{horizontal:'center',vertical:'center'},border:{right:{style:'thin',color:{rgb:'1A2A3A'}},bottom:{style:'thin',color:{rgb:'0D1A25'}}}}},
+      moneyCell(r2(r.price), rBG),
+      moneyCell(atm, rBG, true, C.YELLOW),
+      dataCell(inc, rBG, C.GRAY, '#,##0'),
+      dataCell(r.spikes.length, rBG, C.GRAY, '#,##0'),
+      dataCell(n30-1, rBG, C.GRAY, '#,##0'),
+      {v:sWR30,t:'n',s:{font:{bold:true,color:{rgb:wrClr},sz:11},fill:{fgColor:{rgb:rBG}},alignment:{horizontal:'right',vertical:'center'},numFmt:'0.0%',border:{right:{style:'thin',color:{rgb:'1A2A3A'}},bottom:{style:'thin',color:{rgb:'0D1A25'}}}}},
+      pctCell(sRet30, rBG),
+      pnlCell(sPnL, rBG),
+      pctCell(sWR45, rBG, '0.0%'),
+      pctCell(sRet45, rBG),
+      pctCell(gWR30, rBG, '0.0%'),
+      pctCell(gRet30, rBG),
+      pnlCell(gPnL, rBG),
+      pctCell(avgMv, rBG, '0.00%'),
+      pctCell(best, rBG),
+      pctCell(worst, rBG),
+      dataCell(sharpe, rBG, sharpe>0.3?C.GREEN:(sharpe>0?C.YELLOW:C.RED), '0.00'),
+    ];
   });
 
-  // Sort by date/time
-  rows.sort(function(a,b) { return a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0; });
-
-  var sheetData = [hdr].concat(rows);
-  var ws = XLSX.utils.aoa_to_sheet(sheetData);
-  autoWidth(ws, sheetData);
-
-  for (var ri = 1; ri < sheetData.length; ri++) {
-    var r2 = ri + 1;
-    var pctRef = 'I'+r2;
-    if (ws[pctRef]) ws[pctRef].s = { numFmt:'+0.000%;-0.000%',
-      font:{color:{rgb: ws[pctRef].v >= 0 ? '00AA66' : 'CC2244'}},
-      alignment:{horizontal:'right'} };
-    var priceRef = 'H'+r2;
-    if (ws[priceRef]) ws[priceRef].s = {numFmt:'"$"#,##0.00',alignment:{horizontal:'right'}};
-    var atmRef = 'K'+r2;
-    if (ws[atmRef]) ws[atmRef].s = {numFmt:'"$"#,##0.00',alignment:{horizontal:'right'}};
-    var ivRef = 'L'+r2;
-    if (ws[ivRef]) ws[ivRef].s = {numFmt:'0.0%',alignment:{horizontal:'right'}};
-  }
-
-  hdr.forEach(function(_, ci) {
-    var ref = XLSX.utils.encode_cell({r:0,c:ci});
-    if (ws[ref]) ws[ref].s = {font:{bold:true,color:{rgb:'FFFFFF'},sz:9},
-      fill:{fgColor:{rgb:'0A1520'}},alignment:{horizontal:'center',wrapText:true}};
-  });
-
-  ws['!freeze'] = { xSplit: 1, ySplit: 1 };
-  ws['!autofilter'] = { ref: 'A1:' + XLSX.utils.encode_cell({r:0,c:hdr.length-1}) };
-
-  XLSX.utils.book_append_sheet(wb, ws, 'All Spikes');
+  var aoa3 = [titleRow, hdrRow2].concat(symRows);
+  setSheet(ws, aoa3);
+  ws['!merges'] = [{s:{r:0,c:0},e:{r:0,c:17}}];
+  ws['!cols'] = hdrs2.map(function(d){return{wch:d.w};});
+  ws['!rows'] = [{hpt:26},{hpt:30}];
+  ws['!freeze'] = {xSplit:1, ySplit:2};
+  XLSX.utils.book_append_sheet(wb, ws, 'Symbol_Summary');
 }
 
 
