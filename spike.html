@@ -685,11 +685,27 @@ function calcTA(bars) {
   if (willR < -80) cs += 1; else if (willR > -20) cs -= 1;
   if (C[n-1] > e20) cs += 0.5; else cs -= 0.5;
 
+  // ── Realized Volatility (annualized) from log returns ──
+  // sigma_daily = std(ln(C[i]/C[i-1])) over last 20 bars
+  const logRets = [];
+  for (let i = Math.max(1, n-20); i < n; i++) {
+    if (C[i-1] > 0 && C[i] > 0) logRets.push(Math.log(C[i]/C[i-1]));
+  }
+  let realizedVol = 0.20; // fallback 20% if not enough data
+  if (logRets.length >= 5) {
+    const lrMean = logRets.reduce((a,b)=>a+b,0)/logRets.length;
+    const lrVar  = logRets.reduce((a,b)=>a+(b-lrMean)**2,0)/logRets.length;
+    realizedVol  = Math.sqrt(lrVar * 252); // annualized
+  }
+  // Clamp to realistic IV range: 8% (low-vol ETF) to 300% (meme stock)
+  realizedVol = Math.max(0.08, Math.min(3.0, realizedVol));
+
   return { rsi, macdHist, macdBull, bbPct, bbW, atrPct, atr,
     trendUp, trendDn, stK, mfi, willR, zScore, volRatio,
     srZone, confluenceScore: +cs.toFixed(2),
     s1: +s1.toFixed(2), r1: +r1.toFixed(2),
-    price: C[n-1], e20, e50 };
+    price: C[n-1], e20, e50,
+    realizedVol: +realizedVol.toFixed(4) };
 }
 
 function defTA() {
@@ -732,23 +748,96 @@ function analyzePatterns(sp) {
 // ─────────────────────────────────────────────────────────────────
 function calcATM(price, ta) {
   if (!price || price <= 0) return null;
-  const inc = price<5?.5:price<20?1:price<50?2.5:price<100?5:price<200?10:price<500?25:50;
-  const atm = Math.round(price/inc)*inc;
-  // Next Friday
+
+  // ── Strike rounding to standard option increments ──
+  const inc = price < 5   ? 0.5
+            : price < 20  ? 1
+            : price < 50  ? 2.5
+            : price < 100 ? 5
+            : price < 200 ? 10
+            : price < 500 ? 25
+            : 50;
+  const atm = Math.round(price / inc) * inc;
+
+  // ── Expiry: next Friday (weekly options) ──
   const now = new Date();
-  const p = getPST(now);
-  const daysToFri = ((5 - p.dow) + 7) % 7 || 7;
-  const expTs = now.getTime() + daysToFri * 86400000;
+  const nowP = getPST(now);
+  const daysToFri = ((5 - nowP.dow) + 7) % 7 || 7;
+  const expTs  = now.getTime() + daysToFri * 86400000;
   const expStr = new Date(expTs).toLocaleDateString('en-US', { timeZone: TZ, month:'short', day:'numeric' });
-  const dte = Math.max(1, daysToFri);
-  const sigma = Math.max(0.05, (ta.atrPct/100) * Math.sqrt(252));
-  const sqrtT = Math.sqrt(dte/365);
-  const callEst = +(price * sigma * sqrtT * 0.3989).toFixed(2);
-  const putEst  = +(callEst * 1.02).toFixed(2);
-  const iv = +(sigma*100).toFixed(1);
-  return { atm, inc, expStr, dte, callEst, putEst, iv,
-    otm1: atm+inc, itm1: atm-inc,
-    brkUp: +(atm+callEst).toFixed(2), brkDn: +(atm-putEst).toFixed(2) };
+  const dte    = Math.max(1, daysToFri);   // calendar days to expiry
+  // Trading days to expiry (roughly 0.71 * calendar days for weekly)
+  const tde    = Math.max(0.5, dte * 5/7);
+
+  // ── Implied Volatility estimate ──
+  // Use realized vol from calcTA (computed from log returns of actual bar data)
+  // This is the most accurate estimate available without live options data
+  const iv = ta.realizedVol || 0.20;  // annualized, e.g. 0.25 = 25%
+
+  // ── Black-Scholes ATM formula ──
+  // For ATM options (S ≈ K): C ≈ S × N'(0) × σ × √T
+  // where N'(0) = 1/√(2π) ≈ 0.3989422
+  // T = trading days / 252
+  const T      = tde / 252;
+  const sqrtT  = Math.sqrt(T);
+  const ND0    = 0.3989422;   // N'(0), standard normal PDF at 0
+
+  const callMid = price * ND0 * iv * sqrtT;
+
+  // ── Put-Call Parity + Skew ──
+  // At ATM: Put ≈ Call (put-call parity)
+  // Equity put skew: puts trade slightly richer due to demand (fear premium)
+  // Skew premium ≈ 3% + IV × 4% (higher for high-vol names like TSLA/GME)
+  const skew   = 0.03 + iv * 0.04;
+  const putMid = callMid * (1 + skew);
+
+  // Round to realistic option tick sizes
+  const tick = callMid < 3 ? 0.05 : 0.10;
+  const callEst = +(Math.round(callMid / tick) * tick).toFixed(2);
+  const putEst  = +(Math.round(putMid  / tick) * tick).toFixed(2);
+
+  // ── Greeks (ATM approximations) ──
+  const delta_call =  0.50;
+  const delta_put  = -0.50;
+  // Gamma: N'(0) / (S × σ × √T)
+  const gamma = +(ND0 / (price * iv * sqrtT)).toFixed(5);
+  // Theta per calendar day: -(S × σ × N'(0)) / (2 × √(T×252))
+  const theta = +(-(price * iv * ND0) / (2 * Math.sqrt(T * 252))).toFixed(3);
+  // Vega per 1% move in IV: S × √T × N'(0) / 100
+  const vega  = +(price * sqrtT * ND0 / 100).toFixed(3);
+  // Rho (approximate, less important for short-dated): negligible for weeklies
+
+  // ── Break-even prices ──
+  const brkCallUp = +(atm + callEst).toFixed(2);
+  const brkPutDn  = +(atm - putEst).toFixed(2);
+
+  // ── OTM strikes ──
+  const otm1Call = atm + inc;   // 1 strike OTM call
+  const otm1Put  = atm - inc;   // 1 strike OTM put
+  // Estimate OTM premiums using Black-Scholes approximation
+  // For 1-strike OTM: premium ≈ ATM × exp(-0.5 × (inc/price / (iv*sqrtT))²)
+  const d_otm = (inc / price) / (iv * sqrtT);
+  const otmMult = Math.exp(-0.5 * d_otm * d_otm);
+  const otm1CallEst = +(callMid * otmMult * 0.95).toFixed(2);
+  const otm1PutEst  = +(putMid  * otmMult * 0.95).toFixed(2);
+
+  return {
+    // Strikes
+    atm, inc, otm1Call, otm1Put, otm1CallEst, otm1PutEst,
+    // Expiry
+    expStr, dte, tde,
+    // Pricing
+    callEst, putEst,
+    // Vol
+    iv: +(iv * 100).toFixed(1),
+    ivDecimal: iv,
+    // Greeks
+    delta_call, delta_put, gamma, theta, vega,
+    // Break-evens
+    brkCallUp, brkPutDn,
+    // For display
+    price: +price.toFixed(2)
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -1067,14 +1156,14 @@ function renderTable(sort) {
     const atmCell = atm
       ? `<div style="display:flex;flex-direction:column;gap:2px;padding:5px 9px">
            <div style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--warn)">$${atm.atm}</div>
-           <div style="font-size:8px;color:var(--muted)">${atm.expStr} (${atm.dte}d)</div>
+           <div style="font-size:8px;color:var(--muted)">${atm.expStr} · IV ${atm.iv}%</div>
          </div>`
       : '<div class="tc dim">—</div>';
 
     const cpCell = atm
       ? `<div style="display:flex;flex-direction:column;gap:2px;padding:5px 9px">
-           <div style="font-size:9px;color:var(--up)">C $${atm.callEst}</div>
-           <div style="font-size:9px;color:var(--dn)">P $${atm.putEst}</div>
+           <div style="font-size:9px;color:var(--up)">C <strong>$${atm.callEst}</strong> Δ.50</div>
+           <div style="font-size:9px;color:var(--dn)">P <strong>$${atm.putEst}</strong> Δ-.50</div>
          </div>`
       : '<div class="tc dim">—</div>';
 
@@ -1157,22 +1246,28 @@ function buildDet(r) {
 
   // ATM detail
   const atmH = atm ? `<div class="atm-box">
-    <h6>ATM Weekly Options — Exp ${atm.expStr} (${atm.dte}d)</h6>
+    <h6>ATM Weekly Options — Exp ${atm.expStr} (${atm.dte}d / ~${atm.tde.toFixed(1)} trading days)</h6>
     <div class="atm-row">
       <div class="atm-side c">
-        <div class="atm-lbl">CALL</div>
-        <div class="atm-strike">$${atm.atm}</div>
-        <div class="atm-meta">Est ~$${atm.callEst} | Δ0.50</div>
-        <div class="atm-est">B/E: $${atm.brkUp}</div>
+        <div class="atm-lbl">CALL  $${atm.atm}</div>
+        <div class="atm-strike">$${atm.callEst}</div>
+        <div class="atm-meta">Δ ${atm.delta_call.toFixed(2)} | Γ ${atm.gamma} | Break-even $${atm.brkCallUp}</div>
+        <div class="atm-est">OTM $${atm.otm1Call}: ~$${atm.otm1CallEst}</div>
       </div>
       <div class="atm-side p">
-        <div class="atm-lbl">PUT</div>
-        <div class="atm-strike">$${atm.atm}</div>
-        <div class="atm-meta">Est ~$${atm.putEst} | Δ-0.50</div>
-        <div class="atm-est">B/E: $${atm.brkDn}</div>
+        <div class="atm-lbl">PUT  $${atm.atm}</div>
+        <div class="atm-strike">$${atm.putEst}</div>
+        <div class="atm-meta">Δ ${atm.delta_put.toFixed(2)} | Γ ${atm.gamma} | Break-even $${atm.brkPutDn}</div>
+        <div class="atm-est">OTM $${atm.otm1Put}: ~$${atm.otm1PutEst}</div>
       </div>
     </div>
-    <div style="margin-top:6px;font-size:8px;color:var(--muted)">IV ~${atm.iv}% | Strike inc $${atm.inc} | OTM: $${atm.otm1} / $${atm.itm1}</div>
+    <div style="margin-top:6px;font-size:8px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">
+      <span>IV: <strong style="color:var(--warn)">${atm.iv}%</strong></span>
+      <span>θ: <strong style="color:var(--dn)">${atm.theta}/day</strong></span>
+      <span>Vega: <strong style="color:var(--info)">$${atm.vega}/1%IV</strong></span>
+      <span>Inc: $${atm.inc}</span>
+      <span>Underlying: $${atm.price}</span>
+    </div>
   </div>` : '';
 
   // History
@@ -1332,11 +1427,19 @@ function renderForecast() {
         ${p.isNow?'<span class="bdg bdg-now" style="font-size:6px">NOW</span>':''}
       </div>`;
     }).join('');
-    const atmH=atm?`<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:2px;background:rgba(255,192,0,.04);border:1px solid rgba(255,192,0,.15);margin-bottom:9px;font-size:9px">
-      <div style="color:var(--warn);font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px">$${atm.atm}</div>
-      <div style="color:var(--up)">C $${atm.callEst}</div>
-      <div style="color:var(--dn)">P $${atm.putEst}</div>
-      <div style="margin-left:auto;color:var(--muted);font-size:8px">${atm.expStr} IV~${atm.iv}%</div>
+    const atmH=atm?`<div style="padding:7px 9px;border-radius:2px;background:rgba(255,192,0,.04);border:1px solid rgba(255,192,0,.15);margin-bottom:9px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:9px">
+        <div style="color:var(--warn);font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px">$${atm.atm}</div>
+        <div style="color:var(--up)">C <strong>$${atm.callEst}</strong></div>
+        <div style="color:var(--dn)">P <strong>$${atm.putEst}</strong></div>
+        <div style="margin-left:auto;color:var(--muted);font-size:8px">${atm.expStr}</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px;font-size:8px;color:var(--ghost)">
+        <span>IV <strong style="color:var(--warn)">${atm.iv}%</strong></span>
+        <span>θ <strong style="color:var(--dn)">${atm.theta}/d</strong></span>
+        <span>B/E ▲$${atm.brkCallUp}</span>
+        <span>B/E ▼$${atm.brkPutDn}</span>
+      </div>
     </div>`:'';
     const card=document.createElement('div'); card.className='fc-card';
     card.innerHTML=`
