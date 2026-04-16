@@ -685,27 +685,23 @@ function calcTA(bars) {
   if (willR < -80) cs += 1; else if (willR > -20) cs -= 1;
   if (C[n-1] > e20) cs += 0.5; else cs -= 0.5;
 
-  // ── Realized Volatility (annualized) from log returns ──
-  // sigma_daily = std(ln(C[i]/C[i-1])) over last 20 bars
+  // Realized volatility from log returns (annualised) — used for correct option pricing
   const logRets = [];
-  for (let i = Math.max(1, n-20); i < n; i++) {
-    if (C[i-1] > 0 && C[i] > 0) logRets.push(Math.log(C[i]/C[i-1]));
+  for (let i = Math.max(1, n-21); i < n; i++) {
+    if (C[i-1] > 0 && C[i] > 0) logRets.push(Math.log(C[i] / C[i-1]));
   }
-  let realizedVol = 0.20; // fallback 20% if not enough data
+  let rv = 0.20;
   if (logRets.length >= 5) {
-    const lrMean = logRets.reduce((a,b)=>a+b,0)/logRets.length;
-    const lrVar  = logRets.reduce((a,b)=>a+(b-lrMean)**2,0)/logRets.length;
-    realizedVol  = Math.sqrt(lrVar * 252); // annualized
+    const mu = logRets.reduce((a,b)=>a+b,0)/logRets.length;
+    rv = Math.sqrt(logRets.reduce((a,b)=>a+(b-mu)**2,0)/logRets.length * 252);
   }
-  // Clamp to realistic IV range: 8% (low-vol ETF) to 300% (meme stock)
-  realizedVol = Math.max(0.08, Math.min(3.0, realizedVol));
+  const realizedVol = Math.max(0.08, Math.min(3.0, rv));
 
   return { rsi, macdHist, macdBull, bbPct, bbW, atrPct, atr,
     trendUp, trendDn, stK, mfi, willR, zScore, volRatio,
     srZone, confluenceScore: +cs.toFixed(2),
     s1: +s1.toFixed(2), r1: +r1.toFixed(2),
-    price: C[n-1], e20, e50,
-    realizedVol: +realizedVol.toFixed(4) };
+    price: C[n-1], e20, e50, realizedVol };
 }
 
 function defTA() {
@@ -746,119 +742,282 @@ function analyzePatterns(sp) {
 // ─────────────────────────────────────────────────────────────────
 // ATM OPTION CALCULATOR
 // ─────────────────────────────────────────────────────────────────
-function calcATM(price, ta) {
-  if (!price || price <= 0) return null;
+// ─────────────────────────────────────────────────────────────────
+// LIVE OPTIONS CHAIN  — Yahoo Finance v7
+// fetchOptionsChain() returns real bid/ask for nearest weekly expiry
+// calcATM() returns B-S estimate immediately; live data patches in
+// ─────────────────────────────────────────────────────────────────
+const _optCache = {};   // sym -> {ts, data}
+const OPT_TTL   = 300000;  // 5-minute cache
 
-  // ── Strike rounding to standard option increments ──
-  const inc = price < 5   ? 0.5
-            : price < 20  ? 1
-            : price < 50  ? 2.5
-            : price < 100 ? 5
-            : price < 200 ? 10
-            : price < 500 ? 25
-            : 50;
-  const atm = Math.round(price / inc) * inc;
+async function fetchOptionsChain(sym) {
+  const cached = _optCache[sym];
+  if (cached && Date.now() - cached.ts < OPT_TTL) return cached.data;
 
-  // ── Expiry: next Friday (weekly options) ──
-  const now = new Date();
-  const nowP = getPST(now);
-  const daysToFri = ((5 - nowP.dow) + 7) % 7 || 7;
-  const expTs  = now.getTime() + daysToFri * 86400000;
-  const expStr = new Date(expTs).toLocaleDateString('en-US', { timeZone: TZ, month:'short', day:'numeric' });
-  const dte    = Math.max(1, daysToFri);   // calendar days to expiry
-  // Trading days to expiry (roughly 0.71 * calendar days for weekly)
+  const base = `https://query1.finance.yahoo.com/v7/finance/options/${encodeURIComponent(sym)}`;
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(base)}`,
+    `https://corsproxy.io/?${encodeURIComponent(base)}`
+  ];
+
+  for (const px of proxies) {
+    try {
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 7000);
+      const r    = await fetch(px, { signal: ctrl.signal });
+      clearTimeout(tid);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const res  = data?.optionChain?.result?.[0];
+      if (!res) continue;
+
+      const stockPrice = res.quote?.regularMarketPrice || 0;
+      if (!stockPrice) continue;
+
+      const calls = res.options?.[0]?.calls || [];
+      const puts  = res.options?.[0]?.puts  || [];
+      if (!calls.length || !puts.length) continue;
+
+      const expDates = res.expirationDates || [];
+      const nearExp  = expDates[0] || null;
+      const expStr   = nearExp
+        ? new Date(nearExp * 1000).toLocaleDateString('en-US', { timeZone: TZ, month:'short', day:'numeric' })
+        : '—';
+      const dte = nearExp
+        ? Math.max(1, Math.round((nearExp * 1000 - Date.now()) / 86400000))
+        : 7;
+
+      // ATM = strike closest to live stock price
+      const atmCall = calls.reduce((b,c) => Math.abs((c.strike||0)-stockPrice) < Math.abs((b.strike||0)-stockPrice) ? c : b, calls[0]);
+      const atmPut  = puts.reduce( (b,p) => Math.abs((p.strike||0)-stockPrice) < Math.abs((b.strike||0)-stockPrice) ? p : b, puts[0]);
+
+      const result = { live:true, stockPrice, expStr, dte, calls, puts, atmCall, atmPut };
+      _optCache[sym] = { ts: Date.now(), data: result };
+      return result;
+    } catch(e) { /* try next */ }
+  }
+  _optCache[sym] = { ts: Date.now(), data: null };
+  return null;
+}
+
+// Build ATM object from live chain data
+function atmFromChain(chain, ta) {
+  const c  = chain.atmCall || {};
+  const p  = chain.atmPut  || {};
+  const S  = chain.stockPrice;
+  const dte = chain.dte;
+  const inc = S < 5 ? 0.5 : S < 20 ? 1 : S < 50 ? 2.5 : S < 100 ? 5 : S < 200 ? 10 : S < 500 ? 25 : 50;
+
+  // Mid-price = (bid+ask)/2; fall back to last if spread unavailable
+  const mid = (bid,ask,last) => (bid>0&&ask>0) ? +((bid+ask)/2).toFixed(2) : +(last||0).toFixed(2);
+  const callMid = mid(c.bid,c.ask,c.lastPrice);
+  const putMid  = mid(p.bid,p.ask,p.lastPrice);
+
+  // IV from chain, fallback to realized
+  const callIV = c.impliedVolatility || ta.realizedVol || 0.20;
   const tde    = Math.max(0.5, dte * 5/7);
-
-  // ── Implied Volatility estimate ──
-  // Use realized vol from calcTA (computed from log returns of actual bar data)
-  // This is the most accurate estimate available without live options data
-  const iv = ta.realizedVol || 0.20;  // annualized, e.g. 0.25 = 25%
-
-  // ── Black-Scholes ATM formula ──
-  // For ATM options (S ≈ K): C ≈ S × N'(0) × σ × √T
-  // where N'(0) = 1/√(2π) ≈ 0.3989422
-  // T = trading days / 252
   const T      = tde / 252;
   const sqrtT  = Math.sqrt(T);
-  const ND0    = 0.3989422;   // N'(0), standard normal PDF at 0
+  const ND0    = 0.3989422;
 
-  const callMid = price * ND0 * iv * sqrtT;
-
-  // ── Put-Call Parity + Skew ──
-  // At ATM: Put ≈ Call (put-call parity)
-  // Equity put skew: puts trade slightly richer due to demand (fear premium)
-  // Skew premium ≈ 3% + IV × 4% (higher for high-vol names like TSLA/GME)
-  const skew   = 0.03 + iv * 0.04;
-  const putMid = callMid * (1 + skew);
-
-  // Round to realistic option tick sizes
-  const tick = callMid < 3 ? 0.05 : 0.10;
-  const callEst = +(Math.round(callMid / tick) * tick).toFixed(2);
-  const putEst  = +(Math.round(putMid  / tick) * tick).toFixed(2);
-
-  // ── Greeks (ATM approximations) ──
-  const delta_call =  0.50;
-  const delta_put  = -0.50;
-  // Gamma: N'(0) / (S × σ × √T)
-  const gamma = +(ND0 / (price * iv * sqrtT)).toFixed(5);
-  // Theta per calendar day: -(S × σ × N'(0)) / (2 × √(T×252))
-  const theta = +(-(price * iv * ND0) / (2 * Math.sqrt(T * 252))).toFixed(3);
-  // Vega per 1% move in IV: S × √T × N'(0) / 100
-  const vega  = +(price * sqrtT * ND0 / 100).toFixed(3);
-  // Rho (approximate, less important for short-dated): negligible for weeklies
-
-  // ── Break-even prices ──
-  const brkCallUp = +(atm + callEst).toFixed(2);
-  const brkPutDn  = +(atm - putEst).toFixed(2);
-
-  // ── OTM strikes ──
-  const otm1Call = atm + inc;   // 1 strike OTM call
-  const otm1Put  = atm - inc;   // 1 strike OTM put
-  // Estimate OTM premiums using Black-Scholes approximation
-  // For 1-strike OTM: premium ≈ ATM × exp(-0.5 × (inc/price / (iv*sqrtT))²)
-  const d_otm = (inc / price) / (iv * sqrtT);
-  const otmMult = Math.exp(-0.5 * d_otm * d_otm);
-  const otm1CallEst = +(callMid * otmMult * 0.95).toFixed(2);
-  const otm1PutEst  = +(putMid  * otmMult * 0.95).toFixed(2);
+  // OTM+1 quotes
+  const otmCS = +(c.strike||0) + inc;
+  const otmPS = +(p.strike||0) - inc;
+  const oCall = chain.calls.find(x=>x.strike===otmCS)||{};
+  const oPut  = chain.puts.find( x=>x.strike===otmPS)||{};
 
   return {
-    // Strikes
-    atm, inc, otm1Call, otm1Put, otm1CallEst, otm1PutEst,
-    // Expiry
-    expStr, dte, tde,
-    // Pricing
-    callEst, putEst,
-    // Vol
-    iv: +(iv * 100).toFixed(1),
-    ivDecimal: iv,
-    // Greeks
-    delta_call, delta_put, gamma, theta, vega,
-    // Break-evens
-    brkCallUp, brkPutDn,
-    // For display
-    price: +price.toFixed(2)
+    live: true,
+    atm: c.strike || Math.round(S/inc)*inc, inc,
+    otm1Call: otmCS, otm1Put: otmPS,
+    otm1CallEst: mid(oCall.bid,oCall.ask,oCall.lastPrice)||null,
+    otm1PutEst:  mid(oPut.bid, oPut.ask, oPut.lastPrice) ||null,
+    expStr: chain.expStr, dte,
+    // LIVE bid/ask/last
+    callBid:  +(c.bid||0).toFixed(2),  callAsk:  +(c.ask||0).toFixed(2),
+    putBid:   +(p.bid||0).toFixed(2),  putAsk:   +(p.ask||0).toFixed(2),
+    callEst:  callMid,                  putEst:   putMid,
+    callLast: +(c.lastPrice||0).toFixed(2),
+    putLast:  +(p.lastPrice||0).toFixed(2),
+    callVol:  c.volume||0,   putVol:  p.volume||0,
+    callOI:   c.openInterest||0, putOI: p.openInterest||0,
+    callITM:  c.inTheMoney||false, putITM: p.inTheMoney||false,
+    // IV & Greeks
+    iv:          +(callIV*100).toFixed(1),
+    ivDecimal:   callIV,
+    delta_call:  0.50, delta_put: -0.50,
+    gamma: +(ND0/(S*callIV*sqrtT)).toFixed(5),
+    theta: +(-(S*callIV*ND0)/(2*Math.sqrt(T*252))).toFixed(3),
+    vega:  +(S*sqrtT*ND0/100).toFixed(3),
+    brkCallUp: +(+(c.strike||0)+callMid).toFixed(2),
+    brkPutDn:  +(+(p.strike||0)-putMid).toFixed(2),
+    price: +S.toFixed(2),
+    contractCall: c.contractSymbol||'', contractPut: p.contractSymbol||'',
   };
 }
 
-// ─────────────────────────────────────────────────────────────────
-// PREDICTION GENERATOR — ALL windows for today & next day
-// 4 methods × 13 time slots
-// ─────────────────────────────────────────────────────────────────
-const SLOTS = [
-  {h:6, m:30, lbl:'OPEN',   vm:2.8},
-  {h:7, m:0,  lbl:'7:00',   vm:2.0},
-  {h:7, m:30, lbl:'7:30',   vm:1.5},
-  {h:8, m:0,  lbl:'8:00',   vm:1.1},
-  {h:8, m:30, lbl:'8:30',   vm:1.0},
-  {h:9, m:0,  lbl:'9:00',   vm:0.9},
-  {h:9, m:30, lbl:'MIDDAY', vm:0.8},
-  {h:10,m:0,  lbl:'10:00',  vm:0.85},
-  {h:10,m:30, lbl:'10:30',  vm:0.9},
-  {h:11,m:0,  lbl:'11:00',  vm:1.0},
-  {h:11,m:30, lbl:'11:30',  vm:1.1},
-  {h:12,m:0,  lbl:'POWER',  vm:1.6},
-  {h:12,m:30, lbl:'CLOSE',  vm:2.3},
-];
+// Build ATM object from Black-Scholes (sync fallback)
+function atmBS(price, ta) {
+  const inc = price<5?.5:price<20?1:price<50?2.5:price<100?5:price<200?10:price<500?25:50;
+  const atm = Math.round(price/inc)*inc;
+  const now = new Date(); const nowP = getPST(now);
+  const dtf = ((5-nowP.dow)+7)%7||7;
+  const expStr = new Date(now.getTime()+dtf*86400000).toLocaleDateString('en-US',{timeZone:TZ,month:'short',day:'numeric'});
+  const dte = Math.max(1,dtf);
+  const tde = Math.max(0.5, dte*5/7);
+  const T = tde/252, sqrtT = Math.sqrt(T), ND0 = 0.3989422;
+  const iv = ta.realizedVol||0.20;
+  const cBS = price*ND0*iv*sqrtT;
+  const pBS = cBS*(1+0.03+iv*0.04);
+  const tick = cBS<3?0.05:0.10;
+  const callEst = +(Math.round(cBS/tick)*tick).toFixed(2);
+  const putEst  = +(Math.round(pBS/tick)*tick).toFixed(2);
+  const d1 = (inc/price)/(iv*sqrtT);
+  const om = Math.exp(-0.5*d1*d1);
+  return {
+    live:false, atm, inc,
+    otm1Call:atm+inc, otm1Put:atm-inc,
+    otm1CallEst:+(cBS*om*0.95).toFixed(2), otm1PutEst:+(pBS*om*0.95).toFixed(2),
+    expStr, dte, callBid:null,callAsk:null,putBid:null,putAsk:null,
+    callEst, putEst, callLast:null,putLast:null,
+    callVol:null,putVol:null,callOI:null,putOI:null,
+    callITM:false,putITM:false,
+    iv:+(iv*100).toFixed(1),ivDecimal:iv,
+    delta_call:0.50,delta_put:-0.50,
+    gamma:+(ND0/(price*iv*sqrtT)).toFixed(5),
+    theta:+(-(price*iv*ND0)/(2*Math.sqrt(T*252))).toFixed(3),
+    vega:+(price*sqrtT*ND0/100).toFixed(3),
+    brkCallUp:+(atm+callEst).toFixed(2), brkPutDn:+(atm-putEst).toFixed(2),
+    price:+price.toFixed(2), contractCall:'',contractPut:'',
+  };
+}
+
+// Sync wrapper: returns B-S estimate instantly for immediate display
+function calcATM(price, ta) { return atmBS(price, ta); }
+
+// Async upgrader: fetches live chain and patches result in-place
+async function upgradeATM(sym, result) {
+  try {
+    const chain = await fetchOptionsChain(sym);
+    if (chain && chain.live) {
+      result.atm = atmFromChain(chain, result.ta);
+      // Refresh any open detail panel for this symbol
+      const openDet = document.querySelector('.det.on');
+      if (openDet) {
+        const idx = openDet.id.replace('det-','');
+        const row = document.getElementById('row-'+idx);
+        if (row && row.querySelector('.tc.sym')?.textContent === sym) {
+          openDet.innerHTML = buildDet(result);
+        }
+      }
+      // Refresh table ATM cells
+      refreshATMCells();
+    }
+  } catch(e) {}
+}
+
+// Refresh all ATM cells in the visible table after live data arrives
+function refreshATMCells() {
+  document.querySelectorAll('.row').forEach((row, idx) => {
+    const symEl = row.querySelector('.tc.sym');
+    if (!symEl) return;
+    const sym = symEl.textContent.trim();
+    const r = results.find(x => x.sym === sym);
+    if (!r || !r.atm) return;
+    const atmCell = row.children[2];  // 3rd column = ATM STRIKE
+    const cpCell  = row.children[3];  // 4th column = CALL/PUT
+    if (atmCell) atmCell.innerHTML = buildATMCellHTML(r.atm);
+    if (cpCell)  cpCell.innerHTML  = buildCPCellHTML(r.atm);
+  });
+}
+
+function buildATMCellHTML(atm) {
+  if (!atm) return '<div class="tc dim">—</div>';
+  const liveDot = atm.live ? '<span style="color:var(--up);font-size:7px">● LIVE</span>' : '<span style="color:var(--muted);font-size:7px">~EST</span>';
+  return `<div style="display:flex;flex-direction:column;gap:2px;padding:5px 9px">
+    <div style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--warn)">$${atm.atm}</div>
+    <div style="display:flex;gap:5px;align-items:center;font-size:8px;color:var(--muted)">${liveDot} ${atm.expStr} IV:${atm.iv}%</div>
+  </div>`;
+}
+
+function buildCPCellHTML(atm) {
+  if (!atm) return '<div class="tc dim">—</div>';
+  const cStr = atm.live && atm.callBid > 0
+    ? `${atm.callBid}/${atm.callAsk}`
+    : `~$${atm.callEst}`;
+  const pStr = atm.live && atm.putBid > 0
+    ? `${atm.putBid}/${atm.putAsk}`
+    : `~$${atm.putEst}`;
+  const liveC = atm.live ? 'var(--up)' : 'rgba(0,240,160,.55)';
+  const liveP = atm.live ? 'var(--dn)'  : 'rgba(255,51,102,.55)';
+  return `<div style="display:flex;flex-direction:column;gap:2px;padding:5px 9px">
+    <div style="font-size:9px;color:${liveC}">C <strong>${cStr}</strong> Δ.50</div>
+    <div style="font-size:9px;color:${liveP}">P <strong>${pStr}</strong> Δ-.50</div>
+  </div>`;
+}
+
+// buildATMHtml — used in buildDet() detail panel
+function buildATMHtml(atm) {
+  if (!atm) return '';
+  const isLive = atm.live;
+  const liveTag = isLive
+    ? `<span style="color:var(--up);font-size:8px;font-weight:600">● LIVE</span>`
+    : `<span style="color:var(--muted);font-size:8px">~B-S ESTIMATE (no live data)</span>`;
+
+  const callPriceLine = isLive
+    ? `<div class="atm-strike">$${atm.callEst} <span style="font-size:9px;opacity:.7">(${atm.callBid} bid / ${atm.callAsk} ask)</span></div>`
+    : `<div class="atm-strike" style="color:rgba(0,240,160,.65)">~$${atm.callEst}</div>`;
+  const putPriceLine  = isLive
+    ? `<div class="atm-strike">$${atm.putEst} <span style="font-size:9px;opacity:.7">(${atm.putBid} bid / ${atm.putAsk} ask)</span></div>`
+    : `<div class="atm-strike" style="color:rgba(255,51,102,.65)">~$${atm.putEst}</div>`;
+
+  const callVolOI  = isLive ? `Vol:${atm.callVol?.toLocaleString()} OI:${atm.callOI?.toLocaleString()}` : '';
+  const putVolOI   = isLive ? `Vol:${atm.putVol?.toLocaleString()} OI:${atm.putOI?.toLocaleString()}` : '';
+  const callITM    = atm.callITM ? '<span style="color:var(--warn);font-size:8px"> ITM</span>' : '';
+  const putITM     = atm.putITM  ? '<span style="color:var(--warn);font-size:8px"> ITM</span>' : '';
+  const contract   = atm.contractCall ? `<div style="font-size:7px;color:var(--muted);margin-top:3px">${atm.contractCall}</div>` : '';
+  const contractP  = atm.contractPut  ? `<div style="font-size:7px;color:var(--muted);margin-top:3px">${atm.contractPut}</div>` : '';
+
+  const otmCallLine = atm.otm1CallEst != null
+    ? `OTM $${atm.otm1Call}: $${atm.otm1CallEst}`
+    : `OTM $${atm.otm1Call}: n/a`;
+  const otmPutLine  = atm.otm1PutEst  != null
+    ? `OTM $${atm.otm1Put}: $${atm.otm1PutEst}`
+    : `OTM $${atm.otm1Put}: n/a`;
+
+  return `<div class="atm-box">
+    <h6 style="display:flex;justify-content:space-between;align-items:center">
+      <span>ATM Weekly Options — Strike $${atm.atm} · Exp ${atm.expStr} (${atm.dte}d)</span>
+      ${liveTag}
+    </h6>
+    <div class="atm-row">
+      <div class="atm-side c">
+        <div class="atm-lbl">CALL $${atm.atm}${callITM}</div>
+        ${callPriceLine}
+        <div class="atm-meta">Δ ${atm.delta_call.toFixed(2)} · Γ ${atm.gamma} · B/E $${atm.brkCallUp}</div>
+        <div class="atm-est">${otmCallLine}</div>
+        <div style="font-size:8px;color:var(--muted);margin-top:2px">${callVolOI}</div>
+        ${contract}
+      </div>
+      <div class="atm-side p">
+        <div class="atm-lbl">PUT $${atm.atm}${putITM}</div>
+        ${putPriceLine}
+        <div class="atm-meta">Δ ${atm.delta_put.toFixed(2)} · Γ ${atm.gamma} · B/E $${atm.brkPutDn}</div>
+        <div class="atm-est">${otmPutLine}</div>
+        <div style="font-size:8px;color:var(--muted);margin-top:2px">${putVolOI}</div>
+        ${contractP}
+      </div>
+    </div>
+    <div style="margin-top:6px;font-size:8px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">
+      <span>IV: <strong style="color:var(--warn)">${atm.iv}%</strong></span>
+      <span>θ: <strong style="color:var(--dn)">${atm.theta}/day</strong></span>
+      <span>Vega: <strong style="color:var(--info)">$${atm.vega}/1%IV</strong></span>
+      <span>Underlying: <strong style="color:var(--bright)">$${atm.price}</strong></span>
+      <span>Inc: $${atm.inc}</span>
+    </div>
+  </div>`;
+}
+
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
 
@@ -1082,7 +1241,11 @@ async function startScan() {
       const preds= genPredictions(sym, sp, ta, an, pred.probability, pred.confidence, fwin);
 
       batch.push({sym, sp, ta, atm, an, pred, preds});
-      if (sp.length > 0) results.push({sym, sp, ta, atm, an, pred, preds});
+      if (sp.length > 0) {
+        results.push({sym, sp, ta, atm, an, pred, preds});
+        // Fire async live options fetch — patches result.atm when data arrives
+        upgradeATM(sym, results[results.length-1]);
+      }
     } catch(e) {
       log('err', `${sym}: ${e.message}`);
     }
@@ -1153,19 +1316,8 @@ function renderTable(sort) {
     const pc = pred.probability>=70?'var(--up)':pred.probability>=50?'var(--warn)':'var(--dn)';
 
     // ATM cell
-    const atmCell = atm
-      ? `<div style="display:flex;flex-direction:column;gap:2px;padding:5px 9px">
-           <div style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--warn)">$${atm.atm}</div>
-           <div style="font-size:8px;color:var(--muted)">${atm.expStr} · IV ${atm.iv}%</div>
-         </div>`
-      : '<div class="tc dim">—</div>';
-
-    const cpCell = atm
-      ? `<div style="display:flex;flex-direction:column;gap:2px;padding:5px 9px">
-           <div style="font-size:9px;color:var(--up)">C <strong>$${atm.callEst}</strong> Δ.50</div>
-           <div style="font-size:9px;color:var(--dn)">P <strong>$${atm.putEst}</strong> Δ-.50</div>
-         </div>`
-      : '<div class="tc dim">—</div>';
+    const atmCell = buildATMCellHTML(atm);
+    const cpCell  = buildCPCellHTML(atm);
 
     // Prediction tags
     const upcoming = preds.filter(p=>!p.isPast);
@@ -1245,31 +1397,7 @@ function buildDet(r) {
   }).join('');
 
   // ATM detail
-  const atmH = atm ? `<div class="atm-box">
-    <h6>ATM Weekly Options — Exp ${atm.expStr} (${atm.dte}d / ~${atm.tde.toFixed(1)} trading days)</h6>
-    <div class="atm-row">
-      <div class="atm-side c">
-        <div class="atm-lbl">CALL  $${atm.atm}</div>
-        <div class="atm-strike">$${atm.callEst}</div>
-        <div class="atm-meta">Δ ${atm.delta_call.toFixed(2)} | Γ ${atm.gamma} | Break-even $${atm.brkCallUp}</div>
-        <div class="atm-est">OTM $${atm.otm1Call}: ~$${atm.otm1CallEst}</div>
-      </div>
-      <div class="atm-side p">
-        <div class="atm-lbl">PUT  $${atm.atm}</div>
-        <div class="atm-strike">$${atm.putEst}</div>
-        <div class="atm-meta">Δ ${atm.delta_put.toFixed(2)} | Γ ${atm.gamma} | Break-even $${atm.brkPutDn}</div>
-        <div class="atm-est">OTM $${atm.otm1Put}: ~$${atm.otm1PutEst}</div>
-      </div>
-    </div>
-    <div style="margin-top:6px;font-size:8px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap">
-      <span>IV: <strong style="color:var(--warn)">${atm.iv}%</strong></span>
-      <span>θ: <strong style="color:var(--dn)">${atm.theta}/day</strong></span>
-      <span>Vega: <strong style="color:var(--info)">$${atm.vega}/1%IV</strong></span>
-      <span>Inc: $${atm.inc}</span>
-      <span>Underlying: $${atm.price}</span>
-    </div>
-  </div>` : '';
-
+  const atmH = buildATMHtml(atm);
   // History
   const histH = sp.slice().reverse().slice(0,20).map(s=>`
     <div class="h-item">
@@ -1427,20 +1555,25 @@ function renderForecast() {
         ${p.isNow?'<span class="bdg bdg-now" style="font-size:6px">NOW</span>':''}
       </div>`;
     }).join('');
-    const atmH=atm?`<div style="padding:7px 9px;border-radius:2px;background:rgba(255,192,0,.04);border:1px solid rgba(255,192,0,.15);margin-bottom:9px">
-      <div style="display:flex;align-items:center;gap:8px;font-size:9px">
-        <div style="color:var(--warn);font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px">$${atm.atm}</div>
-        <div style="color:var(--up)">C <strong>$${atm.callEst}</strong></div>
-        <div style="color:var(--dn)">P <strong>$${atm.putEst}</strong></div>
-        <div style="margin-left:auto;color:var(--muted);font-size:8px">${atm.expStr}</div>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:4px;font-size:8px;color:var(--ghost)">
-        <span>IV <strong style="color:var(--warn)">${atm.iv}%</strong></span>
-        <span>θ <strong style="color:var(--dn)">${atm.theta}/d</strong></span>
-        <span>B/E ▲$${atm.brkCallUp}</span>
-        <span>B/E ▼$${atm.brkPutDn}</span>
-      </div>
-    </div>`:'';
+    const atmH = atm ? (() => {
+      const isL = atm.live;
+      const cS = isL && atm.callBid>0 ? `${atm.callBid}/${atm.callAsk}` : `~$${atm.callEst}`;
+      const pS = isL && atm.putBid>0  ? `${atm.putBid}/${atm.putAsk}`   : `~$${atm.putEst}`;
+      const liveTag = isL ? '<span style="color:var(--up);font-size:7px">● LIVE</span>' : '<span style="font-size:7px;color:var(--muted)">~EST</span>';
+      return `<div style="padding:7px 9px;border-radius:2px;background:rgba(255,192,0,.04);border:1px solid rgba(255,192,0,.15);margin-bottom:9px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:9px;flex-wrap:wrap">
+          <span style="color:var(--warn);font-family:'Orbitron',sans-serif;font-weight:700;font-size:13px">$${atm.atm}</span>
+          <span style="color:${isL?'var(--up)':'rgba(0,240,160,.55)'}">C <strong>${cS}</strong> Δ.50</span>
+          <span style="color:${isL?'var(--dn)':'rgba(255,51,102,.55)'}">P <strong>${pS}</strong> Δ-.50</span>
+          <span style="margin-left:auto;display:flex;align-items:center;gap:4px;color:var(--muted);font-size:8px">${atm.expStr} ${liveTag}</span>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;font-size:8px;color:var(--ghost)">
+          <span>IV <strong style="color:var(--warn)">${atm.iv}%</strong></span>
+          <span>θ <strong style="color:var(--dn)">${atm.theta}/d</strong></span>
+          <span>B/E ▲$${atm.brkCallUp}</span><span>B/E ▼$${atm.brkPutDn}</span>
+        </div>
+      </div>`;
+    })() : '';
     const card=document.createElement('div'); card.className='fc-card';
     card.innerHTML=`
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9px">
