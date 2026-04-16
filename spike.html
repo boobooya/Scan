@@ -1021,6 +1021,28 @@ function buildATMHtml(atm) {
 
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
 
+// ─────────────────────────────────────────────────────────────────
+// PREDICTION TIME SLOTS  (PST market hours 6:30–12:30)
+// ─────────────────────────────────────────────────────────────────
+const SLOTS = [
+  {h:6,  m:30, lbl:'OPEN',    vm:2.8},
+  {h:7,  m:0,  lbl:'7:00',    vm:2.0},
+  {h:7,  m:30, lbl:'7:30',    vm:1.5},
+  {h:8,  m:0,  lbl:'8:00',    vm:1.1},
+  {h:8,  m:30, lbl:'8:30',    vm:1.0},
+  {h:9,  m:0,  lbl:'9:00',    vm:0.9},
+  {h:9,  m:30, lbl:'MIDDAY',  vm:0.8},
+  {h:10, m:0,  lbl:'10:00',   vm:0.85},
+  {h:10, m:30, lbl:'10:30',   vm:0.9},
+  {h:11, m:0,  lbl:'11:00',   vm:1.0},
+  {h:11, m:30, lbl:'11:30',   vm:1.1},
+  {h:12, m:0,  lbl:'POWER',   vm:1.6},
+  {h:12, m:30, lbl:'CLOSE',   vm:2.3},
+];
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, Math.round(v))); }
+
+
 function genPredictions(sym, sp, ta, an, mlProb, mlConf, fwin) {
   const preds = [];
   const nowTs = Date.now();
