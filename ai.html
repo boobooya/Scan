@@ -789,10 +789,13 @@ function compFibAuto(bars){
       color:FIB_COLORS[i], set:label
     }));
   }
+  // Fallback: if no swing pivots found, use 38.2% / 61.8% sub-ranges of full range
+  const swH = swHigh!==null ? swHigh : pH - (pH-pL)*0.236;
+  const swL = swLow!==null  ? swLow  : pL + (pH-pL)*0.236;
   return{
     abs: fibLevels(pH,pL,'Auto H/L'),
-    swing: (swHigh!==null&&swLow!==null)?fibLevels(swHigh,swLow,'Swing'):[],
-    swHighIdx, swLowIdx, swHigh, swLow, pH, pL
+    swing: fibLevels(swH,swL,'Swing'),
+    swHighIdx, swLowIdx, swHigh:swH, swLow:swL, pH, pL
   };
 }
 
@@ -818,13 +821,20 @@ function compGann(price){
     levels.push({price:up,ring:n,angle:0,dir:'resistance',label:`G↑${n} $${up.toFixed(2)}`,cardinal:true});
     levels.push({price:dn,ring:n,angle:180,dir:'support',label:`G↓${n} $${dn.toFixed(2)}`,cardinal:true});
   });
-  // Filter to ±15% of center price and keep cardinals + close ones
-  const filtered=levels.filter(l=>Math.abs(l.price-price)/price<0.12&&l.cardinal);
-  // Deduplicate by proximity
+  // Filter to ±20% of center price — include both cardinal and angle points
+  const filtered=levels.filter(l=>Math.abs(l.price-price)/price<0.20);
+  // Deduplicate by proximity (0.3% bucket)
   const deduped=[];
   filtered.forEach(l=>{
-    if(!deduped.some(d=>Math.abs(d.price-l.price)/price<0.005)) deduped.push(l);
+    if(!deduped.some(d=>Math.abs(d.price-l.price)/price<0.003)) deduped.push(l);
   });
+  // Always ensure at least 4 levels by widening if needed
+  if(deduped.length < 4) {
+    const wider=levels.filter(l=>Math.abs(l.price-price)/price<0.35);
+    const wideDed=[];
+    wider.forEach(l=>{if(!wideDed.some(d=>Math.abs(d.price-l.price)/price<0.003))wideDed.push(l);});
+    return{levels:wideDed.sort((a,b)=>a.price-b.price),center:price};
+  }
   return{levels:deduped.sort((a,b)=>a.price-b.price),center:price};
 }
 
@@ -1449,92 +1459,6 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div id="reasonContent">Computing…</div>
   </div>
 
-  <!-- ADX Panel -->
-  <div class="cpanel" id="pADX">
-    <div class="phdr"><div>
-      <div class="pttl">📈 ADX (14) + Directional Indicators (+DI / -DI)</div>
-      <div class="psub" id="adxSub">ADX: — · +DI: — · -DI: —</div>
-    </div></div>
-    <div class="csm"><canvas id="cADX"></canvas></div>
-  </div>
-  <div class="panel-explain">
-    <div class="pe-title">📖 How to read ADX + Directional Indicators</div>
-    <div class="pe-body">
-      <strong>ADX (Average Directional Index):</strong> Measures the <em>strength</em> of a trend — not its direction. ADX rising = trend strengthening regardless of whether up or down.<br><br>
-      <strong>ADX levels:</strong><br>
-      • <strong>&lt;20:</strong> Weak or absent trend — ranging market. Avoid trend-following strategies. Mean-reversion and range strategies work better here.<br>
-      • <strong>20–25:</strong> Transitional — trend beginning to form. Watch for breakout confirmation.<br>
-      • <strong>≥25:</strong> Trend confirmed and tradeable. Breakout signals are more reliable.<br>
-      • <strong>≥40:</strong> Very strong trend — may be overextended, watch for exhaustion.<br><br>
-      <strong>+DI (green) and -DI (red) — Directional Indicators:</strong><br>
-      • <strong>+DI above -DI:</strong> Bullish pressure dominant — upward directional movement.<br>
-      • <strong>-DI above +DI:</strong> Bearish pressure dominant — downward directional movement.<br>
-      • <strong>Crossover:</strong> +DI crossing above -DI = bullish signal (especially when ADX≥25). -DI crossing above +DI = bearish signal.<br><br>
-      <strong>Best use:</strong> Use ADX to filter breakout signals. Only take buy signals when ADX≥25 and +DI&gt;-DI. Ignore breakouts when ADX&lt;20 — they are likely false.
-    </div>
-  </div>
-
-
-  <!-- Fibonacci Panel -->
-  <div class="cpanel" id="pFib">
-    <div class="phdr"><div>
-      <div class="pttl">🌀 Fibonacci Retracement Levels</div>
-      <div class="psub" id="fibSub">Auto H/L + Swing Pivot fibs overlaid on price</div>
-    </div></div>
-    <div class="cmd"><canvas id="cFib"></canvas></div>
-    <div id="fibTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
-  </div>
-  <div class="panel-explain">
-    <div class="pe-title">📖 How to read Fibonacci Retracement Levels</div>
-    <div class="pe-body">
-      <strong>Fibonacci retracement</strong> identifies potential support/resistance levels based on natural mathematical ratios (derived from the Fibonacci sequence) applied to a price range.<br><br>
-      <strong>Two sets of levels are shown:</strong><br>
-      • <strong>Solid lines (Auto H/L):</strong> Computed from the absolute highest high and lowest low of all visible bars.<br>
-      • <strong>Dashed lines (Swing):</strong> Computed from the most recent confirmed pivot swing high and swing low — more responsive to current price action.<br><br>
-      <strong>Key levels to watch:</strong><br>
-      • <strong>23.6%:</strong> Shallow retracement — strong trend, price barely dipped. Aggressive re-entry zone.<br>
-      • <strong>38.2%:</strong> Normal retracement in a healthy trend. Most common re-entry level.<br>
-      • <strong>50%:</strong> Not a Fibonacci ratio but widely respected psychological level.<br>
-      • <strong>61.8% (Golden Ratio):</strong> The most important level. Deep retracements to 61.8% that hold are classic trend-continuation setups.<br>
-      • <strong>78.6%:</strong> If price retraces this deep, the original move may be reversing entirely.<br><br>
-      <strong>How to trade fibs:</strong> Wait for price to pull back to a level, then look for confirmation (RSI turning up, bullish candle, VWAP support) before entering.
-    </div>
-  </div>
-
-
-  <!-- Gann Square Panel -->
-  <div class="cpanel" id="pGann">
-    <div class="phdr"><div>
-      <div class="pttl">⬡ Gann Square of Nine</div>
-      <div class="psub" id="gannSub">Key resistance/support levels from close price and swing high/low</div>
-    </div></div>
-    <div class="cmd"><canvas id="cGann"></canvas></div>
-    <div id="gannTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px"></div>
-  </div>
-  <div class="panel-explain">
-    <div class="pe-title">📖 How to read Gann Square of Nine</div>
-    <div class="pe-body">
-      <strong>W.D. Gann's Square of Nine</strong> is a spiral of numbers arranged in a grid. Key price levels are found by taking the square root of a price, adding or subtracting integers, then squaring the result: <em>Level = (√Price ± n)²</em><br><br>
-      <strong>Why it works (in Gann's theory):</strong> Price moves in geometric progressions. Just as planets complete orbits, prices complete "squares" around key levels. The levels that appear above and below a price represent natural gravitational points where price tends to pause, reverse, or accelerate.<br><br>
-      <strong>Three sets of levels are shown:</strong><br>
-      • <strong>Purple (from Close):</strong> Gann levels radiating from today's closing price.<br>
-      • <strong>Red (from Swing High):</strong> Resistance levels computed from the recent pivot high.<br>
-      • <strong>Green (from Swing Low):</strong> Support levels computed from the recent pivot low.<br><br>
-      <strong>Resistance levels (solid):</strong> Price approaching these from below = potential stall or reversal.<br>
-      <strong>Support levels (dashed):</strong> Price approaching these from above = potential bounce.<br><br>
-      <strong>Confluence zones:</strong> When a Gann level aligns with a Fibonacci level AND a VWAP band, the probability of a reaction at that price is significantly higher.
-    </div>
-  </div>
-
-
-  <!-- Z-Score Panel -->
-  <div class="cpanel" id="pZScore">
-    <div class="phdr"><div>
-      <div class="pttl">📊 Z-Score (20-period rolling)</div>
-      <div class="psub" id="zSub">Z &gt; 2 = overbought · Z &lt; -2 = oversold · Mean-reversion signal</div>
-    </div></div>
-    <div class="csm"><canvas id="cZScore"></canvas></div>
-  </div>
 
   
   <!-- AI LEARNING PANEL -->
@@ -1545,6 +1469,11 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div style="font-size:10px;color:#6b7280;margin-top:2px">Self-trained on real price data · Learns signal accuracy over time</div>
       </div>
       <button onclick="runAIAnalysis()" id="aiRunBtn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🤖 Run AI Analysis</button>
+    </div>
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <label style="font-size:10px;color:#6b7280;white-space:nowrap;font-weight:700">Anthropic API Key:</label>
+      <input type="password" id="claudeApiKey" placeholder="sk-ant-api03-..." style="flex:1;min-width:200px;padding:6px 10px;border:1px solid #c4b5fd;border-radius:5px;font-size:11px;background:#faf5ff;color:#1f2937;outline:none" oninput="localStorage.setItem('oc_apikey',this.value)" />
+      <span style="font-size:10px;color:#9ca3af">Saved in browser only · never shared</span>
     </div>
     <div id="aiPanelContent" style="color:#4b5563;font-size:11px;line-height:1.7">
       <div style="text-align:center;padding:16px;color:#9ca3af">Learned data for <strong id="aiPanelSym" style="color:#667eea"></strong> will appear here after scanning.</div>
@@ -1912,7 +1841,7 @@ function renderPanels(r){
   const vwapProjDn = fcast ? fcast.lower.map((v,i)=>(lastVWAP*N+fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0))/(N+i+1)) : [];
 
   // ADX projections (compute once here, re-use in panel)
-  const adxDataPre  = compADX(show.slice().reverse(), 14);
+  const adxDataPre  = compADX(show, 14);  // show is already oldest-first
   const lastADX = adxDataPre.adx[adxDataPre.adx.length-1] || 25;
   const lastPDI = adxDataPre.pdi[adxDataPre.pdi.length-1] || 25;
   const lastMDI = adxDataPre.mdi[adxDataPre.mdi.length-1] || 25;
@@ -1928,9 +1857,9 @@ function renderPanels(r){
   const rsiPts=rsiVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
   const dsRSI=[
     {label:'RSI(14)',data:rsiPts,borderColor:'#e84393',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.2},
-    {label:'OB70', data:[{x:0,y:70},{x:N-1,y:70}],borderColor:'rgba(220,50,50,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-    {label:'OS30', data:[{x:0,y:30},{x:N-1,y:30}],borderColor:'rgba(0,180,140,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-    {label:'Mid',  data:[{x:0,y:50},{x:N-1,y:50}],borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
+    {label:'OB70', data:[{x:0,y:70},{x:N-1+fN,y:70}],borderColor:'rgba(220,50,50,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'OS30', data:[{x:0,y:30},{x:N-1+fN,y:30}],borderColor:'rgba(0,180,140,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'Mid',  data:[{x:0,y:50},{x:N-1+fN,y:50}],borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
   ];
   divs.forEach(d=>{dsRSI.push({label:d.type==='bullish'?'▲BullDiv':'▼BearDiv',data:[{x:d.b1,y:d.r1},{x:d.b2,y:d.r2}],borderColor:d.type==='bullish'?'rgba(0,180,140,.9)':'rgba(210,40,40,.9)',borderWidth:2.5,pointRadius:4,fill:false,parsing:false});});
   // RSI forecast
@@ -2032,7 +1961,7 @@ function renderPanels(r){
       {label:'ADX',data:adxPts(adxDataPre.adx),borderColor:'#f59e0b',borderWidth:2,pointRadius:0,fill:false,parsing:false},
       {label:'+DI',data:adxPts(adxDataPre.pdi),borderColor:'#00b894',borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
       {label:'-DI',data:adxPts(adxDataPre.mdi),borderColor:'#d63031',borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
-      {label:'25', data:[{x:0,y:25},{x:N-1,y:25}],borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+      {label:'25', data:[{x:0,y:25},{x:N-1+fN,y:25}],borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     ];
     if(fcast && adxProj.length){
       dsADX.push({label:'ADX proj',data:[{x:N-1,y:lastADX},...adxProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(245,158,11,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
@@ -2146,9 +2075,9 @@ function renderPanels(r){
     const dsZ=[
       {label:'Z-Score(20)',data:zVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)),
         borderColor:'#06b6d4',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.2},
-      {label:'+2σ',data:[{x:0,y:2},{x:N-1,y:2}],borderColor:'rgba(220,50,50,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-      {label:'-2σ',data:[{x:0,y:-2},{x:N-1,y:-2}],borderColor:'rgba(0,180,140,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-      {label:'0',  data:[{x:0,y:0},{x:N-1,y:0}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[2,3],pointRadius:0,fill:false,parsing:false},
+      {label:'+2σ',data:[{x:0,y:2},{x:N-1+fN,y:2}],borderColor:'rgba(220,50,50,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+      {label:'-2σ',data:[{x:0,y:-2},{x:N-1+fN,y:-2}],borderColor:'rgba(0,180,140,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+      {label:'0',  data:[{x:0,y:0},{x:N-1+fN,y:0}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[2,3],pointRadius:0,fill:false,parsing:false},
     ];
     // Z-Score forecast projection
     if(fcast && zProj.length) {
@@ -2965,15 +2894,25 @@ window.runAIAnalysis = async function() {
     '{"verdict":"STRONG BUY|BUY|WATCH|NEUTRAL|SELL|STRONG SELL","confidence":0-100,"bias":"BULLISH|BEARISH|NEUTRAL","summary":"2 sentences","findings":["f1","f2","f3"],"bull_target":0,"bear_target":0,"stop":0,"reasoning":"paragraph"}';
 
   try {
+    const apiKey = (document.getElementById('claudeApiKey')?.value || localStorage.getItem('oc_apikey') || '').trim();
+    if (!apiKey) throw new Error('Please enter your Anthropic API key in the field above.');
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: CLAUDE, max_tokens: 1500,
         messages: [{ role: 'user', content: prompt }]
       })
     });
-    if (!res.ok) throw new Error('API ' + res.status);
+    if (!res.ok) {
+      const errTxt = await res.text().catch(()=>'');
+      throw new Error('API ' + res.status + (errTxt ? ': ' + errTxt.slice(0,120) : ''));
+    }
     const data = await res.json();
     const txt  = data.content.map(b => b.text || '').join('');
     const a    = JSON.parse(txt.replace(/```json|```/g, '').trim());
@@ -3050,6 +2989,14 @@ function runAutoLearn() {
 load();
 setStatus('Ready', 'done');
 console.log('OpenClaw AI Engine loaded');
+// Restore saved API key
+(function() {
+  const saved = localStorage.getItem('oc_apikey');
+  if (saved) {
+    const inp = document.getElementById('claudeApiKey');
+    if (inp) inp.value = saved;
+  }
+})();
 
 })(); // end IIFE
 // ═══════════════════════════════════════════════════════════════════════
