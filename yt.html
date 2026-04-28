@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>OpenClaw Ω — Channel Intelligence Extractor</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #00ff88;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --mono: 'Space Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow orb */
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    padding: 48px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .logo {
+    font-family: var(--sans);
+    font-size: 2.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: #fff;
+  }
+
+  .logo .omega {
+    color: var(--accent);
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .badge {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 3px 8px;
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .tagline {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── TABS ─── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    background: var(--surface);
+  }
+
+  .tab {
+    flex: 1;
+    padding: 11px 16px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    transition: all 0.2s;
+    border-right: 1px solid var(--border);
+  }
+
+  .tab:last-child { border-right: none; }
+
+  .tab.active {
+    background: rgba(0,255,136,0.08);
+    color: var(--accent);
+  }
+
+  .tab:hover:not(.active) {
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+
+  /* ─── PANELS ─── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ─── SECTION LABEL ─── */
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* ─── CARD ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .card-sub {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  /* ─── INPUTS ─── */
+  input[type="text"], textarea, select {
+    width: 100%;
+    background: #0d0d15;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus, textarea:focus, select:focus {
+    border-color: var(--accent3);
+  }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  /* ─── BUTTONS ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 5px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover { background: #00cc6f; transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .btn-secondary:hover { border-color: var(--muted); }
+
+  .btn-danger {
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+    padding: 6px 12px;
+    font-size: 0.65rem;
+  }
+
+  .btn-download {
+    background: rgba(124,58,237,0.15);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+  }
+
+  .btn-download:hover { background: rgba(124,58,237,0.25); }
+
+  /* ─── CHANNEL LIST ─── */
+  .channel-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #0d0d15;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .ch-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .ch-url {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--text);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ch-label {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    background: rgba(0,255,136,0.08);
+    padding: 2px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* ─── CODE BLOCK ─── */
+  .code-block {
+    background: #050508;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    position: relative;
+  }
+
+  .code-block pre { white-space: pre-wrap; word-break: break-all; }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .code-lang {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--accent3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* ─── STATUS BADGE ─── */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  .status.ready { background: rgba(0,255,136,0.1); color: var(--accent); }
+  .status.warn { background: rgba(255,107,53,0.1); color: var(--accent2); }
+
+  /* ─── OUTPUT SCHEMA ─── */
+  .schema-field {
+    display: flex;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+  }
+
+  .schema-field:last-child { border-bottom: none; }
+
+  .field-name { color: var(--accent); width: 140px; flex-shrink: 0; }
+  .field-type { color: var(--accent3); width: 80px; flex-shrink: 0; }
+  .field-desc { color: var(--muted); }
+
+  /* ─── STEPS ─── */
+  .steps { counter-reset: step; }
+
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .step-num {
+    counter-increment: step;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    content: counter(step);
+  }
+
+  .step-body { flex: 1; padding-top: 4px; }
+  .step-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+  .step-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.6; }
+
+  .inline-code {
+    font-family: var(--mono);
+    font-size: 0.75em;
+    background: rgba(124,58,237,0.15);
+    color: var(--accent3);
+    padding: 1px 6px;
+    border-radius: 3px;
+  }
+
+  /* ─── GRID 2 COL ─── */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  @media (max-width: 600px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .tabs { flex-direction: column; }
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    margin-top: 64px;
+    padding: 24px 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-text {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--muted);
+  }
+
+  /* ─── TOAST ─── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 12px 20px;
+    border-radius: 6px;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ─── SYNTAX COLORS ─── */
+  .k { color: #7c3aed; }
+  .s { color: #00ff88; }
+  .c { color: #64748b; font-style: italic; }
+  .n { color: #ff6b35; }
+  .p { color: #e2e8f0; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="logo-row">
+      <div class="logo">OpenClaw <span class="omega">Ω</span></div>
+      <span class="badge">v2.0</span>
+    </div>
+    <div class="tagline">// YouTube Channel Intelligence Extractor → AI-Ready JSON Knowledge Files</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('channels')">① Channels</button>
+    <button class="tab" onclick="switchTab('config')">② Config</button>
+    <button class="tab" onclick="switchTab('scripts')">③ Scripts</button>
+    <button class="tab" onclick="switchTab('schema')">④ Output Schema</button>
+    <button class="tab" onclick="switchTab('deploy')">⑤ Deploy</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PANEL 1: CHANNELS
+  ══════════════════════════════════════════ -->
+  <div class="panel active" id="panel-channels">
+
+    <div class="card">
+      <div class="card-title">Add YouTube Channel</div>
+      <div class="card-sub">Paste the channel URL or @handle. Each channel gets its own knowledge file.</div>
+      <div style="display:flex;gap:10px;margin-bottom:10px;">
+        <input type="text" id="ch-url" placeholder="https://www.youtube.com/@ChannelName/videos" style="flex:1"/>
+        <input type="text" id="ch-label" placeholder="label (optional)" style="width:160px"/>
+      </div>
+      <button class="btn btn-primary" onclick="addChannel()">+ Add Channel</button>
+    </div>
+
+    <div class="section-label">Configured Channels</div>
+    <div id="channel-list">
+      <div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);padding:16px 0;">
+        No channels yet. Add one above.
+      </div>
+    </div>
+
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-download" onclick="exportChannelConfig()">↓ Export channels.json</button>
+      <button class="btn btn-secondary" onclick="importChannelConfig()">↑ Import channels.json</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)"/>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PANEL 2: CONFIG
+  ══════════════════════════════════════════ -->
+  <div class="panel" id="panel-config">
+
+    <div class="card">
+      <div class="card-title">AI Provider</div>
+      <div class="card-sub">Keys are stored locally in your browser and embedded into the downloaded config.</div>
+      <div class="section-label" style="margin-top:4px;">Provider</div>
+      <select id="cfg-provider" style="margin-bottom:12px;">
+        <option value="openrouter">OpenRouter (multi-model)</option>
+        <option value="openai">OpenAI Direct</option>
+        <option value="anthropic">Anthropic Direct</option>
+      </select>
+      <div class="section-label">API Keys (one per line)</div>
+      <textarea id="cfg-keys" placeholder="sk-or-...&#10;sk-or-..." rows="4"></textarea>
+      <div class="section-label" style="margin-top:12px;">Model</div>
+      <input type="text" id="cfg-model" value="openai/gpt-4o-mini" placeholder="openai/gpt-4o-mini"/>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Truth Engine</div>
+        <div class="card-sub">Claim clustering thresholds</div>
+        <div class="section-label">Similarity threshold</div>
+        <input type="text" id="cfg-sim" value="0.75" style="margin-bottom:10px;"/>
+        <div class="section-label">Min confidence</div>
+        <input type="text" id="cfg-conf" value="0.15"/>
+      </div>
+      <div class="card">
+        <div class="card-title">Risk Control</div>
+        <div class="card-sub">Decision engine limits</div>
+        <div class="section-label">Max exposure</div>
+        <input type="text" id="cfg-exposure" value="0.2" style="margin-bottom:10px;"/>
+        <div class="section-label">Confidence threshold</div>
+        <input type="text" id="cfg-threshold" value="0.6"/>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Extraction Settings</div>
+      <div class="card-sub">How many videos to process per channel per run</div>
+      <div class="section-label">Videos per channel</div>
+      <input type="text" id="cfg-vids" value="10" style="margin-bottom:12px;"/>
+      <div class="section-label">Max claims stored per channel</div>
+      <input type="text" id="cfg-claims" value="500"/>
+    </div>
+
+    <button class="btn btn-primary" onclick="exportConfig()">↓ Export config.json</button>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PANEL 3: SCRIPTS
+  ══════════════════════════════════════════ -->
+  <div class="panel" id="panel-scripts">
+
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">Download All Scripts</div>
+      <div class="card-sub">Downloads a ready-to-run Python package. Place all files in the same directory, then run <span class="inline-code">./launch.sh</span></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">
+        <button class="btn btn-primary" onclick="downloadAll()">↓ Download All (.zip)</button>
+        <button class="btn btn-download" onclick="downloadScript('ingest')">↓ ingest.py</button>
+        <button class="btn btn-download" onclick="downloadScript('worker')">↓ worker.py</button>
+        <button class="btn btn-download" onclick="downloadScript('truth')">↓ truth.py</button>
+        <button class="btn btn-download" onclick="downloadScript('decision')">↓ decision.py</button>
+        <button class="btn btn-download" onclick="downloadScript('launch')">↓ launch.sh</button>
+      </div>
+    </div>
+
+    <div class="section-label">Script Preview</div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">ingest.py — Queue videos from configured channels</span>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.65rem;" onclick="copyScript('ingest')">copy</button>
+      </div>
+      <pre id="preview-ingest"></pre>
+    </div>
+
+    <div class="code-block" style="margin-top:16px;">
+      <div class="code-header">
+        <span class="code-lang">worker.py — Download captions → extract claims via AI</span>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.65rem;" onclick="copyScript('worker')">copy</button>
+      </div>
+      <pre id="preview-worker"></pre>
+    </div>
+
+    <div class="code-block" style="margin-top:16px;">
+      <div class="code-header">
+        <span class="code-lang">truth.py — Cluster + deduplicate claims → truth.json</span>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.65rem;" onclick="copyScript('truth')">copy</button>
+      </div>
+      <pre id="preview-truth"></pre>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PANEL 4: OUTPUT SCHEMA
+  ══════════════════════════════════════════ -->
+  <div class="panel" id="panel-schema">
+
+    <div class="card">
+      <div class="card-title">Per-Channel Knowledge File</div>
+      <div class="card-sub"><span class="inline-code">knowledge/{channel_label}.json</span> — One file per channel, plug directly into any AI model as context</div>
+
+      <div class="schema-field">
+        <span class="field-name">channel</span>
+        <span class="field-type">string</span>
+        <span class="field-desc">YouTube channel @handle</span>
+      </div>
+      <div class="schema-field">
+        <span class="field-name">updated_at</span>
+        <span class="field-type">ISO8601</span>
+        <span class="field-desc">Last extraction timestamp</span>
+      </div>
+      <div class="schema-field">
+        <span class="field-name">video_count</span>
+        <span class="field-type">number</span>
+        <span class="field-desc">Videos processed so far</span>
+      </div>
+      <div class="schema-field">
+        <span class="field-name">claims[ ]</span>
+        <span class="field-type">array</span>
+        <span class="field-desc">All extracted claims</span>
+      </div>
+      <div class="schema-field" style="padding-left:24px;">
+        <span class="field-name">↳ id</span>
+        <span class="field-type">string</span>
+        <span class="field-desc">MD5 of claim text (dedup key)</span>
+      </div>
+      <div class="schema-field" style="padding-left:24px;">
+        <span class="field-name">↳ text</span>
+        <span class="field-type">string</span>
+        <span class="field-desc">The extracted claim / insight</span>
+      </div>
+      <div class="schema-field" style="padding-left:24px;">
+        <span class="field-name">↳ p</span>
+        <span class="field-type">float 0–1</span>
+        <span class="field-desc">Probability / confidence score from AI</span>
+      </div>
+      <div class="schema-field" style="padding-left:24px;">
+        <span class="field-name">↳ source_vid</span>
+        <span class="field-type">string</span>
+        <span class="field-desc">YouTube video ID origin</span>
+      </div>
+      <div class="schema-field" style="padding-left:24px;">
+        <span class="field-name">↳ timestamp</span>
+        <span class="field-type">ISO8601</span>
+        <span class="field-desc">When claim was extracted</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:0;">
+      <div class="card-title">Global Truth File</div>
+      <div class="card-sub"><span class="inline-code">truth/truth.json</span> — Cross-channel merged & ranked insights</div>
+
+      <div class="schema-field">
+        <span class="field-name">text</span>
+        <span class="field-type">string</span>
+        <span class="field-desc">Deduplicated claim text</span>
+      </div>
+      <div class="schema-field">
+        <span class="field-name">p</span>
+        <span class="field-type">float 0–1</span>
+        <span class="field-desc">Weighted average probability</span>
+      </div>
+      <div class="schema-field">
+        <span class="field-name">conf</span>
+        <span class="field-type">float 0–1</span>
+        <span class="field-desc">Confidence (grows with mentions)</span>
+      </div>
+      <div class="schema-field">
+        <span class="field-name">n</span>
+        <span class="field-type">number</span>
+        <span class="field-desc">Times this claim was seen across channels</span>
+      </div>
+      <div class="schema-field">
+        <span class="field-name">sources[ ]</span>
+        <span class="field-type">array</span>
+        <span class="field-desc">Which channels contributed this claim</span>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">Example — knowledge/hubermanlab.json</span>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.65rem;" onclick="copyExample()">copy</button>
+      </div>
+<pre id="example-json">{
+  <span class="s">"channel"</span>: <span class="s">"hubermanlab"</span>,
+  <span class="s">"updated_at"</span>: <span class="s">"2025-04-27T14:32:00Z"</span>,
+  <span class="s">"video_count"</span>: <span class="n">42</span>,
+  <span class="s">"claims"</span>: [
+    {
+      <span class="s">"id"</span>: <span class="s">"a3f9b12c4d"</span>,
+      <span class="s">"text"</span>: <span class="s">"Morning sunlight exposure within 30 minutes of waking anchors the circadian clock"</span>,
+      <span class="s">"p"</span>: <span class="n">0.92</span>,
+      <span class="s">"source_vid"</span>: <span class="s">"dQw4w9WgXcQ"</span>,
+      <span class="s">"timestamp"</span>: <span class="s">"2025-04-27T14:30:12Z"</span>
+    },
+    {
+      <span class="s">"id"</span>: <span class="s">"b7e2a8f1c3"</span>,
+      <span class="s">"text"</span>: <span class="s">"Cold exposure elevates epinephrine and dopamine for hours afterward"</span>,
+      <span class="s">"p"</span>: <span class="n">0.87</span>,
+      <span class="s">"source_vid"</span>: <span class="s">"xvFZjo5PgG0"</span>,
+      <span class="s">"timestamp"</span>: <span class="s">"2025-04-27T14:31:04Z"</span>
+    }
+  ]
+}</pre>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="card-title">Using with AI Models</div>
+      <div class="card-sub">Drop the JSON directly as system context or a document block</div>
+      <div class="code-block" style="margin-top:8px;">
+<pre><span class="c"># OpenAI / Claude / Gemini</span>
+<span class="k">import</span> <span class="p">json</span>
+
+knowledge = <span class="p">json.load(</span><span class="k">open</span><span class="p">(</span><span class="s">"knowledge/hubermanlab.json"</span><span class="p">))</span>
+claims_text = <span class="s">"\n"</span><span class="p">.join([</span><span class="p">c[</span><span class="s">"text"</span><span class="p">]</span> <span class="k">for</span> <span class="p">c</span> <span class="k">in</span> <span class="p">knowledge[</span><span class="s">"claims"</span><span class="p">]])</span>
+
+system_prompt = <span class="k">f</span><span class="s">"""
+You have access to the following expert knowledge
+extracted from {knowledge['channel']}:
+
+{claims_text}
+
+Answer questions using this knowledge as grounding.
+"""</span></pre>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PANEL 5: DEPLOY
+  ══════════════════════════════════════════ -->
+  <div class="panel" id="panel-deploy">
+
+    <div class="card">
+      <div class="card-title">Host on GitHub Pages</div>
+      <div class="card-sub">This page is a standalone HTML file — zero build step, zero dependencies.</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Create a GitHub repo</div>
+            <div class="step-desc">Name it <span class="inline-code">openclaw</span> or anything you like. Make it public.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Push <span class="inline-code">index.html</span> to the root</div>
+            <div class="step-desc">That's the only file needed for the web app. The Python scripts are downloaded on demand from the Scripts tab.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Enable GitHub Pages</div>
+            <div class="step-desc">Settings → Pages → Source: main branch, / (root). Your app will be live at <span class="inline-code">https://username.github.io/openclaw</span></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Run Python backend locally</div>
+            <div class="step-desc">Download the scripts, drop <span class="inline-code">config.json</span> and <span class="inline-code">channels.json</span> next to them, then <span class="inline-code">./launch.sh</span>. Knowledge files appear in <span class="inline-code">knowledge/</span>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <div class="step-title">(Optional) Commit knowledge files to GitHub</div>
+            <div class="step-desc">Push the <span class="inline-code">knowledge/</span> folder to your repo so others can fetch the JSON files directly via raw URLs — perfect for sharing AI context.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Automate with GitHub Actions</div>
+      <div class="card-sub">Run extraction on a schedule and auto-commit updated knowledge files</div>
+      <div class="code-block" style="margin-top:8px;">
+        <div class="code-header">
+          <span class="code-lang">.github/workflows/extract.yml</span>
+          <button class="btn btn-secondary" style="padding:4px 10px;font-size:0.65rem;" onclick="copyWorkflow()">copy</button>
+        </div>
+<pre id="workflow-yaml"><span class="k">name:</span> <span class="s">Extract Channel Knowledge</span>
+<span class="k">on:</span>
+  <span class="k">schedule:</span>
+    <span class="p">- </span><span class="k">cron:</span> <span class="s">'0 6 * * *'</span>  <span class="c"># Daily at 6am UTC</span>
+  <span class="k">workflow_dispatch:</span>  <span class="c"># Manual trigger</span>
+
+<span class="k">jobs:</span>
+  <span class="k">extract:</span>
+    <span class="k">runs-on:</span> <span class="s">ubuntu-latest</span>
+    <span class="k">steps:</span>
+      <span class="p">- </span><span class="k">uses:</span> <span class="s">actions/checkout@v4</span>
+
+      <span class="p">- </span><span class="k">name:</span> <span class="s">Install deps</span>
+        <span class="k">run:</span> <span class="p">|</span>
+          <span class="s">pip install yt-dlp redis requests numpy</span>
+          <span class="s">sudo apt-get install -y redis-server ffmpeg</span>
+          <span class="s">sudo service redis-server start</span>
+
+      <span class="p">- </span><span class="k">name:</span> <span class="s">Write config</span>
+        <span class="k">run:</span> <span class="s">echo '${{ secrets.OPENCLAW_CONFIG }}' > config.json</span>
+
+      <span class="p">- </span><span class="k">name:</span> <span class="s">Run extraction</span>
+        <span class="k">run:</span> <span class="p">|</span>
+          <span class="s">python3 ingest.py</span>
+          <span class="s">python3 worker.py</span>
+          <span class="s">python3 truth.py</span>
+
+      <span class="p">- </span><span class="k">name:</span> <span class="s">Commit knowledge files</span>
+        <span class="k">run:</span> <span class="p">|</span>
+          <span class="s">git config user.name "openclaw-bot"</span>
+          <span class="s">git config user.email "bot@openclaw"</span>
+          <span class="s">git add knowledge/ truth/</span>
+          <span class="s">git diff --staged --quiet || git commit -m "🧠 Update knowledge $(date -u +%Y-%m-%d)"</span>
+          <span class="s">git push</span></pre>
+      </div>
+      <div style="margin-top:12px;font-family:var(--mono);font-size:0.7rem;color:var(--muted);">
+        Store your <span class="inline-code">config.json</span> content (with API keys) as a GitHub Secret named <span class="inline-code">OPENCLAW_CONFIG</span>.
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="footer-text">OpenClaw Ω — all config stored locally in browser</div>
+    <div style="display:flex;gap:12px;">
+      <span class="status ready">● local-only storage</span>
+    </div>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let channels = JSON.parse(localStorage.getItem('oc_channels') || '[]');
+
+function save() { localStorage.setItem('oc_channels', JSON.stringify(channels)); }
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    const panels = ['channels','config','scripts','schema','deploy'];
+    t.classList.toggle('active', panels[i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'scripts') renderPreviews();
+}
+
+// ─── CHANNELS ────────────────────────────────────────────────────────────────
+function addChannel() {
+  const url = document.getElementById('ch-url').value.trim();
+  const label = document.getElementById('ch-label').value.trim();
+  if (!url) return toast('Enter a channel URL');
+  const name = label || url.split('@')[1]?.split('/')[0] || url.split('/').pop();
+  channels.push({ url, label: name });
+  save();
+  renderChannels();
+  document.getElementById('ch-url').value = '';
+  document.getElementById('ch-label').value = '';
+  toast('Channel added: ' + name);
+}
+
+function removeChannel(i) {
+  channels.splice(i, 1);
+  save();
+  renderChannels();
+}
+
+function renderChannels() {
+  const el = document.getElementById('channel-list');
+  if (!channels.length) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);padding:16px 0;">No channels yet. Add one above.</div>';
+    return;
+  }
+  el.innerHTML = channels.map((ch, i) => `
+    <div class="channel-item">
+      <div class="ch-dot"></div>
+      <div class="ch-url">${ch.url}</div>
+      <div class="ch-label">${ch.label}</div>
+      <button class="btn btn-danger" onclick="removeChannel(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+renderChannels();
+
+function exportChannelConfig() {
+  download('channels.json', JSON.stringify({ channels }, null, 2));
+  toast('channels.json downloaded');
+}
+
+function importChannelConfig() {
+  document.getElementById('import-file').click();
+}
+
+function handleImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.channels) {
+        channels = data.channels;
+        save();
+        renderChannels();
+        toast('Imported ' + channels.length + ' channels');
+      }
+    } catch { toast('Invalid JSON file'); }
+  };
+  reader.readAsText(file);
+}
+
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+function getConfig() {
+  return {
+    channels: channels.map(c => c.url),
+    channel_labels: Object.fromEntries(channels.map(c => [c.url, c.label])),
+    ai: {
+      provider: document.getElementById('cfg-provider').value,
+      keys: document.getElementById('cfg-keys').value.split('\n').map(s=>s.trim()).filter(Boolean),
+      model: document.getElementById('cfg-model').value
+    },
+    truth: {
+      similarity: parseFloat(document.getElementById('cfg-sim').value),
+      min_conf: parseFloat(document.getElementById('cfg-conf').value)
+    },
+    risk: {
+      max_exposure: parseFloat(document.getElementById('cfg-exposure').value),
+      confidence_threshold: parseFloat(document.getElementById('cfg-threshold').value)
+    },
+    ingest: {
+      videos_per_channel: parseInt(document.getElementById('cfg-vids').value),
+      max_claims_per_channel: parseInt(document.getElementById('cfg-claims').value)
+    }
+  };
+}
+
+function exportConfig() {
+  download('config.json', JSON.stringify(getConfig(), null, 2));
+  toast('config.json downloaded');
+}
+
+// ─── SCRIPTS ─────────────────────────────────────────────────────────────────
+function getScripts() {
+  const cfg = getConfig();
+  const channelList = (cfg.channels.length ? cfg.channels : ['https://www.youtube.com/@ChannelName/videos'])
+    .map(c => `    "${c}"`).join(',\n');
+
+  const ingest = `import redis, subprocess, json, sys
+
+r = redis.Redis(decode_responses=True)
+cfg = json.load(open("config.json"))
+
+channels = cfg.get("channels", [])
+limit = cfg.get("ingest", {}).get("videos_per_channel", 10)
+
+for ch in channels:
+    try:
+        ids = subprocess.check_output([
+            "yt-dlp", "--flat-playlist", "--get-id", ch
+        ]).decode().splitlines()
+        queued = 0
+        for vid in ids[:limit]:
+            label = cfg.get("channel_labels", {}).get(ch, ch.split("@")[-1].split("/")[0])
+            key = f"{label}:{vid}"
+            if not r.sismember("seen", key):
+                r.lpush("queue", json.dumps({"ch": label, "vid": vid}))
+                queued += 1
+        print(f"[ingest] {ch} → queued {queued} new videos")
+    except Exception as e:
+        print(f"[ingest] Error on {ch}: {e}")
+`;
+
+  const worker = `import redis, subprocess, json, os, re, hashlib
+from datetime import datetime, timezone
+
+def load_ai():
+    import sys
+    sys.path.insert(0, os.path.dirname(__file__))
+    from ai import call_ai
+    return call_ai
+
+r = redis.Redis(decode_responses=True)
+call_ai = load_ai()
+
+def clean_vtt(path):
+    if not os.path.exists(path): return ""
+    lines = []
+    for l in open(path, errors="ignore"):
+        if "-->" in l or "WEBVTT" in l or not l.strip(): continue
+        l = re.sub(r"<[^>]+>", "", l).strip()
+        if not lines or lines[-1] != l: lines.append(l)
+    return " ".join(lines)[:6000]
+
+def make_id(text):
+    return hashlib.md5(text.encode()).hexdigest()[:12]
+
+PROMPT = """Extract factual claims from this transcript.
+Return ONLY a JSON object: {"claims": [{"text": "claim text", "p": 0.0}]}
+- "text": a single clear factual claim or insight
+- "p": your confidence 0.0-1.0 that this is accurate
+Extract up to 20 of the most significant claims.
+Transcript:
+"""
+
+os.makedirs("knowledge", exist_ok=True)
+os.makedirs("state", exist_ok=True)
+
+cfg = json.load(open("config.json"))
+max_claims = cfg.get("ingest", {}).get("max_claims_per_channel", 500)
+
+print("[worker] Waiting for jobs...")
+while True:
+    _, job = r.brpop("queue")
+    job = json.loads(job)
+    ch, vid = job["ch"], job["vid"]
+
+    print(f"[worker] Processing {ch}/{vid}")
+    subprocess.run([
+        "yt-dlp", "--skip-download",
+        "--write-auto-sub", "--sub-lang", "en",
+        "-o", f"state/{vid}",
+        f"https://youtube.com/watch?v={vid}"
+    ], capture_output=True)
+
+    txt = clean_vtt(f"state/{vid}.en.vtt")
+    if len(txt) < 200:
+        print(f"[worker] Skipping {vid} (no captions)")
+        r.sadd("seen", f"{ch}:{vid}")
+        continue
+
+    res = call_ai(PROMPT + txt)
+    if not res:
+        print(f"[worker] AI call failed for {vid}")
+        continue
+
+    try:
+        # Strip markdown fences if present
+        clean = res.strip().lstrip("\`").lstrip("json").strip()
+        if clean.startswith("\`"): clean = clean[3:]
+        if clean.endswith("\`\`\`"): clean = clean[:-3]
+        data = json.loads(clean.strip())
+
+        path = f"knowledge/{ch}.json"
+        mem = json.load(open(path)) if os.path.exists(path) else {
+            "channel": ch, "video_count": 0, "claims": []
+        }
+
+        now = datetime.now(timezone.utc).isoformat()
+        for c in data.get("claims", []):
+            if not c.get("text"): continue
+            mem["claims"].append({
+                "id": make_id(c["text"]),
+                "text": c["text"],
+                "p": float(c.get("p", 0.5)),
+                "source_vid": vid,
+                "timestamp": now
+            })
+
+        mem["claims"] = mem["claims"][-max_claims:]
+        mem["updated_at"] = now
+        mem["video_count"] = mem.get("video_count", 0) + 1
+        json.dump(mem, open(path, "w"), indent=2)
+
+        r.sadd("seen", f"{ch}:{vid}")
+        print(f"[worker] Saved {len(data.get('claims',[]))} claims for {ch}/{vid}")
+    except Exception as e:
+        print(f"[worker] Parse error for {vid}: {e}")
+        print(f"[worker] Raw response: {res[:200]}")
+`;
+
+  const truth = `import json, os, re
+
+def shingle(t, n=3):
+    t = re.sub(r'\\W+', '', t.lower())
+    return set(t[i:i+n] for i in range(len(t)-n+1))
+
+cfg = json.load(open("config.json")) if os.path.exists("config.json") else {}
+sim_thresh = cfg.get("truth", {}).get("similarity", 0.75)
+
+claims = []
+for f in os.listdir("knowledge"):
+    if not f.endswith(".json"): continue
+    try:
+        data = json.load(open("knowledge/" + f))
+        channel = data.get("channel", f.replace(".json",""))
+        for c in data.get("claims", []):
+            claims.append({
+                "t": c["text"],
+                "p": c["p"],
+                "s": shingle(c["text"]),
+                "channel": channel,
+                "vid": c.get("source_vid","")
+            })
+    except: pass
+
+clusters = []
+for c in claims:
+    match = None
+    for cl in clusters:
+        union = cl["s"] | c["s"]
+        if not union: continue
+        sim = len(cl["s"] & c["s"]) / len(union)
+        if sim > sim_thresh:
+            match = cl
+            break
+    if not match:
+        clusters.append({
+            "t": c["t"], "p": c["p"], "n": 1,
+            "s": c["s"],
+            "sources": [c["channel"]]
+        })
+    else:
+        match["p"] = (match["p"] * match["n"] + c["p"]) / (match["n"] + 1)
+        match["n"] += 1
+        if c["channel"] not in match["sources"]:
+            match["sources"].append(c["channel"])
+
+result = [
+    {
+        "text": cl["t"],
+        "p": round(cl["p"], 3),
+        "conf": round(min(1.0, cl["n"] / 5), 3),
+        "n": cl["n"],
+        "sources": cl["sources"]
+    }
+    for cl in clusters
+]
+result.sort(key=lambda x: x["p"] * x["conf"], reverse=True)
+
+os.makedirs("truth", exist_ok=True)
+json.dump(result, open("truth/truth.json", "w"), indent=2)
+print(f"[truth] Updated: {len(result)} unique claims from {len(claims)} raw")
+`;
+
+  const decision = `import json, math
+
+if not __import__("os").path.exists("truth/truth.json"):
+    print("[decision] truth.json not found — run truth.py first")
+    exit(1)
+
+cfg = json.load(open("config.json")) if __import__("os").path.exists("config.json") else {}
+risk_cfg = cfg.get("risk", {})
+conf_thresh = risk_cfg.get("confidence_threshold", 0.6)
+
+truths = json.load(open("truth/truth.json"))
+high_conf = [x for x in truths if x["conf"] >= conf_thresh]
+
+score = 0
+risk = 0
+for x in high_conf[:20]:
+    p = max(0.05, x["p"])
+    score += math.log(p) * x["conf"]
+    risk += (1 - x["conf"])
+
+final = score - (risk * 0.5)
+
+if final > 0.8: action = "EXECUTE"
+elif final < -2: action = "EXIT"
+else: action = "WAIT"
+
+out = {
+    "action": action,
+    "score": round(final, 3),
+    "high_conf_claims": len(high_conf),
+    "top_insights": [x["text"] for x in high_conf[:5]]
+}
+
+json.dump(out, open("truth/decision.json", "w"), indent=2)
+print(f"[decision] {action} | score={final:.3f} | {len(high_conf)} high-conf claims")
+`;
+
+  const ai = `import json, requests, random, os
+
+def cfg():
+    path = os.path.join(os.path.dirname(__file__), "..", "config.json")
+    return json.load(open(path))
+
+def call_ai(prompt):
+    C = cfg()
+    keys = C["ai"]["keys"][:]
+    random.shuffle(keys)
+    provider = C["ai"].get("provider", "openrouter")
+    model = C["ai"]["model"]
+
+    for key in keys:
+        try:
+            if provider == "openrouter":
+                url = "https://openrouter.ai/api/v1/chat/completions"
+            elif provider == "openai":
+                url = "https://api.openai.com/v1/chat/completions"
+            elif provider == "anthropic":
+                # Anthropic uses a different format
+                r = requests.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": key,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json"
+                    },
+                    json={
+                        "model": model or "claude-3-haiku-20240307",
+                        "max_tokens": 1024,
+                        "messages": [{"role": "user", "content": prompt}]
+                    },
+                    timeout=30
+                )
+                if r.status_code == 200:
+                    return r.json()["content"][0]["text"]
+                continue
+            else:
+                url = "https://openrouter.ai/api/v1/chat/completions"
+
+            r = requests.post(
+                url,
+                headers={"Authorization": f"Bearer {key}"},
+                json={
+                    "model": model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.2,
+                    "max_tokens": 1024
+                },
+                timeout=30
+            )
+            if r.status_code == 200:
+                return r.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            print(f"[ai] Key failed: {e}")
+            continue
+    return None
+`;
+
+  const launch = `#!/bin/bash
+# OpenClaw Ω Launcher
+SESSION="openclaw"
+BASE="$(cd "$(dirname "$0")" && pwd)"
+
+# Check deps
+command -v python3 >/dev/null || { echo "python3 required"; exit 1; }
+command -v redis-cli >/dev/null || { echo "redis-server required: sudo apt install redis-server"; exit 1; }
+
+mkdir -p "$BASE/knowledge" "$BASE/truth" "$BASE/state" "$BASE/logic"
+sudo service redis-server start 2>/dev/null || redis-server --daemonize yes 2>/dev/null
+
+tmux kill-session -t $SESSION 2>/dev/null
+tmux new-session  -d -s $SESSION -n Worker  "cd $BASE && python3 worker.py"
+tmux new-window   -t $SESSION:1 -n Ingest   "cd $BASE && watch -n 300 python3 ingest.py"
+tmux new-window   -t $SESSION:2 -n Truth    "cd $BASE && watch -n 60  python3 truth.py"
+tmux new-window   -t $SESSION:3 -n Decision "cd $BASE && watch -n 90  python3 decision.py"
+
+echo "OpenClaw Ω running in tmux session: $SESSION"
+echo "Attach: tmux attach -t $SESSION"
+tmux attach -t $SESSION
+`;
+
+  return { ingest, worker, truth, decision, ai, launch };
+}
+
+function renderPreviews() {
+  const s = getScripts();
+  document.getElementById('preview-ingest').textContent = s.ingest;
+  document.getElementById('preview-worker').textContent = s.worker;
+  document.getElementById('preview-truth').textContent = s.truth;
+}
+
+function downloadScript(name) {
+  const s = getScripts();
+  const map = {
+    ingest: ['ingest.py', s.ingest],
+    worker: ['worker.py', s.worker],
+    truth: ['truth.py', s.truth],
+    decision: ['decision.py', s.decision],
+    launch: ['launch.sh', s.launch]
+  };
+  download(...map[name]);
+  toast(map[name][0] + ' downloaded');
+}
+
+function copyScript(name) {
+  const s = getScripts();
+  const map = { ingest: s.ingest, worker: s.worker, truth: s.truth };
+  navigator.clipboard.writeText(map[name]).then(() => toast('Copied to clipboard'));
+}
+
+async function downloadAll() {
+  const s = getScripts();
+  const cfg = getConfig();
+
+  // Use a simple zip approach via data URIs for each file
+  const files = [
+    ['ingest.py', s.ingest],
+    ['worker.py', s.worker],
+    ['truth.py', s.truth],
+    ['decision.py', s.decision],
+    ['logic/ai.py', s.ai],
+    ['launch.sh', s.launch],
+    ['config.json', JSON.stringify(cfg, null, 2)],
+    ['channels.json', JSON.stringify({ channels }, null, 2)],
+    ['README.md', `# OpenClaw Ω
+
+## Setup
+\`\`\`bash
+sudo apt install redis-server ffmpeg tmux
+pip3 install yt-dlp redis requests numpy --break-system-packages
+\`\`\`
+
+## Edit config
+Edit \`config.json\` with your API keys.
+
+## Run
+\`\`\`bash
+chmod +x launch.sh
+./launch.sh
+\`\`\`
+
+## Output
+- \`knowledge/{channel}.json\` — Per-channel AI-ready knowledge file
+- \`truth/truth.json\` — Cross-channel merged insights
+- \`truth/decision.json\` — Decision engine output
+`]
+  ];
+
+  // Download each file individually (no zip lib available in pure HTML)
+  for (const [fname, content] of files) {
+    download(fname.split('/').pop(), content);
+    await new Promise(r => setTimeout(r, 150));
+  }
+  toast('All scripts downloaded (' + files.length + ' files)');
+}
+
+function copyWorkflow() {
+  const el = document.getElementById('workflow-yaml');
+  navigator.clipboard.writeText(el.innerText).then(() => toast('Workflow YAML copied'));
+}
+
+function copyExample() {
+  const el = document.getElementById('example-json');
+  navigator.clipboard.writeText(el.innerText).then(() => toast('Example JSON copied'));
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function download(filename, content) {
+  const a = document.createElement('a');
+  a.href = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
+  a.download = filename;
+  a.click();
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
