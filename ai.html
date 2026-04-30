@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>OpenClaw AI — Breakout Scanner</title>
+<title>Breakout Scanner + Full Analysis</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f6fa;min-height:100vh}
@@ -32,10 +32,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tf-btn{padding:6px 12px;border:2px solid #dfe6e9;border-radius:6px;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#636e72;transition:all .15s}
 .tf-btn:hover{border-color:#667eea;color:#667eea}
 .tf-btn.on{background:#667eea;color:#fff;border-color:#667eea}
-.modal-tf-btn{padding:3px 9px;border:1px solid #2d2d4a;border-radius:5px;background:#1e1e2e;
-  font-size:10px;font-weight:700;cursor:pointer;color:#6b6b9a;transition:all .12s;font-family:inherit}
-.modal-tf-btn:hover{border-color:#667eea;color:#e0e0f0}
-.modal-tf-btn.on{background:#667eea;color:#fff;border-color:#667eea}
 .tf-info{padding:7px 12px;border-radius:6px;background:#f0f4ff;border:1px solid #c7d2fe;font-size:11px;color:#4338ca;margin-bottom:12px}
 .ctrl{display:grid;gap:12px;align-items:end;grid-template-columns:1fr 105px 105px auto}
 label{display:block;font-weight:600;margin-bottom:5px;font-size:10px;color:#636e72;text-transform:uppercase;letter-spacing:.3px}
@@ -87,12 +83,6 @@ table{width:100%;border-collapse:collapse}
 thead{background:#f8f9fa;position:sticky;top:0;z-index:10}
 th{padding:9px 11px;text-align:left;font-size:10px;font-weight:700;color:#636e72;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid #dfe6e9;white-space:nowrap}
 th.r{text-align:right}th.c{text-align:center}
-th.sortable{cursor:pointer;user-select:none;transition:color .12s,background .12s}
-th.sortable:hover{color:#667eea;background:#eef0ff}
-th.sort-asc{color:#667eea;background:#eef0ff}
-th.sort-asc::after{content:' ▲';font-size:9px;opacity:.8}
-th.sort-desc{color:#667eea;background:#eef0ff}
-th.sort-desc::after{content:' ▼';font-size:9px;opacity:.8}
 tbody tr{border-bottom:1px solid #ecf0f1;transition:background .12s}
 tbody tr:hover{background:#f8f9fa}
 td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
@@ -246,20 +236,13 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
 <body>
 <div class="hdr">
   <div>
-    <h1>🤖 OpenClaw AI — Breakout Scanner</h1>
-    <p>Yahoo Finance · Swing + Channel · Keltner · Hurst · RSI · ATR · VWAP · Fibonacci · Gann · ADX · Z-Score · <strong style="color:#a5f3fc">AI Self-Learning · Forecast · Pattern Training</strong></p>
+    <h1>📊 Multi-Timeframe Breakout Scanner</h1>
+    <p>Yahoo Finance · Swing + Channel · Keltner · Hurst · Market Structure · RSI · ATR · VWAP · Volume Profile · Fibonacci · Gann · ADX · Z-Score · Forecast</p>
   </div>
   <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
     <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
-    <div style="font-size:14px;font-weight:700;font-family:monospace">20260324.AI</div>
+    <div style="font-size:14px;font-weight:700;font-family:monospace">20260323.1935</div>
     <div style="font-size:9px;opacity:0.6">▾ changelog</div>
-  </div>
-  <div id="aiBar" style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(0,0,0,0.25);border-radius:8px;font-size:11px;flex-wrap:wrap">
-    <span id="aiDot" style="width:8px;height:8px;border-radius:50%;background:#4b5563;display:inline-block;transition:all .3s"></span>
-    <span id="aiTxt" style="color:rgba(255,255,255,0.55)">AI: Idle</span>
-    <span id="aiLvl" style="background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);font-size:9px;font-weight:700;padding:2px 8px;border-radius:8px">NOVICE</span>
-    <span id="aiXP" style="color:rgba(255,255,255,0.4);font-size:10px">XP: 0</span>
-    <button onclick="toggleAILearn()" id="aiBtnLearn" style="background:rgba(124,58,237,0.4);color:#c4b5fd;border:1px solid rgba(124,58,237,0.6);border-radius:5px;padding:3px 10px;font-size:10px;cursor:pointer;font-weight:700">◈ AUTO-LEARN</button>
   </div>
 </div>
 
@@ -295,11 +278,8 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
     <div class="tf-row">
       <span class="tf-lbl">⏱ Timeframe:</span>
       <div class="tf-btns" id="tfBtns">
-        <button class="tf-btn"     onclick="setTF('1m',this)">1 Min</button>
-        <button class="tf-btn"     onclick="setTF('3m',this)">3 Min</button>
         <button class="tf-btn on"  onclick="setTF('5m',this)">5 Min</button>
         <button class="tf-btn"     onclick="setTF('15m',this)">15 Min</button>
-        <button class="tf-btn"     onclick="setTF('30m',this)">30 Min</button>
         <button class="tf-btn"     onclick="setTF('1h',this)">1 Hour</button>
         <button class="tf-btn"     onclick="setTF('2h',this)">2 Hours</button>
         <button class="tf-btn"     onclick="setTF('4h',this)">4 Hours</button>
@@ -379,23 +359,12 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
     <div class="twrap">
       <table>
         <thead><tr>
-          <th class="sortable" onclick="sortTable('sym')">Symbol</th>
-          <th class="c sortable" onclick="sortTable('tf')">TF</th>
-          <th class="r sortable" onclick="sortTable('price')">Price</th>
-          <th class="r sortable" onclick="sortTable('chg')">Chg%</th>
-          <th class="c sortable" onclick="sortTable('signal')">Signal</th>
-          <th class="c sortable" onclick="sortTable('type')">Type</th>
-          <th class="c">Option</th>
-          <th class="r sortable" onclick="sortTable('strike')">Strike</th>
-          <th class="r sortable" onclick="sortTable('stop')">Stop</th>
-          <th class="c sortable" onclick="sortTable('forecast')">Forecast</th>
-          <th class="c sortable" onclick="sortTable('structure')">Structure</th>
-          <th class="c sortable" onclick="sortTable('conf')">Conf</th>
-          <th class="c sortable" style="color:#7c3aed;background:#f5f3ff" onclick="sortTable('ai')">🤖 AI</th>
-          <th class="c sortable" style="color:#7c3aed;background:#f5f3ff" onclick="sortTable('aiconf')">AI%</th>
-          <th class="c">Action</th>
+          <th>Symbol</th><th class="c">TF</th><th class="r">Price</th><th class="r">Chg%</th>
+          <th class="c">Signal</th><th class="c">Type</th><th class="c">Option</th>
+          <th class="r">Strike</th><th class="r">Stop</th><th class="c">Forecast</th>
+          <th class="c">Structure</th><th class="c">Conf</th><th class="c">Action</th>
         </tr></thead>
-        <tbody id="tBody"><tr><td colspan="15" class="est"><div class="ei">📊</div><div>Choose a timeframe and click Scan</div></td></tr></tbody>
+        <tbody id="tBody"><tr><td colspan="13" class="est"><div class="ei">📊</div><div>Choose a timeframe and click Scan</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -418,17 +387,14 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
 <script>
 // ═══════ TIMEFRAME CONFIG ════════════════════════════════════════════════
 const YF_TF={
-  '1m': {interval:'1m', range:'1d',  label:'1 Min',   unit:'minute', info:'range=1d · ~390 bars · Scalping'},
-  '3m': {interval:'2m', range:'5d',  label:'3 Min',   unit:'minute', info:'range=5d · ~200 bars · Scalping (2m proxy)'},
-  '5m': {interval:'5m', range:'1d',  label:'5 Min',   unit:'minute', info:'range=1d · ~78 bars · Day trading'},
-  '15m':{interval:'15m',range:'5d',  label:'15 Min',  unit:'minute', info:'range=5d · ~130 bars · Day trading'},
-  '30m':{interval:'30m',range:'1mo', label:'30 Min',  unit:'minute', info:'range=1mo · ~100 bars · Swing'},
-  '1h': {interval:'1h', range:'1mo', label:'1 Hour',  unit:'hour',   info:'range=1mo · ~160 bars · Swing'},
-  '2h': {interval:'2h', range:'3mo', label:'2 Hours', unit:'hour',   info:'range=3mo · ~90 bars · Swing'},
-  '4h': {interval:'4h', range:'6mo', label:'4 Hours', unit:'hour',   info:'range=6mo · ~90 bars · Position'},
-  '1d': {interval:'1d', range:'2y',  label:'Daily',   unit:'day',    info:'range=2y · ~500 bars · Position'},
-  '1wk':{interval:'1wk',range:'5y',  label:'Weekly',  unit:'week',   info:'range=5y · ~260 bars · Investor'},
-  '1mo':{interval:'1mo',range:'10y', label:'Monthly', unit:'month',  info:'range=10y · ~120 bars · Macro'},
+  '5m': {interval:'5m', range:'1d', label:'5 Min',  unit:'minute', info:'range=1d · ~78 bars'},
+  '15m':{interval:'15m',range:'5d', label:'15 Min', unit:'minute', info:'range=5d · ~130 bars'},
+  '1h': {interval:'1h', range:'1mo',label:'1 Hour', unit:'hour',   info:'range=1mo · ~160 bars'},
+  '2h': {interval:'2h', range:'3mo',label:'2 Hours',unit:'hour',   info:'range=3mo · ~90 bars'},
+  '4h': {interval:'4h', range:'6mo',label:'4 Hours',unit:'hour',   info:'range=6mo · ~90 bars'},
+  '1d': {interval:'1d', range:'2y', label:'Daily',  unit:'day',    info:'range=2y · ~500 bars'},
+  '1wk':{interval:'1wk',range:'5y', label:'Weekly', unit:'week',   info:'range=5y · ~260 bars'},
+  '1mo':{interval:'1mo',range:'10y',label:'Monthly',unit:'month',  info:'range=10y · ~120 bars'},
 };
 
 const PRESETS={
@@ -440,75 +406,38 @@ const PRESETS={
 };
 
 // ═══════ PROXY ═══════════════════════════════════════════════════════════
-// ═══ PROXY SYSTEM — robust multi-source chain ════════════════════════
-// Each proxy is tried in order for every fetch. No global proxy lock —
-// each fetchYF call tries all proxies independently so transient failures
-// don't block the whole scan. Scan always attempts even if test fails.
+const PROXIES=[
+  {name:'corsproxy.io',  url:(s,tf)=>`https://corsproxy.io/?${encodeURIComponent(yfUrl(s,tf))}`},
+  {name:'allorigins',    url:(s,tf)=>`https://api.allorigins.win/raw?url=${encodeURIComponent(yfUrl(s,tf))}`},
+  {name:'cors.sh',       url:(s,tf)=>`https://cors.sh/${yfUrl(s,tf)}`},
+  {name:'thingproxy',    url:(s,tf)=>`https://thingproxy.freeboard.io/fetch/${yfUrl(s,tf)}`},
+];
+let proxy=null;
 
 function yfUrl(sym,tfKey){
   const tf=YF_TF[tfKey];
   return `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${tf.interval}&range=${tf.range}&includePrePost=false`;
 }
 
-// Build the proxied URL for a given raw URL
-function makeProxyUrl(raw, proxyName){
-  const enc = encodeURIComponent(raw);
-  switch(proxyName){
-    case 'allorigins-raw':  return `https://api.allorigins.win/raw?url=${enc}`;
-    case 'allorigins-get':  return `https://api.allorigins.win/get?url=${enc}`;
-    case 'corsproxy':       return `https://corsproxy.io/?${enc}`;
-    case 'codetabs':        return `https://api.codetabs.com/v1/proxy?quest=${raw}`;
-    case 'jsonp':           return `https://api.allorigins.win/raw?url=${enc}`;
-    default:                return `https://api.allorigins.win/raw?url=${enc}`;
-  }
-}
-
-const PROXY_NAMES = ['allorigins-raw','allorigins-get','corsproxy','codetabs'];
-
-// Parse Yahoo Finance JSON from any proxy response format
-async function parseYFResponse(res, proxyName){
-  const text = await res.text();
-  let json;
-  // allorigins-get wraps in {contents:'...'}
-  if(proxyName === 'allorigins-get'){
-    const outer = JSON.parse(text);
-    json = JSON.parse(outer.contents);
-  } else {
-    json = JSON.parse(text);
-  }
-  return json;
-}
-
-let proxy = {name:'allorigins-raw'}; // default — always set so scan never blocks
-
 async function testProxies(){
   const d=document.getElementById('proxyDiv');
   const dot=document.getElementById('pdot');
   const msg=document.getElementById('pmsg');
   d.className='proxy vis test'; dot.className='pdot dspin'; msg.textContent='Testing proxies…';
-
-  const rawUrl = yfUrl('SPY','1d');
-  for(const name of PROXY_NAMES){
+  proxy=null;
+  for(const p of PROXIES){
     try{
-      const url = makeProxyUrl(rawUrl, name);
-      const ctrl = new AbortController();
-      const t = setTimeout(()=>ctrl.abort(), 8000);
-      const res = await fetch(url, {signal:ctrl.signal});
+      const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),6000);
+      const res=await fetch(p.url('SPY','5m'),{signal:ctrl.signal});
       clearTimeout(t);
       if(!res.ok) continue;
-      const json = await parseYFResponse(res, name);
+      let json; try{json=JSON.parse(await res.text());}catch(e){continue;}
       if(!json?.chart?.result?.[0]?.timestamp) continue;
-      proxy = {name};
-      d.className='proxy vis ok'; dot.className='pdot dok';
-      msg.textContent='✅ '+name+' — Yahoo Finance ready';
-      return;
-    }catch(e){ continue; }
+      proxy=p; break;
+    }catch(e){}
   }
-  // All failed — show warning but DON'T block scanning
-  // fetchYF will retry all proxies per-symbol
-  proxy = {name:'allorigins-raw'};
-  d.className='proxy vis fail'; dot.className='pdot dfail';
-  msg.textContent='⚠ Proxy test inconclusive — scan will auto-retry all sources';
+  if(proxy){d.className='proxy vis ok';dot.className='pdot dok';msg.textContent='✅ '+proxy.name+' — Yahoo Finance ready';}
+  else{d.className='proxy vis fail';dot.className='pdot dfail';msg.textContent='❌ All proxies failed';}
 }
 
 // ═══════ STATE ══════════════════════════════════════════════════════════
@@ -516,54 +445,6 @@ let activeTF='5m';
 let resultMap=new Map();
 let curFilter='all';
 let modalCharts=[];
-
-// ── Sort state ────────────────────────────────────────────────────────
-let sortCol='signal';   // default: sort by signal strength
-let sortDir=1;          // 1=asc, -1=desc
-
-function sortTable(col){
-  if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
-  // Update header classes
-  document.querySelectorAll('th.sortable').forEach(th=>{
-    th.classList.remove('sort-asc','sort-desc');
-  });
-  // Find the clicked th by its onclick
-  document.querySelectorAll('th.sortable').forEach(th=>{
-    const oc=th.getAttribute('onclick')||'';
-    if(oc.includes("'"+col+"'")){
-      th.classList.add(sortDir===1?'sort-asc':'sort-desc');
-    }
-  });
-  updateTable();
-}
-
-// Return a numeric sort key for each column
-function sortKey(r, col){
-  const sigOrder={buy:0,'buy+both':-1,sell:2,neutral:3};
-  switch(col){
-    case 'sym':       return r.sym;
-    case 'tf':        return r.tfLabel||'';
-    case 'price':     return r.price||0;
-    case 'chg':       return r.chgPct||0;
-    case 'signal':    return r.stype==='both'?-1:r.dir==='buy'?0:r.dir==='sell'?2:3;
-    case 'type':      return r.stype==='both'?0:r.stype==='swing'?1:r.stype==='channel'?2:3;
-    case 'strike':    return r.strike||0;
-    case 'stop':      return r.stop||0;
-    case 'forecast':  return r.fcast?parseFloat(r.fcast.biasPct)||0:0;
-    case 'structure': return r.ms?.trend==='uptrend'?0:r.ms?.trend==='downtrend'?2:1;
-    case 'conf':      return r.conf==='high'?0:r.conf==='medium'?1:2;
-    case 'ai':{
-      const d=typeof AI_SS!=='undefined'?AI_SS[r.sym]:null;
-      const s=d?.aiSig||'—';
-      return s.includes('STRONG BUY')?0:s==='BUY'?1:s==='WATCH'?2:s==='NEUTRAL'?3:s==='SELL'?4:s.includes('STRONG SELL')?5:6;
-    }
-    case 'aiconf':{
-      const d=typeof AI_SS!=='undefined'?AI_SS[r.sym]:null;
-      return d?.aiConf||0;
-    }
-    default: return 0;
-  }
-}
 
 // ═══════ MATH HELPERS ═══════════════════════════════════════════════════
 function ema(arr,p){const k=2/(p+1);let e=arr[0];const out=[e];for(let i=1;i<arr.length;i++){e=arr[i]*k+e*(1-k);out.push(e);}return out;}
@@ -789,13 +670,10 @@ function compFibAuto(bars){
       color:FIB_COLORS[i], set:label
     }));
   }
-  // Fallback: if no swing pivots found, use 38.2% / 61.8% sub-ranges of full range
-  const swH = swHigh!==null ? swHigh : pH - (pH-pL)*0.236;
-  const swL = swLow!==null  ? swLow  : pL + (pH-pL)*0.236;
   return{
     abs: fibLevels(pH,pL,'Auto H/L'),
-    swing: fibLevels(swH,swL,'Swing'),
-    swHighIdx, swLowIdx, swHigh:swH, swLow:swL, pH, pL
+    swing: (swHigh!==null&&swLow!==null)?fibLevels(swHigh,swLow,'Swing'):[],
+    swHighIdx, swLowIdx, swHigh, swLow, pH, pL
   };
 }
 
@@ -821,20 +699,13 @@ function compGann(price){
     levels.push({price:up,ring:n,angle:0,dir:'resistance',label:`G↑${n} $${up.toFixed(2)}`,cardinal:true});
     levels.push({price:dn,ring:n,angle:180,dir:'support',label:`G↓${n} $${dn.toFixed(2)}`,cardinal:true});
   });
-  // Filter to ±20% of center price — include both cardinal and angle points
-  const filtered=levels.filter(l=>Math.abs(l.price-price)/price<0.20);
-  // Deduplicate by proximity (0.3% bucket)
+  // Filter to ±15% of center price and keep cardinals + close ones
+  const filtered=levels.filter(l=>Math.abs(l.price-price)/price<0.12&&l.cardinal);
+  // Deduplicate by proximity
   const deduped=[];
   filtered.forEach(l=>{
-    if(!deduped.some(d=>Math.abs(d.price-l.price)/price<0.003)) deduped.push(l);
+    if(!deduped.some(d=>Math.abs(d.price-l.price)/price<0.005)) deduped.push(l);
   });
-  // Always ensure at least 4 levels by widening if needed
-  if(deduped.length < 4) {
-    const wider=levels.filter(l=>Math.abs(l.price-price)/price<0.35);
-    const wideDed=[];
-    wider.forEach(l=>{if(!wideDed.some(d=>Math.abs(d.price-l.price)/price<0.003))wideDed.push(l);});
-    return{levels:wideDed.sort((a,b)=>a.price-b.price),center:price};
-  }
   return{levels:deduped.sort((a,b)=>a.price-b.price),center:price};
 }
 
@@ -903,55 +774,29 @@ function buildResult(sym,bars,cfg,tfLabel){
   return{sym,price,change,chgPct,time:cur.time,tfLabel,dir,stype,opt,strike,conf,stop,sw,ch,fcast,ms,bars,fcastN:cfg.fcastN,fcastLB:cfg.fcastLB};
 }
 
-// ═══ FETCH — tries all proxies per symbol, never hard-fails ══════════
+// ═══════ FETCH ═══════════════════════════════════════════════════════════
 async function fetchYF(sym,tfKey){
-  const rawUrl = yfUrl(sym, tfKey);
-
-  // Try last-known-good proxy first, then all others
-  const order = [proxy.name, ...PROXY_NAMES.filter(n=>n!==proxy.name)];
-
-  for(const name of order){
-    const ctrl = new AbortController();
-    const t = setTimeout(()=>ctrl.abort(), 10000);
-    try{
-      const url = makeProxyUrl(rawUrl, name);
-      const res = await fetch(url, {signal:ctrl.signal});
-      clearTimeout(t);
-      if(!res.ok) continue;
-
-      const json = await parseYFResponse(res, name);
-      const result = json?.chart?.result?.[0];
-      if(!result) continue;
-
-      const ts=result.timestamp, q=result.indicators?.quote?.[0];
-      if(!ts||!q) continue;
-
-      // Promote this proxy to preferred
-      proxy = {name};
-      const d=document.getElementById('proxyDiv');
-      const dot=document.getElementById('pdot');
-      const msg=document.getElementById('pmsg');
-      if(d){d.className='proxy vis ok';dot.className='pdot dok';msg.textContent='✅ '+name+' — active';}
-
-      const bars=[];
+  const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),8000);
+  try{
+    const res=await fetch(proxy.url(sym,tfKey),{signal:ctrl.signal});
+    clearTimeout(t);if(!res.ok)throw new Error('HTTP '+res.status);
+    const json=await res.json();
+    const result=json?.chart?.result?.[0];
+    if(!result)return null;
+    const ts=result.timestamp,q=result.indicators?.quote?.[0];
+    if(!ts||!q)return null;
+    const bars=[];
+    for(let i=ts.length-1;i>=0;i--){
+      if(q.close[i]==null||isNaN(q.close[i]))continue;
+      const d=new Date(ts[i]*1000);
       const intra=['5m','15m','1h','2h','4h'].includes(tfKey);
-      for(let i=ts.length-1;i>=0;i--){
-        if(q.close[i]==null||isNaN(q.close[i]))continue;
-        const dd=new Date(ts[i]*1000);
-        const tl=intra
-          ?dd.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
-          :tfKey==='1d'
-            ?dd.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})
-            :dd.toLocaleDateString('en-US',{year:'numeric',month:'short'});
-        bars.push({time:tl,timestamp:ts[i]*1000,
-          open:q.open[i]??q.close[i], high:q.high[i]??q.close[i],
-          low:q.low[i]??q.close[i],   close:q.close[i], vol:q.volume[i]??0});
-      }
-      return bars.length>=5 ? bars : null;
-
-    }catch(e){ clearTimeout(t); continue; }
-  }
-  throw new Error('All proxies failed for '+sym);
+      const tl=intra?d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
+               :tfKey==='1d'?d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})
+               :d.toLocaleDateString('en-US',{year:'numeric',month:'short'});
+      bars.push({time:tl,timestamp:ts[i]*1000,open:q.open[i]??q.close[i],high:q.high[i]??q.close[i],low:q.low[i]??q.close[i],close:q.close[i],vol:q.volume[i]??0});
+    }
+    return bars.length>=5?bars:null;
+  }catch(e){clearTimeout(t);throw e;}
 }
 
 // ═══════ SCAN ════════════════════════════════════════════════════════════
@@ -974,6 +819,7 @@ function dbg(msg,t='i'){
 }
 
 async function startScan(){
+  if(!proxy){alert('No proxy — click Re-test.');return;}
   const tfKey=activeTF,tfLabel=YF_TF[tfKey].label;
   const btn=document.getElementById('scanBtn');
   const syms=document.getElementById('syms').value.trim().split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
@@ -1040,24 +886,14 @@ function updateTable(){
   if(!all.length){rc.style.display='none';return;}
   const fmap={all:()=>true,buy:r=>r.dir==='buy',sell:r=>r.dir==='sell',swing:r=>r.stype==='swing',channel:r=>r.stype==='channel',both:r=>r.stype==='both',neutral:r=>r.dir==='neutral'};
   const filtered=all.filter(fmap[curFilter]||fmap.all);
-
-  // Sort by active column + direction
-  const sorted=[...filtered].sort((a,b)=>{
-    const ka=sortKey(a,sortCol), kb=sortKey(b,sortCol);
-    let cmp=0;
-    if(typeof ka==='string') cmp=ka.localeCompare(kb);
-    else cmp=ka-kb;
-    if(cmp===0) cmp=a.sym.localeCompare(b.sym); // secondary: symbol
-    return cmp*sortDir;
-  });
-
+  const sorted=[...filtered].sort((a,b)=>{const o={both:0,buy:1,sell:2,neutral:3};return(o[a.stype==='both'?'both':a.dir]||3)-(o[b.stype==='both'?'both':b.dir]||3)||a.sym.localeCompare(b.sym);});
   rc.style.display='block';
   const nB=all.filter(r=>r.dir==='buy').length,nS=all.filter(r=>r.dir==='sell').length;
   const nSw=all.filter(r=>r.stype==='swing').length,nCh=all.filter(r=>r.stype==='channel').length;
   const nBo=all.filter(r=>r.stype==='both').length,nN=all.filter(r=>r.dir==='neutral').length;
   cntEl.textContent=`${all.length} scanned · ${sorted.length} shown`;
   pillsEl.innerHTML=`<span class="pill pb">🟢 Buy:${nB}</span><span class="pill ps">🔴 Sell:${nS}</span><span style="color:#dfe6e9;margin:0 4px">|</span><span class="pill psw">📈 Swing:${nSw}</span><span class="pill pch">📦 Chan:${nCh}</span><span class="pill pbo">⭐ Both:${nBo}</span><span class="pill pn">🟡 None:${nN}</span>`;
-  if(!sorted.length){tbody.innerHTML='<tr><td colspan="15" class="est"><div class="ei">🔍</div><div>No results</div></td></tr>';return;}
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="13" class="est"><div class="ei">🔍</div><div>No results</div></td></tr>';return;}
   tbody.innerHTML=sorted.map(r=>{
     const pos=r.change>=0;
     const fb=r.fcast?(r.fcast.bias==='bullish'?`<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">▲+${r.fcast.biasPct}%</span>`:`<span style="background:#f8d7da;color:#721c24;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">▼${r.fcast.biasPct}%</span>`):'—';
@@ -1075,74 +911,20 @@ function updateTable(){
       <td class="c">${fb}</td>
       <td class="c">${mb}</td>
       <td class="c"><span class="c${r.conf[0]}">${r.conf.toUpperCase()}</span></td>
-      <td class="c">${typeof aiSigCell==='function'?aiSigCell(r.sym):'—'}</td>
-      <td class="c">${typeof aiConfCell==='function'?aiConfCell(r.sym):'—'}</td>
       <td class="c"><button class="vbtn" onclick="showDetail('${r.sym}')">📊 Analyze</button></td>
     </tr>`;
   }).join('');
 }
 
 // ═══════ MODAL ═══════════════════════════════════════════════════════════
-// Current modal state
-let _modalSym = '';
-let _modalTF  = '';     // active TF for main chart panel
-let _modalMiniCharts = []; // mini chart instances
-
 function showDetail(sym){
   const r=resultMap.get(sym);if(!r)return;
-  _modalSym = sym;
-  _modalTF  = activeTF; // start with the scanned TF
   const isBuy=r.dir==='buy',isSel=r.dir==='sell';
   document.getElementById('mTitle').textContent=`${sym} — ${r.tfLabel} Full Analysis`;
   document.getElementById('mSub').textContent=`Yahoo Finance · ${r.tfLabel} · ${r.time}`;
   document.getElementById('mBody').innerHTML=buildModalHTML(r,sym,isBuy,isSel);
   document.getElementById('modal').style.display='block';
-  // Mark the current TF button as active
-  _setModalTFActive(activeTF);
-  setTimeout(()=>{
-    renderPanels(r);
-    loadMiniCharts(sym, r);
-  },100);
-}
-
-function _setModalTFActive(tf){
-  document.querySelectorAll('.modal-tf-btn').forEach(b=>{
-    b.classList.toggle('on', b.dataset.tf===tf);
-  });
-  const lbl=document.getElementById('modalTFLabel');
-  if(lbl) lbl.textContent = (YF_TF[tf]?.label||tf) + ' · main chart';
-}
-
-// Switch main analysis to a different TF
-async function switchModalTF(tf, btn){
-  if(!_modalSym) return;
-  _modalTF = tf;
-  _setModalTFActive(tf);
-  const loading=document.getElementById('modalTFLoading');
-  if(loading) loading.style.display='inline';
-  try{
-    const bars = await fetchYF(_modalSym, tf);
-    if(!bars||bars.length<5){alert('Not enough data for '+YF_TF[tf]?.label);return;}
-    const cfg={
-      swingL:+document.getElementById('swingL').value,
-      swingR:+document.getElementById('swingR').value,
-      chanBars:+document.getElementById('chanBars').value,
-      chanW:+document.getElementById('chanW').value,
-      fcastN:+document.getElementById('fcastN').value,
-      fcastLB:+document.getElementById('fcastLB').value,
-    };
-    const r = buildResult(_modalSym, bars, cfg, YF_TF[tf]?.label||tf);
-    document.getElementById('mTitle').textContent=`${_modalSym} — ${YF_TF[tf]?.label||tf} Full Analysis`;
-    document.getElementById('mSub').textContent=`Yahoo Finance · ${YF_TF[tf]?.label||tf} · ${bars[0].time}`;
-    // Re-render all indicator panels with new data
-    modalCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
-    modalCharts=[];syncedCharts=[];
-    renderPanels(r);
-  }catch(e){
-    alert('Failed to load '+tf+': '+e.message);
-  }finally{
-    if(loading) loading.style.display='none';
-  }
+  setTimeout(()=>renderPanels(r),100);
 }
 
 function buildModalHTML(r,sym,isBuy,isSel){
@@ -1185,7 +967,6 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <label class="itog on" style="color:#0984e3" onclick="togP('pVWAP')"><span class="idot" style="background:#0984e3"></span><span class="il">📊 VWAP</span></label>
     <label class="itog on" style="color:#00b894" onclick="togP('pVP')"><span class="idot" style="background:#00b894"></span><span class="il">📦 Volume Profile</span></label>
     <label class="itog on" style="color:#c4b5fd" onclick="togP('pReason')"><span class="idot" style="background:#c4b5fd"></span><span class="il">🧠 Reasoning</span></label>
-    <label class="itog on" style="color:#7c3aed" onclick="togP('pAIPanel')"><span class="idot" style="background:#7c3aed"></span><span class="il">🤖 AI Learning</span></label>
     <label class="itog on" style="color:#ef4444" onclick="togP('pADX')"><span class="idot" style="background:#ef4444"></span><span class="il">📈 ADX/DI</span></label>
     <label class="itog on" style="color:#f59e0b" onclick="togP('pFib')"><span class="idot" style="background:#f59e0b"></span><span class="il">🌀 Fibonacci</span></label>
     <label class="itog on" style="color:#8b5cf6" onclick="togP('pGann')"><span class="idot" style="background:#8b5cf6"></span><span class="il">⬡ Gann Square</span></label>
@@ -1194,54 +975,6 @@ function buildModalHTML(r,sym,isBuy,isSel){
 
   <!-- UNIFIED SYNCHRONIZED CHART PANES -->
   <div id="chartContainer" style="background:#1a1a2e;border-radius:10px;overflow:hidden;margin-bottom:14px;border:1px solid #2d2d4a">
-
-    <!-- MODAL TIMEFRAME SWITCHER -->
-    <div style="display:flex;align-items:center;gap:5px;padding:8px 12px;background:#1e1e2e;border-bottom:1px solid #2d2d4a;flex-wrap:wrap">
-      <span style="font-size:10px;font-weight:700;color:#6b6b9a;margin-right:4px;text-transform:uppercase;letter-spacing:.5px">Analysis TF:</span>
-      <button class="modal-tf-btn" data-tf="1m"  onclick="switchModalTF('1m',this)">1m</button>
-      <button class="modal-tf-btn" data-tf="3m"  onclick="switchModalTF('3m',this)">3m</button>
-      <button class="modal-tf-btn" data-tf="5m"  onclick="switchModalTF('5m',this)">5m</button>
-      <button class="modal-tf-btn" data-tf="15m" onclick="switchModalTF('15m',this)">15m</button>
-      <button class="modal-tf-btn" data-tf="30m" onclick="switchModalTF('30m',this)">30m</button>
-      <button class="modal-tf-btn" data-tf="1h"  onclick="switchModalTF('1h',this)">1h</button>
-      <button class="modal-tf-btn" data-tf="2h"  onclick="switchModalTF('2h',this)">2h</button>
-      <button class="modal-tf-btn" data-tf="4h"  onclick="switchModalTF('4h',this)">4h</button>
-      <button class="modal-tf-btn" data-tf="1d"  onclick="switchModalTF('1d',this)">1D</button>
-      <button class="modal-tf-btn" data-tf="1wk" onclick="switchModalTF('1wk',this)">1W</button>
-      <button class="modal-tf-btn" data-tf="1mo" onclick="switchModalTF('1mo',this)">1M</button>
-      <span id="modalTFLoading" style="display:none;font-size:10px;color:#6b6b9a;margin-left:8px">⏳ Loading…</span>
-      <span id="modalTFLabel" style="margin-left:auto;font-size:10px;color:#6b6b9a"></span>
-    </div>
-
-    <!-- MULTI-TF MINI CHARTS: 15m and 1h side-by-side context -->
-    <div id="paneMultiTF" style="background:#1a1a2e;border-bottom:1px solid #2d2d4a">
-      <div style="display:flex;align-items:center;gap:8px;padding:4px 12px;background:#252540;border-bottom:1px solid #2d2d4a">
-        <span style="font-size:9px;font-weight:700;color:#6b6b9a;text-transform:uppercase;letter-spacing:.5px">Multi-Timeframe Context</span>
-        <label class="sg-tog on" data-pane="pane15m"><span class="sg-dot" style="background:#38bdf8"></span><span>15 Min</span></label>
-        <label class="sg-tog on" data-pane="pane1h"><span class="sg-dot" style="background:#a78bfa"></span><span>1 Hour</span></label>
-        <label class="sg-tog on" data-pane="pane1d"><span class="sg-dot" style="background:#34d399"></span><span>Daily</span></label>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #2d2d4a">
-        <div id="pane15m" style="border-right:1px solid #2d2d4a">
-          <div style="font-size:9px;font-weight:700;color:#38bdf8;padding:4px 10px;background:#1e1e2e;border-bottom:1px solid #2d2d4a">
-            15 MIN <span id="mini15mSig" style="margin-left:8px;font-weight:400;color:#9ca3af"></span>
-          </div>
-          <div style="position:relative;height:160px"><canvas id="cMini15m"></canvas></div>
-        </div>
-        <div id="pane1h" style="border-right:1px solid #2d2d4a">
-          <div style="font-size:9px;font-weight:700;color:#a78bfa;padding:4px 10px;background:#1e1e2e;border-bottom:1px solid #2d2d4a">
-            1 HOUR <span id="mini1hSig" style="margin-left:8px;font-weight:400;color:#9ca3af"></span>
-          </div>
-          <div style="position:relative;height:160px"><canvas id="cMini1h"></canvas></div>
-        </div>
-        <div id="pane1d">
-          <div style="font-size:9px;font-weight:700;color:#34d399;padding:4px 10px;background:#1e1e2e;border-bottom:1px solid #2d2d4a">
-            DAILY <span id="mini1dSig" style="margin-left:8px;font-weight:400;color:#9ca3af"></span>
-          </div>
-          <div style="position:relative;height:160px"><canvas id="cMini1d"></canvas></div>
-        </div>
-      </div>
-    </div>
 
     <!-- Toggle bar for subgraphs -->
     <div style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:#252540;border-bottom:1px solid #2d2d4a;flex-wrap:wrap">
@@ -1459,35 +1192,94 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div id="reasonContent">Computing…</div>
   </div>
 
-
-  
-  <!-- AI LEARNING PANEL -->
-  <div id="pAIPanel" style="background:#f8f4ff;border:1px solid #c4b5fd;border-radius:8px;padding:16px;margin-bottom:13px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-      <div>
-        <div style="font-size:13px;font-weight:700;color:#4c1d95">🤖 AI Learning &amp; Forecast Engine</div>
-        <div style="font-size:10px;color:#6b7280;margin-top:2px">Self-trained on real price data · Learns signal accuracy over time</div>
-      </div>
-      <button onclick="runAIAnalysis()" id="aiRunBtn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🤖 Run AI Analysis</button>
-    </div>
-    <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <label style="font-size:10px;color:#6b7280;white-space:nowrap;font-weight:700">Anthropic API Key:</label>
-      <input type="password" id="claudeApiKey" placeholder="sk-ant-api03-..." style="flex:1;min-width:200px;padding:6px 10px;border:1px solid #c4b5fd;border-radius:5px;font-size:11px;background:#faf5ff;color:#1f2937;outline:none" oninput="localStorage.setItem('oc_apikey',this.value)" />
-      <span style="font-size:10px;color:#9ca3af">Saved in browser only · never shared</span>
-    </div>
-    <div id="aiPanelContent" style="color:#4b5563;font-size:11px;line-height:1.7">
-      <div style="text-align:center;padding:16px;color:#9ca3af">Learned data for <strong id="aiPanelSym" style="color:#667eea"></strong> will appear here after scanning.</div>
-    </div>
-    <div id="aiSkillsWrap" style="display:none;margin-top:10px">
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Skill Profile</div>
-      <div id="aiSkillsGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px"></div>
-    </div>
-    <div id="aiLogWrap" style="display:none;margin-top:10px">
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Learning Log <span id="aiLogCount" style="color:#9ca3af;font-weight:400"></span></div>
-      <div id="aiLogBox" style="background:#1e1e2e;color:#9ca3af;font-family:monospace;font-size:10px;padding:8px;border-radius:5px;max-height:130px;overflow-y:auto;line-height:1.7"></div>
+  <!-- ADX Panel -->
+  <div class="cpanel" id="pADX">
+    <div class="phdr"><div>
+      <div class="pttl">📈 ADX (14) + Directional Indicators (+DI / -DI)</div>
+      <div class="psub" id="adxSub">ADX: — · +DI: — · -DI: —</div>
+    </div></div>
+    <div class="csm"><canvas id="cADX"></canvas></div>
+  </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read ADX + Directional Indicators</div>
+    <div class="pe-body">
+      <strong>ADX (Average Directional Index):</strong> Measures the <em>strength</em> of a trend — not its direction. ADX rising = trend strengthening regardless of whether up or down.<br><br>
+      <strong>ADX levels:</strong><br>
+      • <strong>&lt;20:</strong> Weak or absent trend — ranging market. Avoid trend-following strategies. Mean-reversion and range strategies work better here.<br>
+      • <strong>20–25:</strong> Transitional — trend beginning to form. Watch for breakout confirmation.<br>
+      • <strong>≥25:</strong> Trend confirmed and tradeable. Breakout signals are more reliable.<br>
+      • <strong>≥40:</strong> Very strong trend — may be overextended, watch for exhaustion.<br><br>
+      <strong>+DI (green) and -DI (red) — Directional Indicators:</strong><br>
+      • <strong>+DI above -DI:</strong> Bullish pressure dominant — upward directional movement.<br>
+      • <strong>-DI above +DI:</strong> Bearish pressure dominant — downward directional movement.<br>
+      • <strong>Crossover:</strong> +DI crossing above -DI = bullish signal (especially when ADX≥25). -DI crossing above +DI = bearish signal.<br><br>
+      <strong>Best use:</strong> Use ADX to filter breakout signals. Only take buy signals when ADX≥25 and +DI&gt;-DI. Ignore breakouts when ADX&lt;20 — they are likely false.
     </div>
   </div>
-  <div class="rec">
+
+
+  <!-- Fibonacci Panel -->
+  <div class="cpanel" id="pFib">
+    <div class="phdr"><div>
+      <div class="pttl">🌀 Fibonacci Retracement Levels</div>
+      <div class="psub" id="fibSub">Auto H/L + Swing Pivot fibs overlaid on price</div>
+    </div></div>
+    <div class="cmd"><canvas id="cFib"></canvas></div>
+    <div id="fibTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:1fr 1fr;gap:6px"></div>
+  </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Fibonacci Retracement Levels</div>
+    <div class="pe-body">
+      <strong>Fibonacci retracement</strong> identifies potential support/resistance levels based on natural mathematical ratios (derived from the Fibonacci sequence) applied to a price range.<br><br>
+      <strong>Two sets of levels are shown:</strong><br>
+      • <strong>Solid lines (Auto H/L):</strong> Computed from the absolute highest high and lowest low of all visible bars.<br>
+      • <strong>Dashed lines (Swing):</strong> Computed from the most recent confirmed pivot swing high and swing low — more responsive to current price action.<br><br>
+      <strong>Key levels to watch:</strong><br>
+      • <strong>23.6%:</strong> Shallow retracement — strong trend, price barely dipped. Aggressive re-entry zone.<br>
+      • <strong>38.2%:</strong> Normal retracement in a healthy trend. Most common re-entry level.<br>
+      • <strong>50%:</strong> Not a Fibonacci ratio but widely respected psychological level.<br>
+      • <strong>61.8% (Golden Ratio):</strong> The most important level. Deep retracements to 61.8% that hold are classic trend-continuation setups.<br>
+      • <strong>78.6%:</strong> If price retraces this deep, the original move may be reversing entirely.<br><br>
+      <strong>How to trade fibs:</strong> Wait for price to pull back to a level, then look for confirmation (RSI turning up, bullish candle, VWAP support) before entering.
+    </div>
+  </div>
+
+
+  <!-- Gann Square Panel -->
+  <div class="cpanel" id="pGann">
+    <div class="phdr"><div>
+      <div class="pttl">⬡ Gann Square of Nine</div>
+      <div class="psub" id="gannSub">Key resistance/support levels from close price and swing high/low</div>
+    </div></div>
+    <div class="cmd"><canvas id="cGann"></canvas></div>
+    <div id="gannTable" style="margin-top:10px;font-size:11px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px"></div>
+  </div>
+  <div class="panel-explain">
+    <div class="pe-title">📖 How to read Gann Square of Nine</div>
+    <div class="pe-body">
+      <strong>W.D. Gann's Square of Nine</strong> is a spiral of numbers arranged in a grid. Key price levels are found by taking the square root of a price, adding or subtracting integers, then squaring the result: <em>Level = (√Price ± n)²</em><br><br>
+      <strong>Why it works (in Gann's theory):</strong> Price moves in geometric progressions. Just as planets complete orbits, prices complete "squares" around key levels. The levels that appear above and below a price represent natural gravitational points where price tends to pause, reverse, or accelerate.<br><br>
+      <strong>Three sets of levels are shown:</strong><br>
+      • <strong>Purple (from Close):</strong> Gann levels radiating from today's closing price.<br>
+      • <strong>Red (from Swing High):</strong> Resistance levels computed from the recent pivot high.<br>
+      • <strong>Green (from Swing Low):</strong> Support levels computed from the recent pivot low.<br><br>
+      <strong>Resistance levels (solid):</strong> Price approaching these from below = potential stall or reversal.<br>
+      <strong>Support levels (dashed):</strong> Price approaching these from above = potential bounce.<br><br>
+      <strong>Confluence zones:</strong> When a Gann level aligns with a Fibonacci level AND a VWAP band, the probability of a reaction at that price is significantly higher.
+    </div>
+  </div>
+
+
+  <!-- Z-Score Panel -->
+  <div class="cpanel" id="pZScore">
+    <div class="phdr"><div>
+      <div class="pttl">📊 Z-Score (20-period rolling)</div>
+      <div class="psub" id="zSub">Z &gt; 2 = overbought · Z &lt; -2 = oversold · Mean-reversion signal</div>
+    </div></div>
+    <div class="csm"><canvas id="cZScore"></canvas></div>
+  </div>
+
+    <div class="rec">
     <div class="rttl">${r.stype==='both'&&isBuy?'⭐ STRONG BUY — Both signals + Forecast · ATM CALL':r.stype==='both'&&isSel?'⭐ STRONG SELL — Both signals · ATM PUT':isBuy?'🟢 BUY — ATM CALL':isSel?'🔴 SELL — ATM PUT':'🟡 NO SIGNAL — Monitor'}</div>
     <div class="rgr">
       <div class="ri"><div class="rl">Symbol</div><div class="rv">${sym}</div></div>
@@ -1529,17 +1321,9 @@ function renderPanels(r){
   function yAx(mn,mx){const p=(mx-mn)*0.04||0.5;return{min:mn-p,max:mx+p,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}};}
   function mkChart(id,type,datasets,opts){
     const ctx=document.getElementById(id);if(!ctx)return null;
-    // Ensure every sub-panel uses the shared x-axis for perfect alignment
-    const mergedOpts = {
-      responsive:true, maintainAspectRatio:false, animation:false,
-      ...opts,
-      scales: {
-        ...opts.scales,
-        x: xAxAll(false), // sub-panels: no date labels (too cluttered), but same range
-      }
-    };
-    const ch=new Chart(ctx,{type,data:{datasets},options:mergedOpts});
+    const ch=new Chart(ctx,{type,data:{datasets},options:{responsive:true,maintainAspectRatio:false,animation:false,...opts}});
     modalCharts.push(ch);
+    // Register with crosshair sync (non-price panels pass no OHLC arrays)
     setupSync(ch, null, null, null, null, labels);
     return ch;
   }
@@ -1573,8 +1357,12 @@ function renderPanels(r){
   const fN   = r.fcastN;
 
   // ── Pre-compute extended price arrays for forecast zone ──────────────────
-  const fcastXs = Array.from({length: fN}, (_, i) => N + i);
-  // NOTE: priceExt/Up/Dn declared in pre-compute block below
+  // These extend the historical data with the forecast center/upper/lower prices
+  // so every indicator can be projected into the forecast zone consistently.
+  const fcastXs     = Array.from({length: fN}, (_, i) => N + i);       // x positions
+  const priceExt    = fcast ? [...closes, ...fcast.center]  : closes;   // extended close
+  const priceExtUp  = fcast ? [...closes, ...fcast.upper]   : closes;   // upper bound
+  const priceExtDn  = fcast ? [...closes, ...fcast.lower]   : closes;   // lower bound
 
   // Forecast divider line (shared by all panels)
   const fcastDivider = fN > 0 ? [{x:N-1, y:0}, {x:N-1, y:1e9}] : [];  // y is overridden per panel
@@ -1588,28 +1376,17 @@ function renderPanels(r){
     if(x % Math.max(1,Math.floor(N/8)) !== 0) return '';
     return labels[x] || '';
   }
-  // ── Shared x-axis factory — ALL panels use this exact same config ─────────
-  // This is the key to perfect alignment: every panel from price to Z-Score
-  // shares the same x range (0 to N-1+fN) and the same label callback.
-  function xAxAll(showLabels) {
-    return {
-      type:'linear', min:0, max:N-1+fN,
+  function xAxFcast(showLabels=false) {
+    return {type:'linear', min:0, max:N-1+fN,
       ticks:{
-        callback:(v)=>{
-          if(v===N-1) return '│NOW';
-          if(v>N-1)   return '+'+(v-N+1)+'b';
-          if(v%Math.max(1,Math.floor((N+fN)/8))!==0) return '';
-          return labels[Math.round(v)]||'';
-        },
+        callback: showLabels ? fLabel : ()=>'',
         font:{size:8}, color:'#9ca3af', maxRotation:0,
-        display: showLabels !== false,
+        display: showLabels
       },
-      grid:{color:'rgba(255,255,255,0.05)'},
-      border:{color:'rgba(255,255,255,0.08)'}
+      grid:{color:'rgba(255,255,255,0.06)'},
+      border:{color:'rgba(255,255,255,0.1)'}
     };
   }
-  // Override xAxFcast to use xAxAll for consistent alignment
-  function xAxFcast(showLabels) { return xAxAll(showLabels); }
   function yAxDark(mn, mx, fmt) {
     return {
       min:mn, max:mx,
@@ -1683,7 +1460,7 @@ function renderPanels(r){
      <div class="hi"><div class="hs" style="border-top:2px dashed rgba(168,85,247,.7)"></div>2× (${hurst.dbl}b)</div>
      <div class="hi" style="margin-left:auto;font-size:10px">Phase:${(hurst.phase*100).toFixed(0)}% AC:${hurst.ac}</div>`;
 
-  const mainChartOpts = {
+  const mainOpts={
     interaction:{mode:'index',intersect:false},
     plugins:{
       legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:10,filter:i=>i.datasetIndex>0&&!i.text.startsWith('__')}},
@@ -1692,11 +1469,23 @@ function renderPanels(r){
         const v=ctx.parsed?.y;return v!=null?`${ctx.dataset.label}: $${v.toFixed(2)}`:'';
       }}}
     },
+    scales:{x:xAxFcast(),y:{min:yMinMain,max:yMaxMain,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:6},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}}
+  };
+
+  // Override x-axis max to include forecast bars (N-1+fN)
+  const mainChartOpts = {...mainOpts,
     scales:{
-      x: xAxAll(true),
-      y:{min:yMinMain,max:yMaxMain,position:'right',
-        ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:6},
-        grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}
+      ...mainOpts.scales,
+      x:{...mainOpts.scales.x,
+        min:0, max:N-1+fN,
+        ticks:{...mainOpts.scales.x.ticks,
+          callback:(v,i)=>{
+            if(v>N-1) return '+'+(v-N+1)+'b';  // label forecast bars as +1b, +2b...
+            if(v%Math.max(1,Math.floor(N/8))!==0) return '';
+            return labels[v]||'';
+          }
+        }
+      }
     }
   };
   const mc=new Chart(document.getElementById('cMain'),{type:'line',data:{datasets:ds1},plugins:[candlePlugin],options:{responsive:true,maintainAspectRatio:false,animation:false,...mainChartOpts}});
@@ -1800,66 +1589,17 @@ function renderPanels(r){
   });
 
   // ── PANEL 4: RSI ──────────────────────────────────────────────────────
-  // Pre-compute all projected indicator arrays BEFORE any panel that uses them
+  // RSI: closes is oldest-first, compRSI expects oldest-first → pass directly
   const rsiVals=compRSI(closes);
   const divs=findDiv(closes,rsiVals);
   const curRSI=rsiVals[rsiVals.length-1];
-
-  // Extended price for projections
-  const priceExt   = fcast ? [...closes, ...fcast.center] : closes;
-  const priceExtUp = fcast ? [...closes, ...fcast.upper]  : closes;
-  const priceExtDn = fcast ? [...closes, ...fcast.lower]  : closes;
-
-  // RSI projections
-  const rsiProj   = fcast ? compRSI(priceExt).slice(N)   : [];
-  const rsiProjUp = fcast ? compRSI(priceExtUp).slice(N) : [];
-  const rsiProjDn = fcast ? compRSI(priceExtDn).slice(N) : [];
-
-  // Z-Score projections
-  const zProj   = fcast ? compZScore(priceExt,20).slice(N)   : [];
-  const zProjUp = fcast ? compZScore(priceExtUp,20).slice(N) : [];
-  const zProjDn = fcast ? compZScore(priceExtDn,20).slice(N) : [];
-
-  // ATR + Chandelier
-  const atrOF    = compATR(show);
-  const chandOF  = chandelier(show, atrOF);
-  const lastATR  = atrOF[atrOF.length-1] || 0;
-  const meanATR  = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / (atrOF.filter(v=>v).length||1);
-  const lastLong  = chandOF.long[chandOF.long.length-1]  || 0;
-  const lastShort = chandOF.short[chandOF.short.length-1] || 0;
-  const atrProj  = fcast ? Array.from({length:fN},(_,i)=>lastATR*Math.exp(-0.05*i)+meanATR*(1-Math.exp(-0.05*i))) : [];
-  const longProj  = fcast ? fcast.center.map((v,i)=>Math.max(...fcast.upper.slice(0,i+1).concat(r.price))-atrProj[i]*2) : [];
-  const shortProj = fcast ? fcast.center.map((v,i)=>Math.min(...fcast.lower.slice(0,i+1).concat(r.price))+atrProj[i]*2) : [];
-
-  // VWAP projections
-  const vwapV  = compVWAP(show);
-  const bds    = vwapBands(show, vwapV);
-  const curVW  = vwapV[vwapV.length-1];
-  const lastVWAP = vwapV[vwapV.length-1];
-  const vwapProj   = fcast ? fcast.center.map((v,i)=>(lastVWAP*N+fcast.center.slice(0,i+1).reduce((s,x)=>s+x,0))/(N+i+1)) : [];
-  const vwapProjUp = fcast ? fcast.upper.map((v,i)=>(lastVWAP*N+fcast.upper.slice(0,i+1).reduce((s,x)=>s+x,0))/(N+i+1)) : [];
-  const vwapProjDn = fcast ? fcast.lower.map((v,i)=>(lastVWAP*N+fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0))/(N+i+1)) : [];
-
-  // ADX projections (compute once here, re-use in panel)
-  const adxDataPre  = compADX(show, 14);  // show is already oldest-first
-  const lastADX = adxDataPre.adx[adxDataPre.adx.length-1] || 25;
-  const lastPDI = adxDataPre.pdi[adxDataPre.pdi.length-1] || 25;
-  const lastMDI = adxDataPre.mdi[adxDataPre.mdi.length-1] || 25;
-  const adxProj = fcast ? Array.from({length:fN},(_,i)=>(lastADX-25)*Math.exp(-0.08*i)+25) : [];
-  const pdiProj = fcast ? Array.from({length:fN},(_,i)=>lastPDI+(fcast.bias==='bullish'?1:-1)*(lastPDI-lastMDI)*0.3*(1-Math.exp(-0.08*i))) : [];
-  const mdiProj = fcast ? Array.from({length:fN},(_,i)=>lastMDI+(fcast.bias==='bullish'?-1:1)*(lastMDI-lastPDI)*0.3*(1-Math.exp(-0.08*i))) : [];
-
-  // Volume Profile
-  const vp = compVP(r.bars);
-
-  // ── Now render all panels in order ──────────────────────────────────
   document.getElementById('rsiLabel').textContent=`RSI(14): ${curRSI?.toFixed(1)??'—'} · ${curRSI>70?'Overbought⚠️':curRSI<30?'Oversold⚠️':'Neutral'} · ${divs.length} divergence(s)`;
   const rsiPts=rsiVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y));
   const dsRSI=[
     {label:'RSI(14)',data:rsiPts,borderColor:'#e84393',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.2},
-    {label:'OB70', data:[{x:0,y:70},{x:N-1+fN,y:70}],borderColor:'rgba(220,50,50,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-    {label:'OS30', data:[{x:0,y:30},{x:N-1+fN,y:30}],borderColor:'rgba(0,180,140,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-    {label:'Mid',  data:[{x:0,y:50},{x:N-1+fN,y:50}],borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
+    {label:'OB70', data:[{x:0,y:70},{x:N-1,y:70}],borderColor:'rgba(220,50,50,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'OS30', data:[{x:0,y:30},{x:N-1,y:30}],borderColor:'rgba(0,180,140,.4)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    {label:'Mid',  data:[{x:0,y:50},{x:N-1,y:50}],borderColor:'rgba(100,100,100,.2)',borderWidth:1,borderDash:[2,4],pointRadius:0,fill:false,parsing:false},
   ];
   divs.forEach(d=>{dsRSI.push({label:d.type==='bullish'?'▲BullDiv':'▼BearDiv',data:[{x:d.b1,y:d.r1},{x:d.b2,y:d.r2}],borderColor:d.type==='bullish'?'rgba(0,180,140,.9)':'rgba(210,40,40,.9)',borderWidth:2.5,pointRadius:4,fill:false,parsing:false});});
   // RSI forecast
@@ -1881,7 +1621,10 @@ function renderPanels(r){
   });
 
   // ── PANEL 5: ATR Stop ─────────────────────────────────────────────────
-  const curA=atrOF[atrOF.length-1], curSt=chandOF.long[chandOF.long.length-1];
+  // ATR/Chandelier: all oldest-first using 'show' (already oldest-first)
+  const atrOF=compATR(show);
+  const chandOF=chandelier(show,atrOF);
+  const curA=atrOF[atrOF.length-1],curSt=chandOF.long[chandOF.long.length-1];
   document.getElementById('atrLabel').textContent='ATR(14):'+f2(curA)+' · Long Stop:'+f2(curSt)+' · Price:'+f2(r.price);
   const lsP=chandOF.long.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
   const ssP=chandOF.short.map((v,i)=>v!=null?{x:i,y:v}:null).filter(Boolean);
@@ -1892,10 +1635,13 @@ function renderPanels(r){
   ];
   const atrYmin2=Math.min(pL,...(longProj||[]).filter(v=>v),...(fcast?.lower||[]))-pricePad;
   const atrYmax2=Math.max(pH,...(shortProj||[]).filter(v=>v),...(fcast?.upper||[]))+pricePad;
-  if(fcast && longProj.length){
-    dsATR.push({label:'Price proj',data:[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(156,163,175,.6)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
-    dsATR.push({label:'Long proj', data:[{x:N-1,y:lastLong},...longProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(0,184,148,.65)',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
-    dsATR.push({label:'Short proj',data:[{x:N-1,y:lastShort},...shortProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(214,48,49,.65)',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+  if(fcast && longProj.length) {
+    const lpP=[{x:N-1,y:lastLong},...longProj.map((v,i)=>({x:N+i,y:v}))];
+    const spP=[{x:N-1,y:lastShort},...shortProj.map((v,i)=>({x:N+i,y:v}))];
+    const fcP=[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+    dsATR.push({label:'Price proj',  data:fcP,borderColor:'rgba(156,163,175,.6)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+    dsATR.push({label:'Long proj',   data:lpP,borderColor:'rgba(0,184,148,.65)',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+    dsATR.push({label:'Short proj',  data:spP,borderColor:'rgba(214,48,49,.65)',borderWidth:2,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
     dsATR.push(fDivDs(atrYmin2,atrYmax2));
   }
   document.getElementById('atrLabel').textContent='ATR Chandelier · ATR:'+curA?.toFixed(2)+' · Long Stop:'+curSt?.toFixed(2);
@@ -1905,7 +1651,12 @@ function renderPanels(r){
   });
 
   // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
+  // VWAP: compute on oldest-first 'show' for clean alignment
+  const vwapV = compVWAP(show);                     // oldest-first in/out
+  const bds   = vwapBands(show, vwapV);              // oldest-first in/out
+  const curVW = vwapV[vwapV.length-1];               // last=newest ✓
   document.getElementById('vwapLabel').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
+  // vPts: data already oldest-first from compVWAP(show)
   function vPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
   const dsVWAP=[
     {label:'Price',data:priceLine,borderColor:'#9ca3af',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
@@ -1917,9 +1668,11 @@ function renderPanels(r){
   ];
   const vwapYmin2=fcast?Math.min(pL,...(fcast.lower||[]))-pricePad:pL-pricePad;
   const vwapYmax2=fcast?Math.max(pH,...(fcast.upper||[]))+pricePad:pH+pricePad;
-  if(fcast && vwapProj.length){
-    dsVWAP.push({label:'Price proj',data:[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(156,163,175,.6)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
-    dsVWAP.push({label:'VWAP proj', data:[{x:N-1,y:lastVWAP},...vwapProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(9,132,227,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+  if(fcast && vwapProj.length) {
+    const vwPts2  =[{x:N-1,y:lastVWAP},...vwapProj.map((v,i)=>({x:N+i,y:v}))];
+    const fcPv    =[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+    dsVWAP.push({label:'Price proj',data:fcPv,  borderColor:'rgba(156,163,175,.6)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+    dsVWAP.push({label:'VWAP proj', data:vwPts2,borderColor:'rgba(9,132,227,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
     dsVWAP.push(fDivDs(vwapYmin2,vwapYmax2));
   }
   document.getElementById('vwapLabel').textContent='VWAP '+f2(curVW)+' · Price '+(r.price>curVW?'ABOVE ▲':'BELOW ▼');
@@ -1929,50 +1682,123 @@ function renderPanels(r){
   });
 
   // ── PANEL 7: Volume Profile ───────────────────────────────────────────
+  const vp=compVP(r.bars);
   document.getElementById('vpLabel').textContent=`POC:${f2(vp.poc.price)} · VAH:${f2(vp.vaH)} · VAL:${f2(vp.vaL)}`;
   const dsVP=[
-    {label:'Price',data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
+    {label:'Price',          data:priceLine,borderColor:'#374151',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
     {label:`POC ${f2(vp.poc.price)}`,data:[{x:0,y:vp.poc.price},{x:N-1,y:vp.poc.price}],borderColor:'#fdcb6e',borderWidth:2,pointRadius:0,fill:false,parsing:false},
-    {label:`VAH ${f2(vp.vaH)}`,data:[{x:0,y:vp.vaH},{x:N-1,y:vp.vaH}],borderColor:'rgba(0,184,148,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
-    {label:`VAL ${f2(vp.vaL)}`,data:[{x:0,y:vp.vaL},{x:N-1,y:vp.vaL}],borderColor:'rgba(214,48,49,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
+    {label:`VAH ${f2(vp.vaH)}`,      data:[{x:0,y:vp.vaH},{x:N-1,y:vp.vaH}],borderColor:'rgba(0,184,148,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
+    {label:`VAL ${f2(vp.vaL)}`,      data:[{x:0,y:vp.vaL},{x:N-1,y:vp.vaL}],borderColor:'rgba(214,48,49,.6)',borderWidth:1.5,borderDash:[6,3],pointRadius:0,fill:false,parsing:false},
   ];
-  if(fcast){
-    dsVP.push({label:'Price proj',data:[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(55,65,81,.65)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
-    dsVP.push({label:'_fvu',data:[{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
-    dsVP.push({label:'_fvd',data:[{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
-    dsVP.push(fDivDs(pL-pricePad,pH+pricePad));
-  }
-  const vpYmin2=fcast?Math.min(pL,...(fcast.lower||[]))-pricePad:pL-pricePad;
-  const vpYmax2=fcast?Math.max(pH,...(fcast.upper||[]))+pricePad:pH+pricePad;
-  mkChart('cVP','line',dsVP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},scales:{x:xAxFcast(),y:{min:vpYmin2,max:vpYmax2,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}});
+  if(fcast) {
+      const fcVP=[{x:N-1,y:r.price},...fcast.center.map((v,i)=>({x:N+i,y:v}))];
+      const fuVP=[{x:N-1,y:r.price},...fcast.upper.map((v,i)=>({x:N+i,y:v}))];
+      const fdVP=[{x:N-1,y:r.price},...fcast.lower.map((v,i)=>({x:N+i,y:v}))];
+      dsVP.push({label:'Price proj',data:fcVP,borderColor:'rgba(55,65,81,.65)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+      dsVP.push({label:'_fvu',data:fuVP,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsVP.push({label:'_fvd',data:fdVP,borderColor:'rgba(55,65,81,.3)',borderWidth:1,borderDash:[3,5],pointRadius:0,fill:false,parsing:false});
+      dsVP.push(fDivDs(pL-pricePad,pH+pricePad));
+    }
+    const vpYmin2=fcast?Math.min(pL,...(fcast.lower||[]))-pricePad:pL-pricePad;
+    const vpYmax2=fcast?Math.max(pH,...(fcast.upper||[]))+pricePad:pH+pricePad;
+    mkChart('cVP','line',dsVP,{plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},scales:{x:xAxFcast(),y:{min:vpYmin2,max:vpYmax2,ticks:{callback:v=>'$'+v.toFixed(2),color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}});
   const vpCols=vp.prof.map(p=>p.price===vp.poc.price?'rgba(253,203,110,.9)':p.price>=vp.vaL&&p.price<=vp.vaH?'rgba(9,132,227,.55)':'rgba(160,160,160,.45)');
-  mkChart('cVPp','bar',[{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
+  mkChart('cVPp','bar',
+    [{label:'Volume',data:vp.prof.map(p=>p.vol),backgroundColor:vpCols,borderWidth:0}],
     {indexAxis:'y',scales:{x:{ticks:{display:false},grid:{display:false}},y:{labels:vp.prof.map(p=>'$'+p.price.toFixed(1)),ticks:{font:{size:7},color:'#636e72'},grid:{display:false}}},plugins:{legend:{display:false}}});
+
+  // ── Pre-compute projected indicator values for forecast zone ─────────────
+  // RSI projected: run compRSI on extended price series, take last fN values
+  const rsiProj = fcast ? compRSI(priceExt).slice(N) : [];
+  const rsiProjUp = fcast ? compRSI(priceExtUp).slice(N) : [];
+  const rsiProjDn = fcast ? compRSI(priceExtDn).slice(N) : [];
+
+  // Z-Score projected
+  const zProj   = fcast ? compZScore(priceExt, 20).slice(N)   : [];
+  const zProjUp = fcast ? compZScore(priceExtUp, 20).slice(N) : [];
+  const zProjDn = fcast ? compZScore(priceExtDn, 20).slice(N) : [];
+
+  // ATR projected: last ATR value with slow mean-reversion toward long-run mean
+  const lastATR = atrOF[atrOF.length-1] || 0;
+  const meanATR = atrOF.filter(v=>v).reduce((s,v)=>s+v,0) / atrOF.filter(v=>v).length;
+  const atrProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const aDecay = Math.exp(-0.05*i);
+    return lastATR*aDecay + meanATR*(1-aDecay);   // ATR reverts to mean
+  }) : [];
+
+  // Chandelier projected: extend last stop value with ATR projection
+  const lastLong  = chandOF.long[chandOF.long.length-1];
+  const lastShort = chandOF.short[chandOF.short.length-1];
+  const longProj  = fcast ? fcast.center.map((v,i) => {
+    const projHigh = Math.max(...fcast.upper.slice(0,i+1).concat(r.price));
+    return projHigh - atrProj[i] * 2;
+  }) : [];
+  const shortProj = fcast ? fcast.center.map((v,i) => {
+    const projLow = Math.min(...fcast.lower.slice(0,i+1).concat(r.price));
+    return projLow + atrProj[i] * 2;
+  }) : [];
+
+  // VWAP projected: extends as the average of forecast prices (price mean-reverts to VWAP)
+  const lastVWAP = vwapV[vwapV.length-1];
+  const vwapProj = fcast ? fcast.center.map((v,i) => {
+    // VWAP drifts toward the forecast center price weighted by bar count
+    return (lastVWAP * N + fcast.center.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N + i + 1);
+  }) : [];
+  const vwapProjUp = fcast ? fcast.upper.map((v,i) =>
+    (lastVWAP*N + fcast.upper.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+  const vwapProjDn = fcast ? fcast.lower.map((v,i) =>
+    (lastVWAP*N + fcast.lower.slice(0,i+1).reduce((s,x)=>s+x,0)) / (N+i+1)) : [];
+
+  // ADX projected: decay toward 25 (trend weakens/strengthens toward equilibrium)
+  const lastADX = adxData ? adxData.adx[adxData.adx.length-1] : 25;
+  const lastPDI = adxData ? adxData.pdi[adxData.pdi.length-1] : 25;
+  const lastMDI = adxData ? adxData.mdi[adxData.mdi.length-1] : 25;
+  const adxProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const xDecay = Math.exp(-0.08*i);
+    return (lastADX-25)*xDecay + 25;             // ADX mean-reverts toward 25
+  }) : [];
+  const pdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const pBias = fcast.bias==='bullish' ? 1 : -1;
+    const pDec  = Math.exp(-0.08*i);
+    return lastPDI + pBias*(lastPDI-lastMDI)*0.3*(1-pDec);
+  }) : [];
+  const mdiProj = fcast ? Array.from({length:fN}, (_,i) => {
+    const mBias = fcast.bias==='bullish' ? -1 : 1;
+    const mDec  = Math.exp(-0.08*i);
+    return lastMDI + mBias*(lastMDI-lastPDI)*0.3*(1-mDec);
+  }) : [];
 
   // ── PANEL: ADX + DI ─────────────────────────────────────────────────
   {
-    const curADX = adxDataPre.adx[adxDataPre.adx.length-1];
-    const curPDI = adxDataPre.pdi[adxDataPre.pdi.length-1];
-    const curMDI = adxDataPre.mdi[adxDataPre.mdi.length-1];
-    document.getElementById('adxLabel').textContent=
+    const barsOF = show.slice().reverse();
+    const adxData = compADX(barsOF, 14);
+    const curADX = adxData.adx[adxData.adx.length-1];
+    const curPDI = adxData.pdi[adxData.pdi.length-1];
+    const curMDI = adxData.mdi[adxData.mdi.length-1];
+    document.getElementById('adxLabel').textContent =
       'ADX: '+(curADX?.toFixed(1)??'—')+' ('+(curADX>=25?'Trending':'Ranging')+') · +DI: '+(curPDI?.toFixed(1)??'—')+' · -DI: '+(curMDI?.toFixed(1)??'—');
-    function adxPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y));}
-    const dsADX=[
-      {label:'ADX',data:adxPts(adxDataPre.adx),borderColor:'#f59e0b',borderWidth:2,pointRadius:0,fill:false,parsing:false},
-      {label:'+DI',data:adxPts(adxDataPre.pdi),borderColor:'#00b894',borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
-      {label:'-DI',data:adxPts(adxDataPre.mdi),borderColor:'#d63031',borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
-      {label:'25', data:[{x:0,y:25},{x:N-1+fN,y:25}],borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+    // compADX(barsOF) output is oldest-first — map directly, no reversal needed
+    function adxPts(arr){ return arr.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)); }
+    const dsADX = [
+      {label:'ADX', data:adxPts(adxData.adx), borderColor:'#f59e0b', borderWidth:2, pointRadius:0,fill:false,parsing:false},
+      {label:'+DI', data:adxPts(adxData.pdi), borderColor:'#00b894', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'-DI', data:adxPts(adxData.mdi), borderColor:'#d63031', borderWidth:1.5,pointRadius:0,fill:false,parsing:false},
+      {label:'25',  data:[{x:0,y:25},{x:N-1,y:25}], borderColor:'rgba(100,100,100,.35)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
     ];
-    if(fcast && adxProj.length){
-      dsADX.push({label:'ADX proj',data:[{x:N-1,y:lastADX},...adxProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(245,158,11,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
-      dsADX.push({label:'+DI proj',data:[{x:N-1,y:lastPDI},...pdiProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(0,184,148,.7)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
-      dsADX.push({label:'-DI proj',data:[{x:N-1,y:lastMDI},...mdiProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(214,48,49,.7)',borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
-      dsADX.push(fDivDs(0,60));
-      dsADX[3].data[1].x=N-1+fN;
+    // ADX forecast projection
+    if(fcast && adxProj.length) {
+      const adxPj  = [{x:N-1,y:lastADX}, ...adxProj.map((v,i)=>({x:N+i,y:v}))];
+      const pdiPj  = [{x:N-1,y:lastPDI}, ...pdiProj.map((v,i)=>({x:N+i,y:v}))];
+      const mdiPj  = [{x:N-1,y:lastMDI}, ...mdiProj.map((v,i)=>({x:N+i,y:v}))];
+      dsADX.push({label:'ADX proj', data:adxPj,borderColor:'rgba(245,158,11,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
+      dsADX.push({label:'+DI proj', data:pdiPj,borderColor:'rgba(0,184,148,.7)',  borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+      dsADX.push({label:'-DI proj', data:mdiPj,borderColor:'rgba(214,48,49,.7)',  borderWidth:1.5,borderDash:[5,4],pointRadius:0,fill:false,parsing:false});
+      dsADX.push(fDivDs(0, 60));
+      dsADX[3].data[1].x = N-1+fN;  // Extend the 25 reference line
     }
     mkChart('cADX','line',dsADX,{
       plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,filter:i=>!i.text.startsWith('_')&&!i.text.includes('proj')}}},
-      scales:{x:xAxFcast(),y:{min:0,max:60,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}
+      scales:{x:xAxFcast(), y:{min:0,max:60,ticks:{callback:v=>v,color:'#636e72',font:{size:8}},grid:{color:'rgba(255,255,255,0.06)'}}}
     });
   }
 
@@ -2075,9 +1901,9 @@ function renderPanels(r){
     const dsZ=[
       {label:'Z-Score(20)',data:zVals.map((v,i)=>({x:i,y:v})).filter(p=>p.y!=null&&!isNaN(p.y)),
         borderColor:'#06b6d4',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.2},
-      {label:'+2σ',data:[{x:0,y:2},{x:N-1+fN,y:2}],borderColor:'rgba(220,50,50,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-      {label:'-2σ',data:[{x:0,y:-2},{x:N-1+fN,y:-2}],borderColor:'rgba(0,180,140,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
-      {label:'0',  data:[{x:0,y:0},{x:N-1+fN,y:0}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[2,3],pointRadius:0,fill:false,parsing:false},
+      {label:'+2σ',data:[{x:0,y:2},{x:N-1,y:2}],borderColor:'rgba(220,50,50,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+      {label:'-2σ',data:[{x:0,y:-2},{x:N-1,y:-2}],borderColor:'rgba(0,180,140,.45)',borderWidth:1,borderDash:[4,3],pointRadius:0,fill:false,parsing:false},
+      {label:'0',  data:[{x:0,y:0},{x:N-1,y:0}],borderColor:'rgba(100,100,100,.3)',borderWidth:1,borderDash:[2,3],pointRadius:0,fill:false,parsing:false},
     ];
     // Z-Score forecast projection
     if(fcast && zProj.length) {
@@ -2100,7 +1926,7 @@ function renderPanels(r){
   }
 
   // ── Reasoning ────────────────────────────────────────────────────────
-  buildReasoning(r,rsiVals,vp,hurst,atrOF,chandOF,curVW,ms,kelt);
+  buildReasoning(r,rsiVals,vp,hurst,atrV,chand,curVW,ms,kelt);
 }
 
 // ═══════ REASONING ═══════════════════════════════════════════════════════
@@ -2354,131 +2180,11 @@ function setupSync(chartInst, opens, highs, lows, closes, labels) {
   chartInst.canvas.addEventListener('mouseleave', clearCrosshair);
 }
 
-
-// ─── MINI CHART HELPERS (15m / 1h / 1d context charts) ──────────────────────
-async function loadMiniCharts(sym, mainR){
-  // Destroy old mini charts
-  _modalMiniCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
-  _modalMiniCharts=[];
-
-  const configs = [
-    {tf:'15m', canvasId:'cMini15m', sigId:'mini15mSig', col:'#38bdf8'},
-    {tf:'1h',  canvasId:'cMini1h',  sigId:'mini1hSig',  col:'#a78bfa'},
-    {tf:'1d',  canvasId:'cMini1d',  sigId:'mini1dSig',  col:'#34d399'},
-  ];
-
-  // Load all 3 in parallel
-  const results = await Promise.allSettled(
-    configs.map(cfg => fetchYF(sym, cfg.tf).then(bars=>({...cfg, bars})))
-  );
-
-  results.forEach(res=>{
-    if(res.status!=='fulfilled'||!res.value.bars||res.value.bars.length<5) return;
-    const {tf, canvasId, sigId, col, bars} = res.value;
-    drawMiniChart(canvasId, bars, col, mainR, sigId, tf);
-  });
-}
-
-function drawMiniChart(canvasId, bars, lineCol, mainR, sigId, tf){
-  const canvas = document.getElementById(canvasId);
-  if(!canvas) return;
-
-  const N = Math.min(bars.length, 50);
-  const show = bars.slice(0, N).reverse(); // oldest-first
-  const opens  = show.map(b=>b.open);
-  const highs  = show.map(b=>b.high);
-  const lows   = show.map(b=>b.low);
-  const closes = show.map(b=>b.close);
-  const labels = show.map(b=>b.time||'');
-
-  const pH = Math.max(...highs), pL = Math.min(...lows);
-  const pad = Math.max((pH-pL)*0.06, pH*0.001);
-
-  // Quick signal for this TF
-  const lc = closes[closes.length-1];
-  const emaFn=(arr,n)=>{const k=2/(n+1);let e=arr[0];arr.forEach(v=>{e=v*k+e*(1-k);});return e;};
-  const e8=emaFn(closes,8), e21=emaFn(closes,21);
-  const rsiArr = compRSI(closes);
-  const rsi = rsiArr[rsiArr.length-1]||50;
-  const dir = e8>e21 ? (rsi<70?'↑ BULL':'↑ OB') : (rsi>30?'↓ BEAR':'↓ OS');
-  const dirCol = dir.includes('↑') ? '#34d399' : '#f87171';
-  const sigEl = document.getElementById(sigId);
-  if(sigEl){ sigEl.textContent = dir + ' | RSI ' + rsi.toFixed(0) + ' | ' + lc.toFixed(4); sigEl.style.color = dirCol; }
-
-  // Candle plugin for mini chart
-  const miniCandlePlugin = {
-    id:'mcp'+canvasId,
-    afterDatasetsDraw(chart){
-      const xs=chart.scales.x, ys=chart.scales.y;
-      if(!xs||!ys)return;
-      const ctx2=chart.ctx, area=chart.chartArea;
-      const cw=Math.max(1.5,Math.min(10,(area.right-area.left)/N*0.6)), hw=cw/2;
-      ctx2.save();
-      for(let i=0;i<N;i++){
-        const px=xs.getPixelForValue(i);
-        const po=ys.getPixelForValue(opens[i]), ph2=ys.getPixelForValue(highs[i]);
-        const pl=ys.getPixelForValue(lows[i]),  pc=ys.getPixelForValue(closes[i]);
-        if([px,po,ph2,pl,pc].some(isNaN))continue;
-        const bull=closes[i]>=opens[i], col=bull?'#34d399':'#f87171';
-        ctx2.strokeStyle=col; ctx2.lineWidth=1;
-        ctx2.beginPath(); ctx2.moveTo(px,ph2); ctx2.lineTo(px,pl); ctx2.stroke();
-        const top=Math.min(po,pc), ht=Math.max(Math.abs(pc-po),1);
-        ctx2.fillStyle=bull?'rgba(52,211,153,.8)':'rgba(248,113,113,.8)';
-        ctx2.fillRect(px-hw,top,cw,ht);
-        ctx2.strokeStyle=bull?'#059669':'#dc2626'; ctx2.lineWidth=.5;
-        ctx2.strokeRect(px-hw,top,cw,ht);
-      }
-      ctx2.restore();
-    }
-  };
-
-  // EMA lines
-  const ema8pts  = closes.map((v,i)=>({x:i,y:emaFn(closes.slice(0,i+1),8)}));
-  const ema21pts = closes.map((v,i)=>({x:i,y:emaFn(closes.slice(0,i+1),21)}));
-  // Anchor dataset (invisible, just to force y-range)
-  const ancDs = {label:'__a__',data:closes.map((v,i)=>({x:i,y:v})),borderColor:'transparent',pointRadius:0,fill:false,parsing:false};
-
-  const ch = new Chart(canvas, {
-    type:'line',
-    data:{ datasets:[
-      ancDs,
-      {label:'EMA8', data:ema8pts, borderColor:'rgba(251,191,36,.8)',borderWidth:1.2,pointRadius:0,fill:false,parsing:false},
-      {label:'EMA21',data:ema21pts,borderColor:'rgba(167,139,250,.7)',borderWidth:1.2,pointRadius:0,fill:false,parsing:false},
-    ]},
-    plugins:[miniCandlePlugin],
-    options:{
-      responsive:true, maintainAspectRatio:false, animation:false,
-      plugins:{
-        legend:{display:false},
-        tooltip:{
-          callbacks:{
-            title: ctx=>labels[ctx[0]?.dataIndex]||'',
-            label: ctx=>{
-              const i=ctx.dataIndex;
-              return `O:${opens[i]?.toFixed(4)} H:${highs[i]?.toFixed(4)} L:${lows[i]?.toFixed(4)} C:${closes[i]?.toFixed(4)}`;
-            }
-          }
-        }
-      },
-      scales:{
-        x:{type:'linear',min:0,max:N-1,
-          ticks:{callback:(v)=>{if(v%Math.max(1,Math.floor(N/5))!==0)return'';return labels[Math.round(v)]||'';},font:{size:7},color:'#4b5563',maxRotation:0},
-          grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.06)'}},
-        y:{min:pL-pad, max:pH+pad, position:'right',
-          ticks:{callback:v=>v.toFixed(Math.abs(v)>100?1:Math.abs(v)>1?2:4),color:'#4b5563',font:{size:7},maxTicksLimit:4},
-          grid:{color:'rgba(255,255,255,0.04)'},border:{color:'rgba(255,255,255,0.06)'}}
-      }
-    }
-  });
-  _modalMiniCharts.push(ch);
-}
-// ─── END MINI CHART HELPERS ──────────────────────────────────────────────────
 function closeModal(){
   document.getElementById('modal').style.display='none';
   modalCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
-  modalCharts=[]; syncedCharts=[];
-  _modalMiniCharts.forEach(ch=>{try{ch.destroy();}catch(e){}});
-  _modalMiniCharts=[];
+  modalCharts=[];
+  syncedCharts=[];
   // Restore light theme defaults
   Chart.defaults.color = '#636e72';
   Chart.defaults.borderColor = '#e0e0e0';
@@ -2488,520 +2194,6 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
 // Auto-test proxy on load
 testProxies();
-
-// ═══════════════════════════════════════════════════════════════════════
-// ██  OPENCLAW AI ENGINE  ███████████████████████████████████████████████
-// Self-learning, pattern training, signal memory, forecast, XP system
-// Cleanly isolated — no modification to any existing scanner functions
-// ═══════════════════════════════════════════════════════════════════════
-(function() {
-
-const MEM_KEY = 'openclaw-ai-v1';
-const CLAUDE  = 'claude-sonnet-4-20250514';
-
-// ── Skill definitions ────────────────────────────────────────────────
-const SKILLS = [
-  {id:'trend',    name:'TREND',    c:'#667eea'},
-  {id:'pattern',  name:'PATTERN',  c:'#764ba2'},
-  {id:'cycle',    name:'CYCLE',    c:'#00cec9'},
-  {id:'price',    name:'PRICE',    c:'#f59e0b'},
-  {id:'sr',       name:'S/R',      c:'#e17055'},
-  {id:'volume',   name:'VOLUME',   c:'#0984e3'},
-  {id:'momentum', name:'MOM',      c:'#d63031'},
-  {id:'candle',   name:'CANDLE',   c:'#00b894'},
-];
-function mkSk(){ const o={}; SKILLS.forEach(s=>{o[s.id]={xp:0,h:0,m:0};}); return o; }
-
-// ── State ────────────────────────────────────────────────────────────
-const SYM = {}; // per-symbol AI data
-let totalXP = 0, lifeXP = 0, level = 1, autoLearnOn = false, learnTimer = null;
-let _currentSym = '';
-
-const LVLS=[
-  {min:0,    n:'NOVICE',     c:'#9ca3af'},
-  {min:300,  n:'ANALYST',    c:'#3b82f6'},
-  {min:800,  n:'TRADER',     c:'#10b981'},
-  {min:2000, n:'STRATEGIST', c:'#f59e0b'},
-  {min:5000, n:'EXPERT',     c:'#f97316'},
-  {min:12000,n:'MASTER',     c:'#8b5cf6'},
-  {min:30000,n:'ORACLE',     c:'#ef4444'},
-];
-
-function getSym(sym) {
-  if (!SYM[sym]) SYM[sym] = {
-    skills: mkSk(), log: [], runs: 0,
-    aiSig: '—', aiConf: 0, aiBias: 'NEUTRAL',
-    lastSig: '', patMem: {}, srLevels: null,
-    total: 0, correct: 0,
-  };
-  return SYM[sym];
-}
-
-// ── Memory ───────────────────────────────────────────────────────────
-function save() {
-  try {
-    const sk = {};
-    Object.keys(SYM).forEach(s => {
-      sk[s] = { skills: SYM[s].skills, runs: SYM[s].runs, patMem: SYM[s].patMem,
-                aiSig: SYM[s].aiSig, aiConf: SYM[s].aiConf };
-    });
-    localStorage.setItem(MEM_KEY, JSON.stringify({
-      lifeXP: lifeXP + totalXP, level, syms: sk,
-      saved: new Date().toISOString()
-    }));
-  } catch(e) {}
-}
-function load() {
-  try {
-    const p = JSON.parse(localStorage.getItem(MEM_KEY) || 'null');
-    if (!p) return;
-    lifeXP = p.lifeXP || 0; level = p.level || 1;
-    if (p.syms) Object.keys(p.syms).forEach(s => {
-      const d = getSym(s);
-      if (p.syms[s].skills) Object.assign(d.skills, p.syms[s].skills);
-      d.runs = p.syms[s].runs || 0;
-      if (p.syms[s].patMem) Object.assign(d.patMem, p.syms[s].patMem);
-      d.aiSig  = p.syms[s].aiSig  || '—';
-      d.aiConf = p.syms[s].aiConf || 0;
-    });
-    refreshUI();
-  } catch(e) {}
-}
-
-// ── XP & level display ───────────────────────────────────────────────
-function gainXP(n) {
-  totalXP += n;
-  const tot = lifeXP + totalXP;
-  const xpEl = document.getElementById('aiXP');
-  if (xpEl) xpEl.textContent = 'XP: ' + tot.toLocaleString();
-  for (let i = LVLS.length - 1; i >= 0; i--) {
-    if (tot >= LVLS[i].min) {
-      if (level !== i + 1) { level = i + 1; }
-      const lv = LVLS[i];
-      const el = document.getElementById('aiLvl');
-      if (el) { el.textContent = lv.n; el.style.background = lv.c + '33'; el.style.color = lv.c; el.style.border = '1px solid ' + lv.c + '66'; }
-      break;
-    }
-  }
-}
-function refreshUI() { gainXP(0); }
-
-// ── Status dot ───────────────────────────────────────────────────────
-function setStatus(msg, type) {
-  const dot = document.getElementById('aiDot');
-  const txt = document.getElementById('aiTxt');
-  if (txt) txt.textContent = 'AI: ' + msg;
-  if (!dot) return;
-  const cols = { idle:'#4b5563', learning:'#10b981', active:'#8b5cf6', done:'#3b82f6' };
-  dot.style.background = cols[type] || cols.idle;
-  dot.style.boxShadow  = type !== 'idle' ? '0 0 6px ' + (cols[type] || '#fff') : 'none';
-}
-
-// ── Core learn — runs on every scan result, no API ────────────────────
-function learnFromResult(r) {
-  if (!r || !r.bars || r.bars.length < 15) return;
-  const d = getSym(r.sym);
-  d.runs++; d.total++;
-  const ts = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit'});
-
-  // bars from scanner are newest-first
-  const bars = r.bars;
-  const closes = bars.map(b => b.close);   // newest-first
-  const lc = closes[0];
-
-  // ── EMA trend (compute oldest-first internally) ──────────────────
-  const closesOF = closes.slice().reverse();
-  function emaFn(arr, n) {
-    const k = 2/(n+1); let e = arr[0];
-    arr.forEach(v => { e = v*k + e*(1-k); });
-    return e;
-  }
-  const e8  = emaFn(closesOF, 8);
-  const e21 = emaFn(closesOF, 21);
-  const e50 = emaFn(closesOF, 50);
-  const tDir = e8 > e21 ? (e21 > e50 ? 'STRONG UP' : 'UP') : (e21 < e50 ? 'STRONG DOWN' : 'DOWN');
-  d.skills.trend.xp += tDir.includes('STRONG') ? 12 : 6;
-  if (tDir.includes('UP')) d.skills.trend.h++; else d.skills.trend.m++;
-  addLog(d, ts, 'trend', '📈 TREND: ' + tDir + ' | EMA8=' + lc.toFixed(4) + ' vs EMA21=' + e21.toFixed(4));
-
-  // ── S/R from bars ──────────────────────────────────────────────────
-  const allH = Math.max(...bars.map(b => b.high));
-  const allL = Math.min(...bars.map(b => b.low));
-  const r20H = Math.max(...bars.slice(0,20).map(b => b.high));
-  const r20L = Math.min(...bars.slice(0,20).map(b => b.low));
-  const pivot = (r20H + r20L + lc) / 3;
-  d.srLevels = { pivot, r1: 2*pivot-r20L, s1: 2*pivot-r20H, allH, allL };
-  d.skills.sr.xp += 8; d.skills.sr.h++;
-  addLog(d, ts, 'sr', '═ PIVOT=' + fmtP(pivot) + ' R1=' + fmtP(2*pivot-r20L) + ' S1=' + fmtP(2*pivot-r20H));
-
-  // ── RSI via existing compRSI ─────────────────────────────────────
-  let rsiVal = 50;
-  try {
-    const rv = compRSI(closesOF);
-    rsiVal = rv[rv.length-1] || 50;
-  } catch(e) {}
-  const rsiSig = rsiVal > 70 ? 'OVERBOUGHT' : rsiVal < 30 ? 'OVERSOLD' : 'NEUTRAL';
-  d.skills.momentum.xp += rsiSig !== 'NEUTRAL' ? 10 : 4;
-  if (rsiSig !== 'NEUTRAL') d.skills.momentum.h++; else d.skills.momentum.m++;
-  addLog(d, ts, 'mom', '⚡ RSI≈' + rsiVal.toFixed(1) + ' — ' + rsiSig);
-
-  // ── Candlestick ───────────────────────────────────────────────────
-  const [c0, c1, c2] = bars; // newest first
-  let cPat = 'None', cSig = 'N';
-  if (c0 && c1 && c2) {
-    if (c2.close < c2.open && c1.close > c1.open && c1.open < c2.close && c1.close > c2.open) { cPat='Bull Engulf'; cSig='B'; }
-    else if (c2.close > c2.open && c1.close < c1.open && c1.open > c2.close && c1.close < c2.open) { cPat='Bear Engulf'; cSig='S'; }
-    else if (Math.abs(c1.close-c1.open) < (c1.high-c1.low)*.1) { cPat='Doji'; }
-    else if (c1.close > c1.open && (c1.open-c1.low) > (c1.close-c1.open)*2) { cPat='Hammer'; cSig='B'; }
-    else if (c1.close < c1.open && (c1.high-c1.open) > (c1.open-c1.close)*2) { cPat='Shoot Star'; cSig='S'; }
-  }
-  d.skills.candle.xp += cSig !== 'N' ? 11 : 3;
-  if (cSig !== 'N') d.skills.candle.h++; else d.skills.candle.m++;
-  addLog(d, ts, 'cndl', '▮ CANDLE: ' + cPat + (cSig !== 'N' ? ' [' + (cSig==='B'?'BULL':'BEAR') + ']' : ''));
-
-  // ── Hurst via existing compHurst ────────────────────────────────
-  let hurstDom = 20;
-  try { const h = compHurst(bars); hurstDom = h.dom; } catch(e) {}
-  d.skills.cycle.xp += 8; d.skills.cycle.h++;
-  addLog(d, ts, 'cycle', '⟳ HURST CYCLE: ~' + hurstDom + ' bars');
-
-  // ── Volume ────────────────────────────────────────────────────────
-  const vols = bars.slice(0,20).map(b => b.vol||0).filter(v=>v>0);
-  if (vols.length > 3) {
-    const avgV = vols.reduce((a,b)=>a+b,0)/vols.length;
-    const vR   = ((bars[0].vol||0)/avgV).toFixed(2);
-    d.skills.volume.xp += +vR > 1.5 ? 9 : 3;
-    if (+vR > 1.5) d.skills.volume.h++; else d.skills.volume.m++;
-    addLog(d, ts, 'vol', '▊ VOL: ' + (+vR>1.5?'HIGH ':+vR<0.7?'LOW ':'NORM ') + vR + 'x avg');
-  }
-
-  // ── LinReg target ────────────────────────────────────────────────
-  const n = Math.min(20, closesOF.length);
-  const rc = closesOF.slice(-n);
-  let sx=0, sy=0, sxy=0, sxx=0;
-  rc.forEach((v,i) => { sx+=i; sy+=v; sxy+=i*v; sxx+=i*i; });
-  const slope = (n*sxy-sx*sy)/(n*sxx-sx*sx) || 0;
-  const intercept = (sy-slope*sx)/n;
-  const target = intercept + slope*(n+9);
-  const projPct = ((target-lc)/lc*100).toFixed(2);
-  d.skills.price.xp += 8; d.skills.price.h++;
-  addLog(d, ts, 'price', '◎ LINREG TARGET: ' + fmtP(target) + ' (' + (projPct>0?'+':'') + projPct + '%)');
-
-  // ── Market structure ────────────────────────────────────────────
-  d.skills.pattern.xp += r.ms && r.ms.trend !== 'ranging' ? 10 : 4;
-  if (r.ms && r.ms.trend !== 'ranging') d.skills.pattern.h++; else d.skills.pattern.m++;
-  addLog(d, ts, 'struct', '◈ STRUCTURE: ' + (r.ms ? r.ms.trend.toUpperCase() : '—'));
-
-  // ── Signal scoring ────────────────────────────────────────────────
-  const bullPts = [
-    tDir.includes('UP'), rsiVal < 60 && rsiVal > 35,
-    cSig === 'B', r.ms && r.ms.trend === 'uptrend',
-    slope > 0, r.dir === 'buy', r.fcast && r.fcast.bias === 'bullish',
-  ].filter(Boolean).length;
-  const bearPts = [
-    tDir.includes('DOWN'), rsiVal > 60 || rsiVal < 30,
-    cSig === 'S', r.ms && r.ms.trend === 'downtrend',
-    slope < 0, r.dir === 'sell', r.fcast && r.fcast.bias === 'bearish',
-  ].filter(Boolean).length;
-
-  const conf = Math.round(Math.max(bullPts, bearPts) / 7 * 100);
-  let sig = 'NEUTRAL';
-  if      (bullPts >= 5) sig = 'STRONG BUY';
-  else if (bullPts >= 3) sig = 'BUY';
-  else if (bearPts >= 5) sig = 'STRONG SELL';
-  else if (bearPts >= 3) sig = 'SELL';
-  else if (r.sw.swingLow || r.ch.inCh) sig = 'WATCH';
-
-  d.aiSig = sig; d.aiConf = conf;
-  d.aiBias = bullPts > bearPts ? 'BULLISH' : bearPts > bullPts ? 'BEARISH' : 'NEUTRAL';
-
-  // ── Pattern memory feedback ──────────────────────────────────────
-  if (d.lastSig && closes.length > 5) {
-    const move = (closes[0] - closes[4]) / closes[4];
-    const ok = (d.lastSig.includes('BUY') && move > 0) || (d.lastSig.includes('SELL') && move < 0);
-    d.skills.pattern.xp += ok ? 15 : 2;
-    if (ok) { d.correct++; d.skills.pattern.h++; } else d.skills.pattern.m++;
-    const acc = d.total > 0 ? (d.correct / d.total * 100).toFixed(0) : 0;
-    const key = d.lastSig + '_' + tDir;
-    if (!d.patMem[key]) d.patMem[key] = { w: 0, l: 0 };
-    if (ok) d.patMem[key].w++; else d.patMem[key].l++;
-    addLog(d, ts, ok ? 'ok' : 'dim', (ok?'✓':'✗') + ' "' + d.lastSig + '" → ' + (move*100).toFixed(2) + '% | ACC: ' + acc + '%');
-  }
-  d.lastSig = sig;
-
-  addLog(d, ts,
-    d.aiBias === 'BULLISH' ? 'bull' : d.aiBias === 'BEARISH' ? 'bear' : 'neut',
-    '◈ AI: ' + sig + ' | ' + conf + '% | Bull:' + bullPts + ' Bear:' + bearPts
-  );
-
-  d.log = d.log.slice(-60);
-  gainXP(10);
-  save();
-  setStatus('Learned: ' + r.sym, 'learning');
-}
-
-function addLog(d, ts, cls, txt) {
-  d.log.push({ ts, cls, txt });
-}
-
-function fmtP(v) {
-  if (v == null || !isFinite(v)) return '—';
-  const a = Math.abs(v);
-  return a >= 10000 ? v.toFixed(0) : a >= 100 ? v.toFixed(2) : a >= 1 ? v.toFixed(4) : v.toFixed(6);
-}
-
-// ── Table cell helpers (called from updateTable patch) ────────────────
-window.aiSigCell = function(sym) {
-  const d = SYM[sym];
-  if (!d || d.aiSig === '—') return '<span style="color:#9ca3af;font-size:10px">—</span>';
-  const s = d.aiSig;
-  const col = s.includes('BUY') ? '#155724' : s.includes('SELL') ? '#721c24' : '#856404';
-  const bg  = s.includes('BUY') ? '#d4edda' : s.includes('SELL') ? '#f8d7da' : '#fff3cd';
-  return '<span style="background:' + bg + ';color:' + col + ';padding:2px 7px;border-radius:8px;font-size:10px;font-weight:700">' + s + '</span>';
-};
-window.aiConfCell = function(sym) {
-  const d = SYM[sym];
-  if (!d || !d.aiConf) return '<span style="color:#9ca3af">—</span>';
-  const col = d.aiConf >= 65 ? '#00b894' : d.aiConf >= 45 ? '#f59e0b' : '#9ca3af';
-  return '<span style="color:' + col + ';font-weight:700;font-size:11px">' + d.aiConf + '%</span>';
-};
-
-// ── Patch buildResult to trigger learning after every scan ────────────
-const _origBuildResult = window.buildResult;
-window.buildResult = function(sym, bars, cfg, tfLabel) {
-  const r = _origBuildResult.apply(this, arguments);
-  setTimeout(() => {
-    try { learnFromResult(r); } catch(e) {}
-  }, 0);
-  return r;
-};
-
-// ── Patch showDetail to track current symbol and show AI data ─────────
-const _origShowDetail = window.showDetail;
-window.showDetail = function(sym) {
-  _currentSym = sym; _modalSym = sym;
-  _origShowDetail.apply(this, arguments);
-  setTimeout(() => populateAIPanel(sym), 120);
-};
-
-// ── Populate AI panel in modal ────────────────────────────────────────
-function populateAIPanel(sym) {
-  const symEl = document.getElementById('aiPanelSym');
-  if (symEl) symEl.textContent = sym;
-
-  const d = SYM[sym];
-  const content = document.getElementById('aiPanelContent');
-  if (!content) return;
-
-  if (!d || d.runs === 0) {
-    content.innerHTML = '<div style="text-align:center;padding:14px;color:#9ca3af">No learned data for <strong>' + sym + '</strong> yet. Scan this symbol first.</div>';
-    return;
-  }
-
-  const biasCols = { BULLISH:'#155724', BEARISH:'#721c24', NEUTRAL:'#856404' };
-  const biasBgs  = { BULLISH:'#d4edda', BEARISH:'#f8d7da', NEUTRAL:'#fff3cd' };
-
-  content.innerHTML =
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">' +
-    '<span style="background:' + (biasBgs[d.aiBias]||'#f3f4f6') + ';color:' + (biasCols[d.aiBias]||'#374151') + ';padding:4px 12px;border-radius:8px;font-size:12px;font-weight:700">' + d.aiSig + '</span>' +
-    '<span style="color:' + (d.aiConf>=60?'#00b894':d.aiConf>=40?'#f59e0b':'#9ca3af') + ';font-weight:700;font-size:13px">' + d.aiConf + '% conf</span>' +
-    '<span style="color:#6b7280;font-size:11px">' + d.runs + ' learning runs</span>' +
-    '</div>' +
-    (d.srLevels ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">' +
-    '<div style="background:#f0fdf4;border:1px solid #6ee7b7;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">SUPPORT S1</div><div style="font-weight:700;color:#059669">' + fmtP(d.srLevels.s1) + '</div></div>' +
-    '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">PIVOT</div><div style="font-weight:700;color:#d97706">' + fmtP(d.srLevels.pivot) + '</div></div>' +
-    '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">RESISTANCE R1</div><div style="font-weight:700;color:#dc2626">' + fmtP(d.srLevels.r1) + '</div></div>' +
-    '</div>' : '') +
-    (Object.keys(d.patMem).length ?
-    '<div style="font-size:10px;color:#6b7280;margin-bottom:4px;font-weight:700">PATTERN MEMORY (' + Object.keys(d.patMem).length + ' patterns)</div>' +
-    '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px">' +
-    Object.entries(d.patMem).slice(0,6).map(([k,v]) => {
-      const acc = Math.round(v.w/(v.w+v.l)*100);
-      const col = acc>=60?'#d4edda':acc>=40?'#fff3cd':'#f8d7da';
-      const tc  = acc>=60?'#155724':acc>=40?'#856404':'#721c24';
-      return '<span style="background:' + col + ';color:' + tc + ';font-size:9px;padding:2px 6px;border-radius:5px">' + k.slice(0,20) + ' ' + acc + '%</span>';
-    }).join('') + '</div>' : '');
-
-  // Skills grid
-  const skWrap = document.getElementById('aiSkillsWrap');
-  const skGrid = document.getElementById('aiSkillsGrid');
-  if (skWrap && skGrid) {
-    skWrap.style.display = 'block';
-    skGrid.innerHTML = SKILLS.map(sk => {
-      const s   = d.skills[sk.id];
-      const tot = s.h + s.m || 1;
-      const acc = (s.h / tot * 100).toFixed(0);
-      const pct = Math.min(100, (s.xp % 60) / 60 * 100);
-      return '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:4px;padding:6px">' +
-        '<div style="font-size:9px;color:' + sk.c + ';font-weight:700;margin-bottom:3px">' + sk.name + '</div>' +
-        '<div style="height:3px;background:#e5e7eb;border-radius:2px;overflow:hidden;margin-bottom:3px"><div style="height:100%;width:' + pct + '%;background:' + sk.c + ';border-radius:2px"></div></div>' +
-        '<div style="display:flex;justify-content:space-between;font-size:9px"><span style="color:#92400e">XP:' + s.xp + '</span><span style="color:' + (acc>=60?'#059669':'#9ca3af') + '">ACC:' + acc + '%</span></div></div>';
-    }).join('');
-  }
-
-  // Learn log
-  const logWrap = document.getElementById('aiLogWrap');
-  const logBox  = document.getElementById('aiLogBox');
-  const logCnt  = document.getElementById('aiLogCount');
-  if (logWrap && logBox) {
-    logWrap.style.display = 'block';
-    if (logCnt) logCnt.textContent = '(' + d.runs + ' runs)';
-    const LOG_COLS = {
-      trend:'#93c5fd', sr:'#fed7aa', mom:'#fca5a5', cycle:'#67e8f9',
-      vol:'#93c5fd', price:'#fde68a', struct:'#c4b5fd', cndl:'#6ee7b7',
-      ok:'#6ee7b7', dim:'#4b5563', bull:'#6ee7b7', bear:'#fca5a5', neut:'#fde68a'
-    };
-    logBox.innerHTML = d.log.slice(-25).reverse().map(l =>
-      '<div style="color:' + (LOG_COLS[l.cls]||'#9ca3af') + '"><span style="color:#374151">' + l.ts + ' </span>' + l.txt + '</div>'
-    ).join('');
-  }
-}
-
-// ── Run AI Analysis via Claude ────────────────────────────────────────
-window.runAIAnalysis = async function() {
-  const btn = document.getElementById('aiRunBtn');
-  const content = document.getElementById('aiPanelContent');
-  const sym = _currentSym;
-  if (!sym) { if(content) content.innerHTML = '<div style="color:#ef4444">Open a symbol first.</div>'; return; }
-  const r = resultMap ? resultMap.get(sym) : null;
-  if (!r) { if(content) content.innerHTML = '<div style="color:#ef4444">No scan data. Run scan first.</div>'; return; }
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing...'; }
-  if (content) content.innerHTML = '<div style="color:#6b7280;text-align:center;padding:16px">🤖 Sending to Claude AI...</div>';
-  setStatus('Running Claude analysis', 'active');
-
-  const d = getSym(sym);
-  const bars = r.bars.slice(0, 25);
-  const lc   = bars[0].close;
-  const barSum = bars.slice().reverse().map((b,i) =>
-    (i+1) + '. O:' + b.open.toFixed(2) + ' H:' + b.high.toFixed(2) + ' L:' + b.low.toFixed(2) + ' C:' + b.close.toFixed(2) + (b.close>=b.open?' ▲':' ▼')
-  ).join('\n');
-  const memCtx = Object.entries(d.patMem).slice(0,5).map(([k,v]) =>
-    k + ':' + v.w + 'W/' + v.l + 'L(' + ((v.w/(v.w+v.l))*100).toFixed(0) + '%)'
-  ).join(', ');
-  const skCtx = Object.entries(d.skills).map(([k,v]) => {
-    const t = v.h+v.m||1; return k+':'+(v.h/t*100).toFixed(0)+'%';
-  }).join(' ');
-
-  const prompt = 'OpenClaw AI analysis for ' + sym + '\n' +
-    'TF: ' + r.tfLabel + ' | Price: $' + lc.toFixed(2) + '\n' +
-    'Scanner: ' + r.dir + ' (' + r.stype + ') conf:' + r.conf + '\n' +
-    'Forecast: ' + (r.fcast ? r.fcast.bias + ' ' + r.fcast.biasPct + '%' : '—') + '\n' +
-    'Structure: ' + (r.ms ? r.ms.trend : '—') + '\n' +
-    'Pattern memory: ' + (memCtx || 'none') + '\n' +
-    'Skill accuracy: ' + skCtx + '\n\n' +
-    'Last 25 bars (oldest→newest):\n' + barSum + '\n\n' +
-    'Return ONLY this JSON (no markdown):\n' +
-    '{"verdict":"STRONG BUY|BUY|WATCH|NEUTRAL|SELL|STRONG SELL","confidence":0-100,"bias":"BULLISH|BEARISH|NEUTRAL","summary":"2 sentences","findings":["f1","f2","f3"],"bull_target":0,"bear_target":0,"stop":0,"reasoning":"paragraph"}';
-
-  try {
-    const apiKey = (document.getElementById('claudeApiKey')?.value || localStorage.getItem('oc_apikey') || '').trim();
-    if (!apiKey) throw new Error('Please enter your Anthropic API key in the field above.');
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: CLAUDE, max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    if (!res.ok) {
-      const errTxt = await res.text().catch(()=>'');
-      throw new Error('API ' + res.status + (errTxt ? ': ' + errTxt.slice(0,120) : ''));
-    }
-    const data = await res.json();
-    const txt  = data.content.map(b => b.text || '').join('');
-    const a    = JSON.parse(txt.replace(/```json|```/g, '').trim());
-
-    d.aiSig  = a.verdict  || d.aiSig;
-    d.aiConf = a.confidence || d.aiConf;
-    d.aiBias = a.bias     || d.aiBias;
-    const ts = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit'});
-    addLog(d, ts, 'ai', '🤖 CLAUDE: ' + a.verdict + ' (' + a.confidence + '%) — ' + (a.summary||'').slice(0,60));
-    gainXP(30); save();
-
-    const vc = a.verdict.includes('BUY') ? '#155724' : a.verdict.includes('SELL') ? '#721c24' : '#856404';
-    const vb = a.verdict.includes('BUY') ? '#d4edda' : a.verdict.includes('SELL') ? '#f8d7da' : '#fff3cd';
-    content.innerHTML =
-      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">' +
-      '<span style="background:' + vb + ';color:' + vc + ';padding:5px 14px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid ' + vc + '44">🤖 ' + a.verdict + '</span>' +
-      '<span style="color:' + (a.confidence>=60?'#00b894':a.confidence>=40?'#f59e0b':'#9ca3af') + ';font-weight:700">' + a.confidence + '%</span>' +
-      '<span style="color:#6b7280">' + a.bias + '</span></div>' +
-      '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px;margin-bottom:8px;font-size:11px;line-height:1.8;color:#374151">' + (a.summary||'') + '</div>' +
-      (a.findings&&a.findings.length ? '<div style="margin-bottom:8px">' + a.findings.map(f=>'<div style="display:flex;gap:6px;font-size:11px;color:#4b5563;margin-bottom:3px"><span style="color:#667eea">•</span>' + f + '</div>').join('') + '</div>' : '') +
-      (a.bull_target||a.bear_target||a.stop ? '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">' +
-      '<div style="background:#f0fdf4;border:1px solid #6ee7b7;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">BULL TARGET</div><div style="font-weight:700;color:#059669">$' + (a.bull_target||0).toFixed(2) + '</div></div>' +
-      '<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">BEAR TARGET</div><div style="font-weight:700;color:#dc2626">$' + (a.bear_target||0).toFixed(2) + '</div></div>' +
-      '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:6px;text-align:center"><div style="font-size:9px;color:#6b7280">STOP LOSS</div><div style="font-weight:700;color:#d97706">$' + (a.stop||0).toFixed(2) + '</div></div></div>' : '') +
-      (a.reasoning ? '<div style="background:#f3f4f6;border-radius:5px;padding:10px;font-size:10px;line-height:1.8;color:#6b7280">' + a.reasoning + '</div>' : '');
-
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-analyze'; }
-    setStatus('Analysis done', 'done');
-    // refresh table AI cells
-    updateTable();
-  } catch(e) {
-    if (content) content.innerHTML = '<div style="color:#ef4444;padding:10px">AI Error: ' + e.message + '</div>';
-    if (btn) { btn.disabled = false; btn.textContent = '🤖 Run AI Analysis'; }
-    setStatus('Error', 'idle');
-  }
-};
-
-// ── AUTO-LEARN toggle ─────────────────────────────────────────────────
-window.toggleAILearn = function() {
-  autoLearnOn = !autoLearnOn;
-  const btn = document.getElementById('aiBtnLearn');
-  if (autoLearnOn) {
-    if (btn) { btn.textContent = '■ STOP LEARN'; btn.style.background = 'rgba(239,68,68,0.4)'; btn.style.color = '#fca5a5'; }
-    setStatus('Auto-learning on', 'learning');
-    runAutoLearn();
-  } else {
-    if (btn) { btn.textContent = '◈ AUTO-LEARN'; btn.style.background = 'rgba(124,58,237,0.4)'; btn.style.color = '#c4b5fd'; }
-    clearTimeout(learnTimer);
-    setStatus('Idle', 'idle');
-  }
-};
-
-function runAutoLearn() {
-  if (!autoLearnOn) return;
-  if (typeof resultMap !== 'undefined') {
-    const entries = [...resultMap.values()];
-    let i = 0;
-    function next() {
-      if (!autoLearnOn || i >= entries.length) {
-        save();
-        if (autoLearnOn) learnTimer = setTimeout(runAutoLearn, 30000);
-        return;
-      }
-      try { learnFromResult(entries[i++]); } catch(e) {}
-      setTimeout(next, 100);
-    }
-    next();
-  } else {
-    learnTimer = setTimeout(runAutoLearn, 5000);
-  }
-}
-
-// ── Boot ──────────────────────────────────────────────────────────────
-load();
-setStatus('Ready', 'done');
-console.log('OpenClaw AI Engine loaded');
-// Restore saved API key
-(function() {
-  const saved = localStorage.getItem('oc_apikey');
-  if (saved) {
-    const inp = document.getElementById('claudeApiKey');
-    if (inp) inp.value = saved;
-  }
-})();
-
-})(); // end IIFE
-// ═══════════════════════════════════════════════════════════════════════
-// END OPENCLAW AI ENGINE
-// ═══════════════════════════════════════════════════════════════════════
 
 // ═══════ VERSION HISTORY ══════════════════════════════════════════════
 const VERSION_HISTORY = [
