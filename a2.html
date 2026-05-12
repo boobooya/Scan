@@ -283,13 +283,14 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align:middle"><circle cx="12" cy="12" r="10" stroke="#a78bfa" stroke-width="2"/><path d="M8 12h8M12 8l4 4-4 4" stroke="#a78bfa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     OpenRouter API Key
   </span>
-  <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-..." 
+  <input type="password" id="openrouterApiKey" placeholder="sk-or-v1-..."
     style="flex:1;min-width:260px;max-width:440px;padding:7px 12px;border:1.5px solid #3d3d5c;border-radius:6px;font-size:12px;background:#252540;color:#e0e0f0;outline:none;font-family:monospace;transition:border-color .15s"
     oninput="localStorage.setItem('oc_openrouter_key',this.value);updateOpenRouterStatus()"
     onfocus="this.style.borderColor='#a78bfa'" onblur="this.value=this.value.trim();this.style.borderColor='#3d3d5c';updateOpenRouterStatus()"
   />
   <span id="orStatus" style="font-size:10px;padding:3px 10px;border-radius:12px;font-weight:700;background:#252540;color:#6b6b9a;border:1px solid #3d3d5c">⬤ Not set</span>
-  <span style="font-size:10px;color:#4a4a6a">Saved locally · used for AI analysis · <a href="https://openrouter.ai/keys" target="_blank" style="color:#a78bfa;text-decoration:none">Get key ↗</a></span>
+  <span id="orActiveModel" style="font-size:10px;padding:3px 10px;border-radius:12px;background:#1a1a2e;color:#6b6b9a;border:1px solid #2d2d4a;display:none">🤖 —</span>
+  <span style="font-size:10px;color:#4a4a6a">Free-tier · auto-rotates models · <a href="https://openrouter.ai/keys" target="_blank" style="color:#a78bfa;text-decoration:none">Get key ↗</a></span>
 </div>
 
 <!-- Version Log Modal -->
@@ -1556,9 +1557,8 @@ function buildModalHTML(r,sym,isBuy,isSel){
       <button onclick="runAIAnalysis()" id="aiRunBtn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🤖 Run AI Analysis</button>
     </div>
     <div style="margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <label style="font-size:10px;color:#6b7280;white-space:nowrap;font-weight:700">Anthropic API Key:</label>
-      <input type="password" id="claudeApiKey" placeholder="sk-ant-api03-..." style="flex:1;min-width:200px;padding:6px 10px;border:1px solid #c4b5fd;border-radius:5px;font-size:11px;background:#faf5ff;color:#1f2937;outline:none" oninput="localStorage.setItem('oc_apikey',this.value)" onblur="validateClaudeKey()" />
-      <span style="font-size:10px;color:#9ca3af">Saved in browser only · never shared</span>
+      <span style="font-size:10px;color:#6b7280">🔑 Uses your OpenRouter key (free-tier) · auto-rotates models · set key in the top bar</span>
+      <span id="aiKeyStatus" style="font-size:10px;padding:2px 8px;border-radius:8px;font-weight:700;background:#252540;color:#6b6b9a;border:1px solid #3d3d5c">⬤ Key not set</span>
     </div>
     <div id="aiPanelContent" style="color:#4b5563;font-size:11px;line-height:1.7">
       <div style="text-align:center;padding:16px;color:#9ca3af">Learned data for <strong id="aiPanelSym" style="color:#667eea"></strong> will appear here after scanning.</div>
@@ -2610,47 +2610,29 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function updateOpenRouterStatus(){
   const keyEl = document.getElementById('openrouterApiKey');
   const key = (keyEl?.value || localStorage.getItem('oc_openrouter_key') || '').trim();
-  // Auto-trim the input if it has leading/trailing whitespace
   if(keyEl && keyEl.value !== key) keyEl.value = key;
-  const el = document.getElementById('orStatus');
-  if(!el) return;
+
+  const el  = document.getElementById('orStatus');
+  const ai  = document.getElementById('aiKeyStatus');
+
   if(key && key.startsWith('sk-or-')){
-    el.style.background='#d1fae5'; el.style.color='#065f46'; el.style.borderColor='#6ee7b7';
-    el.textContent='✅ Key set';
+    if(el){ el.style.background='#d1fae5'; el.style.color='#065f46'; el.style.borderColor='#6ee7b7'; el.textContent='✅ Key set'; }
+    if(ai){ ai.style.background='#d1fae5'; ai.style.color='#065f46'; ai.style.borderColor='#6ee7b7'; ai.textContent='✅ OpenRouter ready'; }
   } else if(key.length > 5){
-    el.style.background='#fef3c7'; el.style.color='#92400e'; el.style.borderColor='#fde68a';
-    el.textContent='⚠ Must start with sk-or-';
+    if(el){ el.style.background='#fef3c7'; el.style.color='#92400e'; el.style.borderColor='#fde68a'; el.textContent='⚠ Must start with sk-or-'; }
+    if(ai){ ai.style.background='#fef3c7'; ai.style.color='#92400e'; ai.style.borderColor='#fde68a'; ai.textContent='⚠ Key format wrong'; }
   } else {
-    el.style.background='#252540'; el.style.color='#6b6b9a'; el.style.borderColor='#3d3d5c';
-    el.textContent='⬤ Not set';
+    if(el){ el.style.background='#252540'; el.style.color='#6b6b9a'; el.style.borderColor='#3d3d5c'; el.textContent='⬤ Not set'; }
+    if(ai){ ai.style.background='#252540'; ai.style.color='#6b6b9a'; ai.style.borderColor='#3d3d5c'; ai.textContent='⬤ Key not set'; }
   }
-  // Save the trimmed key
   if(key) localStorage.setItem('oc_openrouter_key', key);
 }
 
-// Validate Anthropic key format on blur
-function validateClaudeKey(){
-  const keyEl = document.getElementById('claudeApiKey');
-  if(!keyEl) return;
-  const key = keyEl.value.trim();
-  if(keyEl.value !== key) keyEl.value = key;
-  if(key) localStorage.setItem('oc_apikey', key);
-  if(key && !key.startsWith('sk-ant-api')){
-    keyEl.style.borderColor='#fca5a5';
-    keyEl.title='Anthropic keys start with sk-ant-api03-';
-  } else {
-    keyEl.style.borderColor='';
-    keyEl.title='';
-  }
-}
 // Restore saved key on load
 document.addEventListener('DOMContentLoaded',()=>{
   const saved = localStorage.getItem('oc_openrouter_key');
   const keyEl = document.getElementById('openrouterApiKey');
   if(saved && keyEl){ keyEl.value = saved; updateOpenRouterStatus(); }
-  const claudeKey = localStorage.getItem('oc_apikey');
-  const cEl = document.getElementById('claudeApiKey');
-  if(claudeKey && cEl) cEl.value = claudeKey;
 });
 
 // ═══════ MA CROSS SCANNER ════════════════════════════════════════════════
@@ -2928,7 +2910,79 @@ testProxies();
 (function() {
 
 const MEM_KEY = 'openclaw-ai-v1';
-const CLAUDE  = 'claude-sonnet-4-20250514';
+
+// ── OpenRouter free-tier model rotation pool ─────────────────────────
+// All models tagged :free on OpenRouter — auto-rotate on rate-limit/error
+const OR_FREE_MODELS = [
+  'deepseek/deepseek-r1-0528:free',
+  'deepseek/deepseek-chat-v3-0324:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'mistralai/mistral-7b-instruct:free',
+  'google/gemma-3-27b-it:free',
+  'qwen/qwen3-8b:free',
+  'microsoft/phi-4-reasoning:free',
+  'nousresearch/hermes-3-llama-3.1-405b:free',
+];
+let _orModelIdx = 0; // current model index, advances on failure
+
+function getORKey(){
+  return (document.getElementById('openrouterApiKey')?.value ||
+          localStorage.getItem('oc_openrouter_key') || '').trim();
+}
+
+// Call OpenRouter, auto-rotate model on 429/5xx
+async function callOpenRouter(prompt, maxRetries = OR_FREE_MODELS.length) {
+  const apiKey = getORKey();
+  if (!apiKey) throw new Error('No OpenRouter API key. Paste your sk-or-v1-... key in the top bar.');
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const model = OR_FREE_MODELS[_orModelIdx % OR_FREE_MODELS.length];
+    // Update UI to show which model is active
+    const modelBadge = document.getElementById('orActiveModel');
+    if (modelBadge) {
+      modelBadge.style.display = 'inline-block';
+      modelBadge.textContent = '🤖 ' + model.split('/')[1].replace(':free','');
+    }
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey,
+          'HTTP-Referer': location.href,
+          'X-Title': 'OpenClaw AI Scanner',
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.2,
+        })
+      });
+
+      if (res.status === 429 || res.status >= 500) {
+        // Rate-limited or server error — rotate to next model
+        _orModelIdx++;
+        await new Promise(r => setTimeout(r, 400));
+        continue;
+      }
+      if (!res.ok) {
+        const t = await res.text().catch(()=>'');
+        throw new Error('OpenRouter ' + res.status + (t ? ': ' + t.slice(0,120) : ''));
+      }
+      const data = await res.json();
+      const text = data.choices?.[0]?.message?.content || '';
+      if (!text) { _orModelIdx++; continue; }
+      return { text, model };
+    } catch(e) {
+      if (attempt === maxRetries - 1) throw e;
+      _orModelIdx++;
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+  throw new Error('All free OpenRouter models exhausted. Try again in a moment.');
+}
 
 // ── Skill definitions ────────────────────────────────────────────────
 const SKILLS = [
@@ -3304,8 +3358,8 @@ window.runAIAnalysis = async function() {
   const r = resultMap ? resultMap.get(sym) : null;
   if (!r) { if(content) content.innerHTML = '<div style="color:#ef4444">No scan data. Run scan first.</div>'; return; }
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Analyzing...'; }
-  if (content) content.innerHTML = '<div style="color:#6b7280;text-align:center;padding:16px">🤖 Sending to Claude AI...</div>';
-  setStatus('Running Claude analysis', 'active');
+  if (content) content.innerHTML = '<div style="color:#6b7280;text-align:center;padding:16px">🤖 Sending to OpenRouter AI...</div>';
+  setStatus('Running AI analysis', 'active');
 
   const d = getSym(sym);
   const bars = r.bars.slice(0, 25);
@@ -3332,34 +3386,14 @@ window.runAIAnalysis = async function() {
     '{"verdict":"STRONG BUY|BUY|WATCH|NEUTRAL|SELL|STRONG SELL","confidence":0-100,"bias":"BULLISH|BEARISH|NEUTRAL","summary":"2 sentences","findings":["f1","f2","f3"],"bull_target":0,"bear_target":0,"stop":0,"reasoning":"paragraph"}';
 
   try {
-    const apiKey = (document.getElementById('claudeApiKey')?.value || localStorage.getItem('oc_apikey') || '').trim();
-    if (!apiKey) throw new Error('Please enter your Anthropic API key in the field above.');
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: CLAUDE, max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
-    if (!res.ok) {
-      const errTxt = await res.text().catch(()=>'');
-      throw new Error('API ' + res.status + (errTxt ? ': ' + errTxt.slice(0,120) : ''));
-    }
-    const data = await res.json();
-    const txt  = data.content.map(b => b.text || '').join('');
-    const a    = JSON.parse(txt.replace(/```json|```/g, '').trim());
+    const { text: txt, model: usedModel } = await callOpenRouter(prompt);
+    const a = JSON.parse(txt.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, m => m.replace(/```json\n?|```\n?/g,'')).trim());
 
     d.aiSig  = a.verdict  || d.aiSig;
     d.aiConf = a.confidence || d.aiConf;
     d.aiBias = a.bias     || d.aiBias;
     const ts = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit'});
-    addLog(d, ts, 'ai', '🤖 CLAUDE: ' + a.verdict + ' (' + a.confidence + '%) — ' + (a.summary||'').slice(0,60));
+    addLog(d, ts, 'ai', '🤖 AI: ' + a.verdict + ' (' + a.confidence + '%) — ' + (a.summary||'').slice(0,60));
     gainXP(30); save();
 
     const vc = a.verdict.includes('BUY') ? '#155724' : a.verdict.includes('SELL') ? '#721c24' : '#856404';
@@ -3427,14 +3461,6 @@ function runAutoLearn() {
 load();
 setStatus('Ready', 'done');
 console.log('OpenClaw AI Engine loaded');
-// Restore saved API key
-(function() {
-  const saved = localStorage.getItem('oc_apikey');
-  if (saved) {
-    const inp = document.getElementById('claudeApiKey');
-    if (inp) inp.value = saved;
-  }
-})();
 
 })(); // end IIFE
 // ═══════════════════════════════════════════════════════════════════════
