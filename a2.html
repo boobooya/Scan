@@ -440,7 +440,7 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
           <th class="r sortable" onclick="sortTable('chg')">Chg%</th>
           <th class="c sortable" onclick="sortTable('signal')">Signal</th>
           <th class="c sortable" onclick="sortTable('type')">Type</th>
-          <th class="c">Option</th>
+          <th class="c sortable" onclick="sortTable('option')">Option</th>
           <th class="r sortable" onclick="sortTable('strike')">Strike</th>
           <th class="r sortable" onclick="sortTable('stop')">Stop</th>
           <th class="c sortable" onclick="sortTable('forecast')">Forecast</th>
@@ -485,17 +485,17 @@ const MINI_CHART_BARS = 50;  // Bars to show in mini charts
 const MAX_MAIN_BARS   = 60;  // Max bars in main chart display
 const MA_CROSS_CONCURRENT = 3; // Parallel symbols in MA scanner
 const YF_TF={
-  '1m': {interval:'1m', range:'1d',  label:'1 Min',   unit:'minute', info:'range=1d · ~390 bars · Scalping'},
-  '3m': {interval:'2m', range:'5d',  label:'3 Min',   unit:'minute', info:'range=5d · ~200 bars · Scalping (2m proxy)'},
-  '5m': {interval:'5m', range:'1d',  label:'5 Min',   unit:'minute', info:'range=1d · ~78 bars · Day trading'},
-  '15m':{interval:'15m',range:'5d',  label:'15 Min',  unit:'minute', info:'range=5d · ~130 bars · Day trading'},
-  '30m':{interval:'30m',range:'1mo', label:'30 Min',  unit:'minute', info:'range=1mo · ~100 bars · Swing'},
-  '1h': {interval:'1h', range:'1mo', label:'1 Hour',  unit:'hour',   info:'range=1mo · ~160 bars · Swing'},
-  '2h': {interval:'2h', range:'3mo', label:'2 Hours', unit:'hour',   info:'range=3mo · ~90 bars · Swing'},
-  '4h': {interval:'4h', range:'6mo', label:'4 Hours', unit:'hour',   info:'range=6mo · ~90 bars · Position'},
-  '1d': {interval:'1d', range:'2y',  label:'Daily',   unit:'day',    info:'range=2y · ~500 bars · Position'},
-  '1wk':{interval:'1wk',range:'5y',  label:'Weekly',  unit:'week',   info:'range=5y · ~260 bars · Investor'},
-  '1mo':{interval:'1mo',range:'10y', label:'Monthly', unit:'month',  info:'range=10y · ~120 bars · Macro'},
+  '1m': {interval:'1m',  range:'7d',  label:'1 Min',   unit:'minute', info:'range=7d · ~390 bars · Scalping',          aggN:0},
+  '3m': {interval:'2m',  range:'5d',  label:'3 Min',   unit:'minute', info:'range=5d · ~200 bars · Scalping (2m proxy)',aggN:0},
+  '5m': {interval:'5m',  range:'5d',  label:'5 Min',   unit:'minute', info:'range=5d · ~390 bars · Day trading',       aggN:0},
+  '15m':{interval:'15m', range:'60d', label:'15 Min',  unit:'minute', info:'range=60d · ~390 bars · Day trading',      aggN:0},
+  '30m':{interval:'30m', range:'60d', label:'30 Min',  unit:'minute', info:'range=60d · ~200 bars · Swing',            aggN:0},
+  '1h': {interval:'60m', range:'730d',label:'1 Hour',  unit:'hour',   info:'range=730d · ~500 bars · Swing',           aggN:0},
+  '2h': {interval:'60m', range:'730d',label:'2 Hours', unit:'hour',   info:'range=730d · ~250 bars (2×60m agg)',        aggN:2},
+  '4h': {interval:'60m', range:'730d',label:'4 Hours', unit:'hour',   info:'range=730d · ~125 bars (4×60m agg)',        aggN:4},
+  '1d': {interval:'1d',  range:'2y',  label:'Daily',   unit:'day',    info:'range=2y · ~500 bars · Position',          aggN:0},
+  '1wk':{interval:'1wk', range:'5y',  label:'Weekly',  unit:'week',   info:'range=5y · ~260 bars · Investor',          aggN:0},
+  '1mo':{interval:'1mo', range:'10y', label:'Monthly', unit:'month',  info:'range=10y · ~120 bars · Macro',            aggN:0},
 };
 
 const PRESETS={
@@ -590,11 +590,9 @@ let sortDir=1;          // 1=asc, -1=desc
 
 function sortTable(col){
   if(sortCol===col) sortDir*=-1; else{sortCol=col;sortDir=1;}
-  // Update header classes
   document.querySelectorAll('th.sortable').forEach(th=>{
     th.classList.remove('sort-asc','sort-desc');
   });
-  // Find the clicked th by its onclick
   document.querySelectorAll('th.sortable').forEach(th=>{
     const oc=th.getAttribute('onclick')||'';
     if(oc.includes("'"+col+"'")){
@@ -604,9 +602,8 @@ function sortTable(col){
   updateTable();
 }
 
-// Return a numeric sort key for each column
+// Return a numeric/string sort key for each column
 function sortKey(r, col){
-  const sigOrder={buy:0,'buy+both':-1,sell:2,neutral:3};
   switch(col){
     case 'sym':       return r.sym;
     case 'tf':        return r.tfLabel||'';
@@ -614,18 +611,19 @@ function sortKey(r, col){
     case 'chg':       return r.chgPct||0;
     case 'signal':    return r.stype==='both'?-1:r.dir==='buy'?0:r.dir==='sell'?2:3;
     case 'type':      return r.stype==='both'?0:r.stype==='swing'?1:r.stype==='channel'?2:3;
+    case 'option':    return r.opt==='call'?0:r.opt==='put'?1:2;
     case 'strike':    return r.strike||0;
     case 'stop':      return r.stop||0;
     case 'forecast':  return r.fcast?parseFloat(r.fcast.biasPct)||0:0;
     case 'structure': return r.ms?.trend==='uptrend'?0:r.ms?.trend==='downtrend'?2:1;
     case 'conf':      return r.conf==='high'?0:r.conf==='medium'?1:2;
     case 'ai':{
-      const d=typeof AI_SS!=='undefined'?AI_SS[r.sym]:null;
+      const d=typeof SYM!=='undefined'?SYM[r.sym]:null;
       const s=d?.aiSig||'—';
       return s.includes('STRONG BUY')?0:s==='BUY'?1:s==='WATCH'?2:s==='NEUTRAL'?3:s==='SELL'?4:s.includes('STRONG SELL')?5:6;
     }
     case 'aiconf':{
-      const d=typeof AI_SS!=='undefined'?AI_SS[r.sym]:null;
+      const d=typeof SYM!=='undefined'?SYM[r.sym]:null;
       return d?.aiConf||0;
     }
     default: return 0;
@@ -971,6 +969,27 @@ function buildResult(sym,bars,cfg,tfLabel){
 }
 
 // ═══ FETCH — tries all proxies per symbol, never hard-fails ══════════
+// Aggregate 60m bars into N-hour bars (for 2h and 4h synthetic TFs)
+function aggregateBars(bars, n) {
+  if (!n || n <= 1) return bars;
+  const out = [];
+  // bars are already sorted oldest-first at this point
+  for (let i = 0; i < bars.length; i += n) {
+    const chunk = bars.slice(i, i + n);
+    if (!chunk.length) continue;
+    out.push({
+      time:      chunk[0].time,
+      timestamp: chunk[0].timestamp,
+      open:  chunk[0].open,
+      high:  Math.max(...chunk.map(b => b.high)),
+      low:   Math.min(...chunk.map(b => b.low)),
+      close: chunk[chunk.length - 1].close,
+      vol:   chunk.reduce((s, b) => s + (b.vol || 0), 0),
+    });
+  }
+  return out;
+}
+
 async function fetchYF(sym,tfKey){
   const rawUrl = yfUrl(sym, tfKey);
 
@@ -1000,21 +1019,30 @@ async function fetchYF(sym,tfKey){
       const msg=document.getElementById('pmsg');
       if(d){d.className='proxy vis ok';dot.className='pdot dok';msg.textContent='✅ '+name+' — active';}
 
+      const aggN = YF_TF[tfKey]?.aggN || 0;
+      const isIntra = ['1m','3m','5m','15m','30m','1h','2h','4h'].includes(tfKey);
+      const isDaily = tfKey === '1d' || tfKey === '1wk';
       const bars=[];
-      const intra=['5m','15m','1h','2h','4h'].includes(tfKey);
       for(let i=ts.length-1;i>=0;i--){
         if(q.close[i]==null||isNaN(q.close[i]))continue;
         const dd=new Date(ts[i]*1000);
-        const tl=intra
-          ?dd.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})
-          :tfKey==='1d'
-            ?dd.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})
-            :dd.toLocaleDateString('en-US',{year:'numeric',month:'short'});
+        let tl;
+        if(isIntra){
+          tl = dd.toLocaleString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});
+        } else if(isDaily){
+          tl = dd.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+        } else {
+          tl = dd.toLocaleDateString('en-US',{year:'numeric',month:'short'});
+        }
         bars.push({time:tl,timestamp:ts[i]*1000,
           open:q.open[i]??q.close[i], high:q.high[i]??q.close[i],
           low:q.low[i]??q.close[i],   close:q.close[i], vol:q.volume[i]??0});
       }
-      return bars.length>=5 ? bars : null;
+      // bars is currently newest-first; reverse for aggregation (oldest-first), then re-reverse
+      let result_bars = bars.reverse(); // oldest-first
+      if(aggN >= 2) result_bars = aggregateBars(result_bars, aggN);
+      result_bars = result_bars.reverse(); // back to newest-first
+      return result_bars.length>=5 ? result_bars : null;
 
     }catch(e){ clearTimeout(t); continue; }
   }
@@ -2333,6 +2361,21 @@ document.addEventListener('click', function(e) {
 
 // ── SYNCHRONIZED CROSSHAIR ENGINE ────────────────────────────────────────
 let syncedCharts = [];   // all chart instances for crosshair sync
+
+// ── Y-axis alignment: force all panes to have the same y-axis pixel width ──
+// This makes every canvas area start at the same left pixel → perfect alignment
+const YAXIS_WIDTH = 52; // px — enough for "$999.99" labels
+const yAlignPlugin = {
+  id: 'yAlign',
+  afterFit(chart, args) {
+    // Force the right-side y axis to a fixed pixel width
+    const scaleId = Object.keys(chart.scales).find(k => k !== 'x' && k !== 'x2');
+    if (scaleId && chart.scales[scaleId]) {
+      chart.scales[scaleId].width = YAXIS_WIDTH;
+    }
+  }
+};
+Chart.register(yAlignPlugin);
 let syncActive   = false;
 
 // Toggle subgraph pane visibility
