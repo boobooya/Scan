@@ -223,6 +223,115 @@ select:focus,input:focus{border-color:var(--info)}
 .ca-title{font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;color:var(--zone);margin-bottom:5px}
 .ca-zones{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .cazn{padding:4px 8px;border-radius:2px;font-size:8px;border:1px solid;display:flex;flex-direction:column;gap:2px;min-width:95px}
+
+/* ── HERMES AI ── */
+.hermes-bar{background:linear-gradient(90deg,rgba(124,58,237,.15),rgba(124,58,237,.03));
+  border-bottom:1px solid rgba(124,58,237,.3);padding:5px 14px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hermes-logo{font-family:'Orbitron',sans-serif;font-size:10px;font-weight:900;
+  color:#a78bfa;letter-spacing:2px;display:flex;gap:5px;align-items:center}
+.hermes-logo .dot{width:6px;height:6px;border-radius:50%;background:#a78bfa;
+  animation:hpulse 1.4s ease-in-out infinite}
+@keyframes hpulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.hm-status{font-size:8px;color:rgba(167,139,250,.6);padding:2px 7px;
+  border:1px solid rgba(124,58,237,.2);border-radius:2px}
+.hm-model-lbl{font-size:7px;color:rgba(167,139,250,.45);letter-spacing:.8px}
+.hermes-chat{display:flex;flex-direction:column;height:400px;
+  border:1px solid rgba(124,58,237,.25);border-radius:3px;background:var(--bg)}
+.hermes-msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.hm{display:flex;gap:8px;align-items:flex-start;animation:fd .18s}
+.hm.user{flex-direction:row-reverse}
+.hm-ava{width:22px;height:22px;border-radius:2px;display:flex;align-items:center;
+  justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.hm-ava.ai{background:rgba(124,58,237,.2);color:#a78bfa;border:1px solid rgba(124,58,237,.3)}
+.hm-ava.us{background:rgba(0,204,255,.1);color:var(--info);border:1px solid rgba(0,204,255,.2)}
+.hm-bubble{max-width:85%;padding:8px 11px;border-radius:3px;font-size:9.5px;line-height:1.6}
+.hm-bubble.ai{background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);color:var(--bright)}
+.hm-bubble.us{background:rgba(0,204,255,.05);border:1px solid rgba(0,204,255,.14);
+  color:var(--info);text-align:right}
+.hm-bubble b{color:var(--white)}
+.hm-typing{display:flex;gap:3px;padding:3px 2px;align-items:center}
+.hm-typing span{width:5px;height:5px;border-radius:50%;background:#a78bfa;animation:blink 1s infinite}
+.hm-typing span:nth-child(2){animation-delay:.18s}
+.hm-typing span:nth-child(3){animation-delay:.36s}
+@keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+.hermes-input{display:flex;gap:5px;padding:7px;
+  border-top:1px solid rgba(124,58,237,.18);background:rgba(124,58,237,.02)}
+.hermes-input textarea{flex:1;background:var(--s2);border:1px solid rgba(124,58,237,.22);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:9.5px;
+  padding:5px 8px;border-radius:2px;outline:none;resize:none;height:36px;line-height:1.45}
+.hermes-input textarea:focus{border-color:rgba(124,58,237,.55)}
+.btn-h{font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;
+  padding:5px 13px;border-radius:2px;cursor:pointer;
+  border:1px solid rgba(124,58,237,.35);background:rgba(124,58,237,.1);
+  color:#a78bfa;transition:all .1s;white-space:nowrap}
+.btn-h:hover{background:rgba(124,58,237,.2)}
+.btn-h:disabled{opacity:.35;cursor:not-allowed}
+.hq-bar{display:flex;flex-wrap:wrap;gap:4px;padding:0 8px 7px}
+.hq{font-size:7.5px;padding:3px 7px;border-radius:2px;
+  border:1px solid rgba(124,58,237,.18);background:transparent;
+  color:rgba(167,139,250,.65);cursor:pointer;font-family:'JetBrains Mono',monospace;
+  transition:all .1s}
+.hq:hover{background:rgba(124,58,237,.1);color:#a78bfa;border-color:rgba(124,58,237,.38)}
+.apikey-row{display:flex;gap:6px;align-items:center;padding:5px 10px;
+  background:rgba(124,58,237,.03);border-bottom:1px solid rgba(124,58,237,.12)}
+.apikey-row input{flex:1;max-width:320px;background:var(--s2);
+  border:1px solid rgba(124,58,237,.18);color:var(--text);
+  font-family:'JetBrains Mono',monospace;font-size:9.5px;
+  padding:3px 7px;border-radius:2px;outline:none}
+.apikey-row input:focus{border-color:rgba(124,58,237,.45)}
+.apikey-row .lbl{font-size:7.5px;color:rgba(167,139,250,.55);white-space:nowrap}
+.key-saved{font-size:7px;color:var(--up);padding:2px 5px;
+  border:1px solid rgba(0,240,160,.18);border-radius:1px}
+/* ── SIGNAL MATRIX ── */
+.sm-wrap{display:flex;flex-direction:column;gap:3px}
+.sm-row{display:grid;grid-template-columns:105px 38px 1fr 48px 70px;
+  gap:4px;align-items:center;padding:3px 7px;border-radius:2px;
+  font-size:9px;border-left:2px solid transparent}
+.sm-row.bull{border-left-color:var(--up);background:rgba(0,240,160,.025)}
+.sm-row.bear{border-left-color:var(--dn);background:rgba(255,48,96,.025)}
+.sm-row.neutral{border-left-color:var(--b2)}
+.sm-row.conflict{border-left-color:var(--warn);background:rgba(255,187,0,.025)}
+.sm-dir{font-weight:700;font-size:11px;text-align:center}
+.sm-reason{font-size:8px;color:var(--muted);overflow:hidden;
+  white-space:nowrap;text-overflow:ellipsis}
+.sm-w{font-size:7.5px;color:var(--ghost);text-align:right}
+.sm-status{font-size:7px}
+.conf-badge{font-size:7px;padding:1px 4px;border-radius:1px;
+  border:1px solid rgba(255,187,0,.28);background:rgba(255,187,0,.05);color:var(--warn)}
+.as-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:8px}
+.as-box{padding:9px;border-radius:3px;border:1px solid;text-align:center}
+.as-box.b{border-color:rgba(0,240,160,.25);background:rgba(0,240,160,.04)}
+.as-box.r{border-color:rgba(255,48,96,.25);background:rgba(255,48,96,.04)}
+.as-box.w{border-color:rgba(255,187,0,.25);background:rgba(255,187,0,.04)}
+.as-val{font-family:'Orbitron',sans-serif;font-size:20px;font-weight:700}
+.as-lbl{font-size:6.5px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-top:2px}
+.dec-box{background:var(--s1);border:1px solid var(--b2);border-radius:3px;
+  padding:11px;margin-bottom:10px}
+.dec-box h4{font-family:'Orbitron',sans-serif;font-size:8.5px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--ghost);margin-bottom:7px}
+.dec-why{font-size:9.5px;color:var(--text);line-height:1.7}
+.dec-why .up{color:var(--up);font-weight:600}
+.dec-why .dn{color:var(--dn);font-weight:600}
+.dec-why .wn{color:var(--warn);font-weight:600}
+.dec-why .vi{color:#a78bfa}
+.verd-bar{height:7px;border-radius:4px;background:var(--s3);overflow:hidden;margin:7px 0}
+.verd-fill{height:100%;border-radius:4px;transition:width .5s}
+/* ── WEIGHT EDITOR ── */
+.we-row{display:flex;gap:7px;align-items:center;padding:3px 5px;
+  background:var(--s2);border-radius:2px;margin-bottom:2px}
+.we-lbl{font-size:8px;color:var(--ghost);min-width:100px}
+.we-inp{width:50px;background:var(--bg);border:1px solid var(--b2);
+  color:var(--text);font-family:'JetBrains Mono',monospace;font-size:8.5px;
+  padding:2px 4px;border-radius:2px;outline:none;text-align:center}
+.we-bar-w{flex:1;height:4px;background:var(--s3);border-radius:2px;overflow:hidden}
+.we-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--info),#a78bfa)}
+.we-pct{font-size:7.5px;color:var(--info);min-width:28px;text-align:right}
+/* ── LOOPBACK ── */
+.lb-log{max-height:110px;overflow-y:auto;font-size:7.5px;
+  background:var(--bg);border:1px solid var(--br);border-radius:2px;padding:4px;margin-top:4px}
+.lb-entry{padding:2px 0;border-bottom:1px solid rgba(25,44,66,.25);line-height:1.5}
+.lb-c{color:var(--up)}.lb-w{color:var(--dn)}.lb-p{color:var(--warn)}
 </style>
 </head>
 <body>
@@ -271,6 +380,23 @@ select:focus,input:focus{border-color:var(--info)}
   <div id="prog-w"><div id="prog"></div></div>
 </div>
 
+
+<!-- HERMES AI STATUS BAR -->
+<div class="hermes-bar">
+  <div class="hermes-logo"><div class="dot"></div>HERMES AI</div>
+  <div class="hm-status" id="hm-status">READY</div>
+  <div class="hm-model-lbl" id="hm-model">MODEL: —</div>
+  <div style="flex:1"></div>
+  <span style="font-size:7.5px;color:rgba(167,139,250,.45)">LOOPBACK:</span>
+  <span style="font-size:9px;font-weight:700;color:#a78bfa" id="lb-count">0</span>
+  <span style="color:var(--b2)">|</span>
+  <span style="font-size:7.5px;color:rgba(167,139,250,.45)">ACC:</span>
+  <span style="font-size:9px;font-weight:700;color:var(--up)" id="lb-acc">—</span>
+  <span style="color:var(--b2)">|</span>
+  <span style="font-size:7.5px;color:rgba(167,139,250,.45)">WEIGHTS v</span>
+  <span style="font-size:9px;font-weight:700;color:var(--info)" id="wt-ver">0</span>
+</div>
+
 <!-- CONTROLS -->
 <div class="ctrl">
   <div class="crow">
@@ -315,6 +441,8 @@ select:focus,input:focus{border-color:var(--info)}
   <button class="tab" data-tab="backtest">⊛ BACKTEST</button>
   <button class="tab" data-tab="heatmap">⊞ HEATMAP</button>
   <button class="tab" data-tab="ml">🧠 AI ENGINE</button>
+  <button class="tab" data-tab="hermes">◈ HERMES AI</button>
+  <button class="tab" data-tab="signals">⚖ SIGNAL MATRIX</button>
 </div>
 
 <div class="main">
@@ -381,6 +509,83 @@ select:focus,input:focus{border-color:var(--info)}
     <div class="ml-log" id="ml-log"></div>
   </div>
 </div>
+
+  <!-- ◈ HERMES AI PANEL -->
+  <div class="panel" id="panel-hermes">
+    <div class="sec"><span>◈</span>HERMES AI — POWERED BY OPENROUTER FREE TIER</div>
+    <div class="apikey-row">
+      <span class="lbl">OPENROUTER KEY</span>
+      <input type="password" id="hm-apikey" placeholder="sk-or-v1-... free at openrouter.ai/keys">
+      <button class="btn-h" onclick="saveKey()" style="font-size:8px;padding:3px 9px">SAVE</button>
+      <span class="key-saved" id="key-saved" style="display:none">✓ SAVED</span>
+      <span style="font-size:7px;color:rgba(167,139,250,.4);margin-left:10px">
+        Free: llama-3.1-8b · deepseek-r1 · gemma-3-12b · mistral-7b · qwen-2.5-7b
+      </span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 360px;gap:10px;margin-top:8px">
+      <div>
+        <div class="hermes-chat" id="hermes-chat">
+          <div class="hermes-msgs" id="hm-msgs">
+            <div class="hm">
+              <div class="hm-ava ai">H</div>
+              <div class="hm-bubble ai">
+                <b>Hermes AI ready.</b> I analyse your scan data, explain signals, identify conflicts between studies, critique methodology, and walk through forecast and backtest reasoning.<br><br>
+                Run a <b>LIVE SCAN</b> first so I have live data, then ask anything. Quick buttons below, or type your own question.
+              </div>
+            </div>
+          </div>
+          <div class="hq-bar">
+            <button class="hq" onclick="hq('Explain the current scan results. Which symbols have the strongest setups and why?')">📊 Explain scan</button>
+            <button class="hq" onclick="hq('Which studies are conflicting with each other across all symbols? Why does that matter?')">⚔ Conflicts</button>
+            <button class="hq" onclick="hq('What are the real weaknesses in these 15 studies? What would you improve or add?')">🔬 Critique</button>
+            <button class="hq" onclick="hq('Walk me through the forecast logic step by step. What assumptions does it make? What can go wrong?')">▷ Forecast logic</button>
+            <button class="hq" onclick="hq('Are the backtest accuracy numbers reliable? Explain the methodology and its flaws.')">⊛ Backtest validity</button>
+            <button class="hq" onclick="hq('Which symbol has the best risk/reward setup right now? Justify your answer with specific study readings.')">🎯 Best setup</button>
+            <button class="hq" onclick="hq('Explain how the ML weights work. Which features are contributing most right now and which are noise?')">🧠 ML weights</button>
+            <button class="hq" onclick="hq('What market regime are we in? How should I adjust study weights for current conditions?')">📈 Regime</button>
+            <button class="hq" onclick="hq('Explain the Monte Carlo simulation methodology. How many paths, what drift/sigma assumptions, and what are the VaR and Sharpe numbers telling us?')">⊕ Monte Carlo</button>
+            <button class="hq" onclick="hq('Explain the Game Theory Nash equilibrium model. What does Bull/Bear Win mean in practice?')">♟ Game theory</button>
+          </div>
+          <div class="hermes-input">
+            <textarea id="hm-inp" placeholder="Ask about any symbol, signal, conflict, or study methodology…"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendHermes()}"></textarea>
+            <button class="btn-h" id="hm-btn" onclick="sendHermes()">SEND ▶</button>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="dec-box">
+          <h4>⚖ STUDY WEIGHTS — EDIT + PERSIST</h4>
+          <div id="wt-editor"></div>
+          <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">
+            <button class="btn-h" style="font-size:7.5px;padding:3px 8px" onclick="saveWeights()">💾 SAVE</button>
+            <button class="btn-h" style="font-size:7.5px;padding:3px 8px;opacity:.6" onclick="resetWeights()">↺ RESET</button>
+            <button class="btn-h" style="font-size:7.5px;padding:3px 8px" onclick="aiOptimizeWeights()">✨ AI OPTIMIZE</button>
+          </div>
+        </div>
+        <div class="dec-box">
+          <h4>🔄 LOOPBACK LEARNING</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:5px">
+            <div class="kpi" style="padding:6px"><div class="k">STORED</div><div class="v vi" id="lb-stored">0</div></div>
+            <div class="kpi" style="padding:6px"><div class="k">VALIDATED</div><div class="v vu" id="lb-valid">0</div></div>
+          </div>
+          <div class="lb-log" id="lb-log"><span style="color:var(--muted)">Run scan to store predictions…</span></div>
+          <button class="btn-h" style="font-size:7.5px;padding:3px 9px;margin-top:5px;width:100%"
+            onclick="runLoopback()">▶ VALIDATE PREDICTIONS NOW</button>
+          <div style="font-size:7px;color:var(--muted);margin-top:4px">
+            Compares stored predictions vs actual price moves. Adjusts ML weights on correct/incorrect outcomes. Persists across page reloads.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⚖ SIGNAL MATRIX PANEL -->
+  <div class="panel" id="panel-signals">
+    <div class="sec"><span>⚖</span>SIGNAL MATRIX — ALL STUDIES · ALIGNMENT · CONFLICTS · WEIGHTED DECISIONS · REASONING</div>
+    <div id="sig-wrap"><div class="empty"><div class="big">⚖</div><p>Run LIVE SCAN first, then click this tab</p></div></div>
+  </div>
+
 
 <script>
 // ═══════════════════════════════════════════════════════════════════
@@ -1724,6 +1929,463 @@ logML('inf','Spikes: past 7 days with day+PST time · projected next spikes by i
 logML('inf','Overlap: every price where 2+ TFs / indicators / Gann / MC / Gamma cluster');
 logML('gamma','Gamma Engine: Net GEX · Gamma Pin · Call/Put Wall · CTA Flow · Dealer Delta · Vanna');
 logML('ok','Click ▶ LIVE SCAN to begin');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HERMES AI — OpenRouter free tier
+// ═══════════════════════════════════════════════════════════════════════════
+const HM_MODELS = [
+  'meta-llama/llama-3.1-8b-instruct:free',
+  'deepseek/deepseek-r1:free',
+  'google/gemma-3-12b-it:free',
+  'mistralai/mistral-7b-instruct:free',
+  'qwen/qwen-2.5-7b-instruct:free',
+];
+let hmModelIdx = 0, hmHistory = [], hmMsgN = 0;
+
+function getKey(){ return document.getElementById('hm-apikey').value.trim() || localStorage.getItem('hm_key')||''; }
+function saveKey(){
+  const k=document.getElementById('hm-apikey').value.trim();
+  if(!k){alert('Paste your OpenRouter key first.\nGet one free at openrouter.ai/keys (no card needed)');return;}
+  localStorage.setItem('hm_key',k);
+  const s=document.getElementById('key-saved');
+  s.style.display='inline';setTimeout(()=>s.style.display='none',1800);
+  logML('ai','OpenRouter key saved');
+}
+(()=>{ const k=localStorage.getItem('hm_key'); if(k) document.getElementById('hm-apikey').value=k; })();
+
+function buildCtx(){
+  if(!results.length) return 'No scan data yet — user must run LIVE SCAN first.';
+  const top=[...results].sort((a,b)=>b.pred.prob-a.pred.prob).slice(0,6);
+  const lbData=JSON.parse(localStorage.getItem('hm_lb')||'[]');
+  const lbRes=lbData.filter(d=>d.resolved);
+  const lbAcc=lbRes.length?Math.round(lbRes.filter(d=>d.correct).length/lbRes.length*100):null;
+  const conflictSummary=results.slice(0,5).map(r=>{
+    const m=buildMatrix(r); const c=m.filter(s=>s.conflict);
+    return c.length?`${r.sym}(${c.map(x=>x.name).join(',')})`:null;
+  }).filter(Boolean).join('; ');
+  const wStr=Object.entries(ml.w).map(([k,v])=>`${k}:${(+v).toFixed(3)}`).join(' ');
+  return `SCAN: ${results.length} symbols @ ${new Date().toLocaleTimeString('en-US',{timeZone:'America/Los_Angeles',hour12:true})} PST
+TOP SIGNALS: ${top.map(r=>`${r.sym} ${r.pred.dir.toUpperCase()} ${r.pred.prob}% prob/${r.pred.conf}% conf MC:${r.mc?.pUp||'?'}% Nash:${r.gt?.nashOutcome||'?'} CTA:${r.gamma?.ctaBias||'?'}`).join(' | ')}
+ML_WEIGHTS: ${wStr}
+ML_ACC: ${ml.acc}% (${ml.iters} iters)
+LOOPBACK: ${lbAcc!==null?lbAcc+'% ('+lbRes.length+' validated)':'not yet validated'}
+CONFLICTS: ${conflictSummary||'none detected'}
+STUDIES: RSI(14) MACD BB ATR EMA_Trend Stochastic ZScore VolumeRatio Hurst GannSq9 Spikes Trendline MonteCarlo GameTheory MultiTF Gamma/CTA/Dealer`;
+}
+
+async function callHM(msg){
+  const key=getKey();
+  if(!key){addMsg('ai','Paste your <b>OpenRouter API key</b> above — free at <b>openrouter.ai/keys</b>, no credit card needed.');return;}
+  const sys=`You are Hermes, a senior quant analyst embedded in OpenClaw NEXUS trading scanner. Explain signals precisely, flag conflicts between studies, critique methodology honestly, and give actionable insight. Be direct and specific. Max 220 words unless asked for more. Mark key numbers like [72%]. Use ✓ for agreement, ⚔ for conflict. No markdown headers.`;
+  const ctx=buildCtx();
+  const model=HM_MODELS[hmModelIdx%HM_MODELS.length];
+  document.getElementById('hm-model').textContent='MODEL: '+model.split('/')[1]?.split(':')[0]?.toUpperCase();
+  document.getElementById('hm-status').textContent='THINKING…';
+  document.getElementById('hm-btn').disabled=true;
+  const typId=addMsg('ai','<div class="hm-typing"><span></span><span></span><span></span></div>');
+  try{
+    const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,
+        'HTTP-Referer':location.href,'X-Title':'OpenClaw NEXUS'},
+      body:JSON.stringify({model,max_tokens:500,temperature:0.65,
+        messages:[{role:'system',content:sys},{role:'user',content:ctx+'\n\nQuestion: '+msg}]})
+    });
+    const d=await res.json();
+    removeMsg(typId);
+    if(d.error){
+      hmModelIdx++;
+      addMsg('ai',`⚠ Model rate-limited. Switching to ${HM_MODELS[hmModelIdx%HM_MODELS.length].split('/')[1]}. Please retry.`);
+    } else {
+      const txt=d.choices?.[0]?.message?.content||'No response';
+      const html=txt
+        .replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')
+        .replace(/\*(.*?)\*/g,'<em>$1</em>')
+        .replace(/\[(\d[\d.]*%?)\]/g,'<span style="color:var(--warn);font-weight:700">[$1]</span>')
+        .replace(/BULLISH|BULL_WIN/g,'<span style="color:var(--up);font-weight:600">$&</span>')
+        .replace(/BEARISH|BEAR_WIN/g,'<span style="color:var(--dn);font-weight:600">$&</span>')
+        .replace(/⚔/g,'<span style="color:var(--warn)">⚔</span>')
+        .replace(/✓/g,'<span style="color:var(--up)">✓</span>')
+        .replace(/\n/g,'<br>');
+      addMsg('ai',html);
+      hmHistory.push({role:'user',content:msg},{role:'assistant',content:txt});
+      hmHistory=hmHistory.slice(-12);
+      logML('ai','Hermes: '+txt.slice(0,55)+'…');
+    }
+  }catch(e){
+    removeMsg(typId);
+    addMsg('ai','⚠ Error: '+e.message+'. Check your API key.');
+  }
+  document.getElementById('hm-status').textContent='READY';
+  document.getElementById('hm-btn').disabled=false;
+}
+
+function addMsg(role,html){
+  const id='hm-'+(++hmMsgN);
+  const el=document.getElementById('hm-msgs');
+  const d=document.createElement('div');
+  d.className='hm'+(role==='user'?' user':'');
+  d.id=id;
+  d.innerHTML=`<div class="hm-ava ${role==='user'?'us':'ai'}">${role==='user'?'YOU':'H'}</div><div class="hm-bubble ${role}">${html}</div>`;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+  return id;
+}
+function removeMsg(id){ document.getElementById(id)?.remove(); }
+function sendHermes(){
+  const inp=document.getElementById('hm-inp');
+  const msg=inp.value.trim(); if(!msg)return;
+  addMsg('user',msg); inp.value=''; callHM(msg);
+}
+function hq(q){ addMsg('user',q); callHM(q); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WEIGHT PERSISTENCE
+// ═══════════════════════════════════════════════════════════════════════════
+const DEFAULT_W={rsi:.11,macd:.08,bb:.08,atr:.06,trend:.10,stoch:.07,zsc:.06,vol:.05,
+  hurst:.08,gann:.06,spike:.07,tl:.08,mc:.06,gt:.05,mtf:.07,gamma:.05};
+const W_LABELS={rsi:'RSI (14)',macd:'MACD',bb:'Bollinger %B',atr:'ATR Volatility',
+  trend:'EMA Trend',stoch:'Stochastic %K',zsc:'Z-Score',vol:'Volume Ratio',
+  hurst:'Hurst Cycle',gann:'Gann Sq9',spike:'Spike History',tl:'Trendline',
+  mc:'Monte Carlo',gt:'Game Theory',mtf:'Multi-TF',gamma:'Gamma/CTA'};
+let wtVer=0;
+
+(()=>{
+  const s=localStorage.getItem('hm_weights');
+  if(s){ try{ Object.assign(ml.w,JSON.parse(s)); wtVer=+localStorage.getItem('hm_wver')||0; }catch(e){} }
+  renderWtEditor();
+  document.getElementById('wt-ver').textContent=wtVer;
+})();
+
+function renderWtEditor(){
+  const el=document.getElementById('wt-editor'); if(!el)return;
+  const tot=Object.values(ml.w).reduce((s,v)=>s+Math.abs(v),0)||1;
+  el.innerHTML=Object.entries(ml.w).map(([k,v])=>{
+    const pct=(Math.abs(v)/tot*100).toFixed(1);
+    return `<div class="we-row">
+      <div class="we-lbl">${W_LABELS[k]||k}</div>
+      <input class="we-inp" type="number" id="wi-${k}" value="${(+v).toFixed(3)}"
+        step="0.005" min="-1" max="1"
+        onchange="ml.w['${k}']=parseFloat(this.value)||0;renderWtEditor()">
+      <div class="we-bar-w"><div class="we-fill" style="width:${Math.min(100,pct*1.8)}%"></div></div>
+      <div class="we-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+function saveWeights(){
+  localStorage.setItem('hm_weights',JSON.stringify(ml.w));
+  wtVer++; localStorage.setItem('hm_wver',wtVer);
+  document.getElementById('wt-ver').textContent=wtVer;
+  logML('ai','Weights saved as v'+wtVer);
+}
+function resetWeights(){
+  Object.assign(ml.w,DEFAULT_W); renderWtEditor();
+  logML('wrn','Weights reset to defaults');
+}
+function aiOptimizeWeights(){
+  if(!results.length){alert('Run scan first');return;}
+  hq('Suggest specific weight adjustments to improve ML prediction quality. Return ONLY a JSON object with all 16 keys: rsi,macd,bb,atr,trend,stoch,zsc,vol,hurst,gann,spike,tl,mc,gt,mtf,gamma. Values 0 to 1. Example: {"rsi":0.12,"macd":0.09,...}');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOOPBACK LEARNING
+// ═══════════════════════════════════════════════════════════════════════════
+function storePreds(){
+  if(!results.length)return;
+  const store=JSON.parse(localStorage.getItem('hm_lb')||'[]');
+  const now=Date.now();
+  results.forEach(r=>{
+    if(store.find(s=>s.sym===r.sym&&!s.resolved&&now-s.ts<3600000))return;
+    store.push({sym:r.sym,ts:now,price:r.price,
+      dir:r.pred.dir,prob:r.pred.prob,
+      feat:ml.feat(r.ta,r.hu,r.ga||{proximity:0},
+        r.spRecent||[],r.tl||{status:'neutral',nearRes:false,nearSup:false},
+        r.mc,r.gt,r.mtf,r.gamma),
+      resolved:false,correct:null,actualPct:null});
+  });
+  localStorage.setItem('hm_lb',JSON.stringify(store.slice(-250)));
+  refreshLbBadge();
+}
+
+function runLoopback(){
+  const store=JSON.parse(localStorage.getItem('hm_lb')||'[]');
+  if(!store.length){addLbLog('No stored predictions yet. Run scan first.','p');return;}
+  const now=Date.now(); let res=0,ok=0;
+  store.forEach(pred=>{
+    if(pred.resolved){if(pred.correct)ok++;res++;return;}
+    const cur=results.find(r=>r.sym===pred.sym); if(!cur)return;
+    if(now-pred.ts<60000)return;
+    const pct=(cur.price-pred.price)/pred.price*100;
+    const correct=(pred.dir==='up'&&pct>0.1)||(pred.dir==='dn'&&pct<-0.1)||(pred.dir==='neutral'&&Math.abs(pct)<0.3);
+    pred.resolved=true; pred.correct=correct; pred.actualPct=+pct.toFixed(3);
+    if(correct)ok++; res++;
+    // Weight reinforcement
+    const lr=0.006;
+    for(const k of Object.keys(ml.w)){
+      ml.w[k]+=lr*(correct?0.04:-0.09)*(pred.feat[k]||0);
+      ml.w[k]=Math.max(-1,Math.min(1,ml.w[k]));
+    }
+    addLbLog(`${pred.sym} pred:${pred.dir.toUpperCase()} → ${pct>0?'+':''}${pct.toFixed(2)}% ${correct?'✓ CORRECT':'✗ WRONG'}`,correct?'c':'w');
+  });
+  localStorage.setItem('hm_lb',JSON.stringify(store));
+  if(res>0){
+    const acc=Math.round(ok/res*100);
+    document.getElementById('lb-acc').textContent=acc+'%';
+    document.getElementById('lb-valid').textContent=res;
+    renderWtEditor();
+    logML('ai',`Loopback: ${res} validated, ${acc}% correct, weights updated`);
+  }
+  refreshLbBadge();
+}
+
+function addLbLog(msg,type){
+  const el=document.getElementById('lb-log'); if(!el)return;
+  const d=document.createElement('div');
+  d.className='lb-entry';
+  d.innerHTML=`<span class="lb-${type}">${msg}</span>`;
+  el.insertBefore(d,el.firstChild);
+  while(el.children.length>60)el.removeChild(el.lastChild);
+}
+function refreshLbBadge(){
+  const s=JSON.parse(localStorage.getItem('hm_lb')||'[]');
+  document.getElementById('lb-count').textContent=s.length;
+  document.getElementById('lb-stored').textContent=s.filter(x=>!x.resolved).length;
+  const r=s.filter(x=>x.resolved);
+  if(r.length){
+    document.getElementById('lb-acc').textContent=Math.round(r.filter(x=>x.correct).length/r.length*100)+'%';
+    document.getElementById('lb-valid').textContent=r.length;
+  }
+}
+refreshLbBadge();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SIGNAL MATRIX — build per-symbol study alignment table
+// ═══════════════════════════════════════════════════════════════════════════
+function buildMatrix(r){
+  const{ta,hu,ga,spRecent,tl,mc,gt,mtf,gamma}=r;
+  const sp=spRecent||[];
+  const studies=[
+    {name:'RSI (14)',k:'rsi',
+      dir:ta.rsi<35?'bull':ta.rsi>65?'bear':'neutral',
+      sig:(50-ta.rsi)/50,
+      reason:`${ta.rsi.toFixed(1)} — ${ta.rsi<30?'deeply oversold':ta.rsi<40?'oversold':ta.rsi>70?'overbought':ta.rsi>60?'near overbought':'neutral'}`,
+      issue:ta.rsi<20||ta.rsi>80?'Extreme — may continue, not reverse':null},
+    {name:'MACD',k:'macd',
+      dir:ta.macdBull?'bull':'bear',sig:ta.macdBull?1:-1,
+      reason:`line=${ta.macdLine.toFixed(3)} — ${ta.macdBull?'bullish cross':'bearish cross'}`,
+      issue:Math.abs(ta.macdLine)<0.001?'Near zero — weak signal':null},
+    {name:'Bollinger %B',k:'bb',
+      dir:ta.bbPct<0.2?'bull':ta.bbPct>0.8?'bear':'neutral',
+      sig:(0.5-ta.bbPct)*2,
+      reason:`${(ta.bbPct*100).toFixed(0)}% — ${ta.bbPct<0.1?'at lower band':ta.bbPct>0.9?'at upper band':'mid-band'}`,
+      issue:ta.bbPct>0.9&&ta.trendUp?'Upper band in uptrend = momentum, not reversal':null},
+    {name:'EMA Trend',k:'trend',
+      dir:ta.trendUp?'bull':ta.trendDn?'bear':'neutral',
+      sig:ta.trendUp?1:ta.trendDn?-1:0,
+      reason:ta.trendUp?'Above EMA20/50/200':ta.trendDn?'Below EMA20/50/200':'Mixed EMA alignment',
+      issue:null},
+    {name:'Stochastic %K',k:'stoch',
+      dir:ta.stK<25?'bull':ta.stK>75?'bear':'neutral',
+      sig:(50-ta.stK)/50,
+      reason:`K=${ta.stK.toFixed(1)} — ${ta.stK<20?'deeply oversold':ta.stK<30?'oversold':ta.stK>80?'overbought':ta.stK>70?'near overbought':'neutral'}`,
+      issue:null},
+    {name:'Z-Score',k:'zsc',
+      dir:ta.zScore<-1.5?'bull':ta.zScore>1.5?'bear':'neutral',
+      sig:ta.zScore*-0.5,
+      reason:`${ta.zScore.toFixed(2)}σ from 20-bar mean`,
+      issue:Math.abs(ta.zScore)>3?'Extreme Z — fat tail, mean reversion risky':null},
+    {name:'Volume Ratio',k:'vol',
+      dir:ta.volRatio>1.5&&ta.trendUp?'bull':ta.volRatio>1.5&&ta.trendDn?'bear':'neutral',
+      sig:Math.min(ta.volRatio-1,1)*(ta.trendUp?1:ta.trendDn?-1:0),
+      reason:`${ta.volRatio.toFixed(2)}x avg — ${ta.volRatio>2?'high vol':ta.volRatio<0.6?'very low vol':'normal'}`,
+      issue:ta.volRatio>3?'Spike >3x — possible news/earnings, not technical':null},
+    {name:'Hurst Cycle',k:'hurst',
+      dir:hu.phase<0.35?'bull':hu.phase>0.65?'bear':'neutral',
+      sig:(0.5-hu.phase)*2,
+      reason:`dom cycle=${hu.dom}b phase=${(hu.phase*100).toFixed(0)}%`,
+      issue:hu.ac<0.12?'Low autocorrelation — cycle not reliable for this symbol':null},
+    {name:'Gann Sq9',k:'gann',
+      dir:ga?.nearest?.dir==='support'?'bull':ga?.nearest?.dir==='resistance'?'bear':'neutral',
+      sig:(ga?.proximity||0)*(ga?.nearest?.dir==='support'?1:-1),
+      reason:ga?.nearest?`${ga.nearest.label} @ $${ga.nearest.price?.toFixed(2)} (${ga.nearest.dir})`:'no nearby level',
+      issue:'Geometric levels — use as confluence only'},
+    {name:'Spike History',k:'spike',
+      dir:sp.length>3?'bull':'neutral',sig:Math.min(sp.length/8,1),
+      reason:`${sp.length} spikes this week`,
+      issue:sp.length>6?'Very high spike count — event-driven?':null},
+    {name:'Trendline',k:'tl',
+      dir:tl.status==='breakout'?'bull':tl.status==='breakdown'?'bear':tl.nearSup?'bull':tl.nearRes?'bear':'neutral',
+      sig:tl.status==='breakout'?1:tl.status==='breakdown'?-1:tl.nearSup?.3:tl.nearRes?-.3:0,
+      reason:`${tl.status} res@$${tl.resAt?.toFixed(2)} sup@$${tl.supAt?.toFixed(2)}`,
+      issue:tl.lines?.[0]?.r2<0.4?'Low R² — trendline not reliable':null},
+    {name:'Monte Carlo',k:'mc',
+      dir:mc?mc.pUp>58?'bull':mc.pUp<42?'bear':'neutral':'neutral',
+      sig:mc?(mc.pUp-50)/50:0,
+      reason:mc?`${mc.pUp}% bull / ${mc.nPaths}p / Sharpe=${mc.sharpe} VaR=${mc.varAt95}%`:'no data',
+      issue:mc?.sigma>0.03?'High sigma — wide path spread, reduce sizing':null},
+    {name:'Game Theory',k:'gt',
+      dir:gt?.nashOutcome==='BULL_WIN'?'bull':gt?.nashOutcome==='BEAR_WIN'?'bear':'neutral',
+      sig:gt?gt.bStrength:0,
+      reason:gt?`Nash=${gt.nashOutcome?.replace('_',' ')} prob=${gt.nashProb}%`:'no data',
+      issue:gt&&Math.abs(gt.total||0)<1?'Near-balanced forces — low GT signal':null},
+    {name:'Multi-TF',k:'mtf',
+      dir:mtf?.alignedBull?'bull':mtf?.alignedBear?'bear':'neutral',
+      sig:mtf?(mtf.weightedScore/3):0,
+      reason:mtf?`${mtf.alignment} score=${mtf.alignScore}%`:'no data',
+      issue:mtf?.alignment==='MIXED'?'Timeframes disagree — reduces confidence':null},
+    {name:'Gamma/CTA',k:'gamma',
+      dir:gamma?.ctaBias==='BUY'?'bull':gamma?.ctaBias==='SELL'?'bear':'neutral',
+      sig:gamma?(gamma.netGex>0?.5:-.5):0,
+      reason:gamma?`GEX=${gamma.netGex>0?'+':''}${gamma.netGex} CTA=${gamma.ctaBias} ${gamma.ctaStrength}%`:'no data',
+      issue:'Estimated OI model, not real options data — directional bias only'},
+  ];
+  // Tag conflicts vs weighted majority
+  const bulls=studies.filter(s=>s.dir==='bull').length;
+  const bears=studies.filter(s=>s.dir==='bear').length;
+  const maj=bulls>bears?'bull':bears>bulls?'bear':'neutral';
+  studies.forEach(s=>{s.conflict=maj!=='neutral'&&s.dir!=='neutral'&&s.dir!==maj;});
+  return studies;
+}
+
+function buildDecision(r){
+  const mat=buildMatrix(r);
+  const bulls=mat.filter(s=>s.dir==='bull');
+  const bears=mat.filter(s=>s.dir==='bear');
+  const confs=mat.filter(s=>s.conflict);
+  const issues=mat.filter(s=>s.issue);
+  const bW=bulls.reduce((s,x)=>s+Math.abs((ml.w[x.k]||0)*x.sig),0);
+  const rW=bears.reduce((s,x)=>s+Math.abs((ml.w[x.k]||0)*x.sig),0);
+  const tot=bW+rW+0.001;
+  const topB=bulls.slice().sort((a,b)=>Math.abs((ml.w[b.k]||0)*b.sig)-Math.abs((ml.w[a.k]||0)*a.sig)).slice(0,3);
+  const topR=bears.slice().sort((a,b)=>Math.abs((ml.w[b.k]||0)*b.sig)-Math.abs((ml.w[a.k]||0)*a.sig)).slice(0,3);
+  let html=`<div class="dec-why">`;
+  const dc=r.pred.dir==='up'?'up':'dn';
+  html+=`<b>${r.sym}</b> @ <b>$${r.price.toFixed(2)}</b> → <span class="${dc}">${r.pred.dir==='up'?'▲ LONG':r.pred.dir==='dn'?'▼ SHORT':'— WATCH'} ${r.pred.prob}% probability / ${r.pred.conf}% confidence</span><br><br>`;
+  if(topB.length){
+    html+=`<span class="up">▲ BULLISH drivers (${(bW/tot*100).toFixed(0)}% of weighted signal):</span><br>`;
+    topB.forEach(s=>html+=`&nbsp;&nbsp;✓ <b>${s.name}</b>: ${s.reason}<br>`);
+    html+='<br>';
+  }
+  if(topR.length){
+    html+=`<span class="dn">▼ BEARISH drivers (${(rW/tot*100).toFixed(0)}% of weighted signal):</span><br>`;
+    topR.forEach(s=>html+=`&nbsp;&nbsp;✓ <b>${s.name}</b>: ${s.reason}<br>`);
+    html+='<br>';
+  }
+  if(confs.length){
+    html+=`<span class="wn">⚔ CONFLICTS — ${confs.length} studies disagree with majority direction:</span><br>`;
+    confs.forEach(s=>html+=`&nbsp;&nbsp;⚔ <b>${s.name}</b> signals ${s.dir.toUpperCase()} but majority is ${s.dir==='bull'?'BEARISH':'BULLISH'}<br>`);
+    html+='<br>';
+  }
+  if(issues.length){
+    html+=`<span class="wn">⚠ METHODOLOGY CAVEATS:</span><br>`;
+    issues.forEach(s=>html+=`&nbsp;&nbsp;⚠ <b>${s.name}</b>: ${s.issue}<br>`);
+  }
+  html+='</div>';
+  const verd=Math.round(bW/tot*100);
+  const vc=verd>60?'var(--up)':verd<40?'var(--dn)':'var(--warn)';
+  html+=`<div class="verd-bar"><div class="verd-fill" style="width:${verd}%;background:${vc}"></div></div>`;
+  html+=`<div style="display:flex;justify-content:space-between;font-size:7px;color:var(--ghost)"><span>BEAR ${(rW/tot*100).toFixed(0)}%</span><span>BULL ${(bW/tot*100).toFixed(0)}%</span></div>`;
+  return {html,mat,verd,nb:bulls.length,nr:bears.length,nc:confs.length,ni:issues.length};
+}
+
+function renderSignals(){
+  if(!results.length)return;
+  const el=document.getElementById('sig-wrap'); if(!el)return;
+  const sorted=[...results].sort((a,b)=>b.pred.prob-a.pred.prob);
+  let html='';
+  sorted.forEach(r=>{
+    const{html:dHtml,mat,nb,nr,nc,ni}=buildDecision(r);
+    const dc=r.pred.dir==='up'?'c-bo':r.pred.dir==='dn'?'c-bd':'c-neu';
+    html+=`<div class="dec-box" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px">
+        <div style="font-family:'Orbitron',sans-serif;font-weight:700;font-size:15px;color:var(--white)">
+          ${r.sym}<span style="font-size:9px;color:var(--ghost);font-family:'JetBrains Mono',monospace;margin-left:8px">$${r.price.toFixed(2)}</span>
+        </div>
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+          <span class="chip ${dc}">${r.pred.dir==='up'?'▲ LONG':r.pred.dir==='dn'?'▼ SHORT':'WATCH'} ${r.pred.prob}%</span>
+          <span class="chip c-up" style="font-size:7px">${nb}▲ bull</span>
+          <span class="chip c-dn" style="font-size:7px">${nr}▼ bear</span>
+          ${nc>0?`<span class="conf-badge">⚔ ${nc} conflicts</span>`:''}
+          ${ni>0?`<span class="chip c-warn" style="font-size:7px">⚠ ${ni}</span>`:''}
+        </div>
+      </div>
+      <div class="as-grid">
+        <div class="as-box b"><div class="as-val" style="color:var(--up)">${nb}</div><div class="as-lbl">Bullish Studies</div></div>
+        <div class="as-box r"><div class="as-val" style="color:var(--dn)">${nr}</div><div class="as-lbl">Bearish Studies</div></div>
+        <div class="as-box w"><div class="as-val" style="color:var(--warn)">${nc}</div><div class="as-lbl">Conflicts</div></div>
+      </div>
+      <div class="sm-wrap" style="margin-bottom:8px">
+        <div style="display:grid;grid-template-columns:105px 38px 1fr 48px 70px;gap:4px;padding:2px 7px;font-size:7px;letter-spacing:.9px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--br)">
+          <div>STUDY</div><div>DIR</div><div>READING</div><div>WT%</div><div>STATUS</div>
+        </div>
+        ${mat.map(s=>{
+          const sc=s.dir==='bull'?'var(--up)':s.dir==='bear'?'var(--dn)':'var(--ghost)';
+          const contrib=Math.abs((ml.w[s.k]||0)*Math.abs(s.sig));
+          const pct=(contrib/(mat.reduce((t,x)=>t+Math.abs((ml.w[x.k]||0)*Math.abs(x.sig)),.001))*100).toFixed(0);
+          return `<div class="sm-row ${s.dir}${s.conflict?' conflict':''}">
+            <div style="font-size:8.5px;color:var(--ghost)">${s.name}</div>
+            <div class="sm-dir" style="color:${sc}">${s.dir==='bull'?'▲':s.dir==='bear'?'▼':'—'}</div>
+            <div class="sm-reason">${s.reason}</div>
+            <div class="sm-w">${pct}%</div>
+            <div class="sm-status">${s.conflict?'<span class="conf-badge">CONFLICT</span>':s.issue?`<span style="color:var(--warn);font-size:7px">⚠ CAVEAT</span>`:'<span style="color:var(--muted);font-size:7px">OK</span>'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      ${dHtml}
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REGIME DETECTION — classify market condition per symbol
+// ═══════════════════════════════════════════════════════════════════════════
+function detectRegime(r){
+  const atr=r.ta?.atrPct||0;
+  const trend=r.ta?.trendUp||r.ta?.trendDn;
+  const vol=r.ta?.volRatio||1;
+  if(atr>2.5||vol>2.2) return {label:'VOLATILE',cls:'rp-vol',
+    desc:'High ATR/Volume — widen stops, reduce size'};
+  if(trend&&atr<1.6) return {label:'TRENDING',cls:'rp-trend',
+    desc:'Clear trend — follow momentum, use trailing stops'};
+  if(!trend&&atr<1.0) return {label:'RANGING',cls:'rp-range',
+    desc:'Low ATR, no trend — BB/RSI mean-reversion favored'};
+  return {label:'MIXED',cls:'rp-unknown',
+    desc:'Unclear regime — wait for confirmation, reduce size'};
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB WIRING
+// ═══════════════════════════════════════════════════════════════════════════
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    if(btn.dataset.tab==='signals'&&results.length) renderSignals();
+    if(btn.dataset.tab==='hermes') renderWtEditor();
+  });
+});
+
+// Auto-store predictions and render signals after every scan
+// Use event-based approach to avoid hoisting issues
+(function(){
+  const _orig = window.renderTable;
+  if(typeof _orig === 'function'){
+    window.renderTable = function(){
+      _orig.apply(this, arguments);
+      setTimeout(()=>{ storePreds(); runLoopback(); }, 800);
+    };
+  } else {
+    // Fallback: hook after DOMContentLoaded
+    document.addEventListener('scan-complete', ()=>{
+      setTimeout(()=>{ storePreds(); runLoopback(); }, 800);
+    });
+  }
+})();
+
+logML('ai','Hermes AI v2 loaded — OpenRouter free tier');
+logML('ai','Signal Matrix: 15 studies, conflict detection, weighted decisions');
+logML('ai','Loopback: prediction tracking persists across sessions');
+
 </script>
 </body>
 </html>
