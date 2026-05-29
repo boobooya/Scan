@@ -551,6 +551,7 @@ select:focus,input:focus{border-color:var(--info)}
             <textarea id="hm-inp" placeholder="Ask about any symbol, signal, conflict, or study methodology…"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendHermes()}"></textarea>
             <button class="btn-h" id="hm-btn" onclick="sendHermes()">SEND ▶</button>
+            <button class="btn-h" onclick="testApiKey()" style="font-size:7.5px;padding:5px 8px;opacity:.7" title="Test your API key">TEST KEY</button>
           </div>
         </div>
       </div>
@@ -1986,57 +1987,136 @@ async function callHM(msg, _attempt){
   if(_attempt===undefined) _attempt=0;
   const key=getKey();
   if(!key){
-    addMsg('ai','Paste your <b>OpenRouter API key</b> above — free at <b>openrouter.ai/keys</b>, no credit card needed.');
+    addMsg('ai','Please paste your <b>OpenRouter API key</b> above and click SAVE. Get one free at <b>openrouter.ai/keys</b> — no credit card needed.');
     return;
   }
   const MAX=HM_MODELS.length;
   if(_attempt>=MAX){
-    addMsg('ai','<span style="color:var(--warn)">⚠ All '+MAX+' free models are rate-limited right now.</span><br>Wait 60–90 seconds and try again. This is normal for free tier — OpenRouter resets limits quickly.<br><br>Tip: shorter questions hit limits less often.');
-    document.getElementById('hm-status').textContent='ALL LIMITED';
+    addMsg('ai','<span style="color:var(--warn)">⚠ Could not get a response after trying all '+MAX+' models.</span><br><br>Most likely cause: <b>invalid API key</b>. Please check:<br>1. Your key starts with <b>sk-or-</b><br>2. You saved it with the SAVE button<br>3. Your key is valid at <b>openrouter.ai/keys</b><br><br>Last raw error: <code id="last-err" style="font-size:8px;color:var(--warn)">see console</code>');
+    document.getElementById('hm-status').textContent='FAILED';
     document.getElementById('hm-btn').disabled=false;
     return;
   }
+
   // Pick next non-failed model
   let idx=hmModelIdx, tries=0;
-  while(_failedModels.has(HM_MODELS[idx%HM_MODELS.length])&&tries<MAX){idx++;tries++;}
-  const model=HM_MODELS[idx%HM_MODELS.length];
+  while(_failedModels.has(HM_MODELS[idx%MAX]) && tries<MAX){idx++;tries++;}
+  const model=HM_MODELS[idx%MAX];
   const short=model.split('/')[1]?.split(':')[0]?.toUpperCase()||model;
-  document.getElementById('hm-model').textContent='MODEL: '+short;
-  document.getElementById('hm-status').textContent=_attempt>0?'SWITCHING → '+short+'…':'THINKING…';
+
+  document.getElementById('hm-model').textContent='MODEL: '+short+' ('+(idx%MAX+1)+'/'+MAX+')';
+  document.getElementById('hm-status').textContent=_attempt>0?'TRYING '+short+'…':'THINKING…';
   document.getElementById('hm-btn').disabled=true;
-  const typId=_attempt===0?addMsg('ai','<div class="hm-typing"><span></span><span></span><span></span></div>'):null;
-  const sys='You are Hermes, a senior quant analyst in OpenClaw NEXUS trading scanner. Explain signals precisely, flag conflicts, critique methodology honestly. Be direct and concise. Max 180 words unless asked for more. Mark key numbers like [72%]. Use ✓ for agreement, ⚔ for conflict. No markdown headers.';
+
+  const typId=_attempt===0
+    ? addMsg('ai','<div class="hm-typing"><span></span><span></span><span></span></div>')
+    : null;
+
+  const sys='You are Hermes, a quant analyst in OpenClaw NEXUS. Explain signals, flag conflicts, critique studies. Be concise — max 160 words. Mark numbers like [72%]. Use ✓ for agreement, ⚔ for conflict.';
+  const ctx=buildCtx();
+
   try{
+    console.log('[Hermes] Attempting model:', model, 'attempt:', _attempt);
     const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,
-        'HTTP-Referer':location.href,'X-Title':'OpenClaw NEXUS'},
-      body:JSON.stringify({model,max_tokens:400,temperature:0.6,
-        messages:[{role:'system',content:sys},{role:'user',content:buildCtx()+'\n\nQuestion: '+msg}]})
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+key,
+        'HTTP-Referer': window.location.href,
+        'X-Title':'OpenClaw NEXUS'
+      },
+      body:JSON.stringify({
+        model: model,
+        max_tokens: 350,
+        temperature: 0.6,
+        messages:[
+          {role:'system', content:sys},
+          {role:'user',   content:ctx+'\n\nQuestion: '+msg}
+        ]
+      })
     });
-    const d=await res.json();
-    if(typId)removeMsg(typId);
-    const eMsg=d.error?.message||'';
-    const rateLimited=d.error&&(eMsg.toLowerCase().includes('rate')||eMsg.includes('429')||eMsg.includes('limit')||eMsg.includes('quota')||res.status===429);
-    const modelErr=d.error&&(eMsg.includes('model')||eMsg.includes('not found')||eMsg.includes('unavailable')||res.status===404);
-    if(rateLimited||modelErr){
-      _failedModels.add(model);
-      setTimeout(()=>_failedModels.delete(model),90000);
-      hmModelIdx=idx+1;
-      const nxt=HM_MODELS[(idx+1)%HM_MODELS.length].split('/')[1]?.split(':')[0]?.toUpperCase();
-      logML('wrn',short+' limited → trying '+nxt);
-      document.getElementById('hm-status').textContent='TRYING '+nxt+'…';
-      await new Promise(r=>setTimeout(r,700));
-      await callHM(msg,_attempt+1);
-      return;
-    }
-    if(d.error){
-      addMsg('ai','⚠ API error: '+(eMsg||JSON.stringify(d.error))+'<br>Check your key at <b>openrouter.ai/keys</b>');
+
+    // Get raw text first for debugging
+    const rawText = await res.text();
+    console.log('[Hermes] HTTP status:', res.status);
+    console.log('[Hermes] Raw response:', rawText.slice(0,400));
+
+    let d;
+    try{ d=JSON.parse(rawText); }
+    catch(pe){
+      // Not valid JSON - show raw response
+      if(typId)removeMsg(typId);
+      addMsg('ai','⚠ Unexpected response from OpenRouter (not JSON):<br><code style="font-size:8px">'+rawText.slice(0,200)+'</code>');
       document.getElementById('hm-status').textContent='ERROR';
       document.getElementById('hm-btn').disabled=false;
       return;
     }
-    const txt=d.choices?.[0]?.message?.content||'No response';
+
+    if(typId)removeMsg(typId);
+
+    // Detailed error analysis
+    if(d.error){
+      const eMsg = d.error?.message||d.error?.code||JSON.stringify(d.error);
+      const eCode = d.error?.code||res.status;
+      console.log('[Hermes] Error:', eCode, eMsg);
+
+      // Show debug info in chat
+      const debugHtml=`<span style="color:var(--warn)">Model: ${short} → Error ${eCode}</span><br><span style="font-size:8px;color:var(--ghost)">${eMsg.slice(0,120)}</span>`;
+
+      // Classify error type
+      const eMsgLow = eMsg.toLowerCase();
+      const isAuth = eMsgLow.includes('auth') || eMsgLow.includes('key') ||
+                     eMsgLow.includes('invalid') || eMsgLow.includes('unauthorized') ||
+                     eCode===401 || eCode==='401';
+      const isRate = eMsgLow.includes('rate') || eMsgLow.includes('429') ||
+                     eMsgLow.includes('limit') || eMsgLow.includes('quota') ||
+                     eMsgLow.includes('too many') || res.status===429 || eCode===429;
+      const isModel = eMsgLow.includes('model') || eMsgLow.includes('not found') ||
+                      eMsgLow.includes('unavailable') || res.status===404 || eCode===404;
+      const isCredit = eMsgLow.includes('credit') || eMsgLow.includes('balance') ||
+                       eMsgLow.includes('insufficient') || eCode===402;
+
+      if(isAuth){
+        // Auth error — stop retrying immediately, key is wrong
+        addMsg('ai','<span style="color:var(--dn)">✗ Authentication failed.</span><br>Your API key is invalid or expired.<br>1. Go to <b>openrouter.ai/keys</b><br>2. Create a new key<br>3. Paste it above and click SAVE<br><br><span style="font-size:8px;color:var(--ghost)">Error: '+eMsg.slice(0,100)+'</span>');
+        document.getElementById('hm-status').textContent='AUTH ERROR';
+        document.getElementById('hm-btn').disabled=false;
+        return;
+      }
+      if(isCredit){
+        addMsg('ai','<span style="color:var(--dn)">✗ Insufficient credits.</span><br>Your OpenRouter account has no credits. Free models should not need credits — please check your account at <b>openrouter.ai</b><br><br><span style="font-size:8px;color:var(--ghost)">Error: '+eMsg.slice(0,100)+'</span>');
+        document.getElementById('hm-status').textContent='NO CREDITS';
+        document.getElementById('hm-btn').disabled=false;
+        return;
+      }
+      if(isRate||isModel){
+        // Mark this model as temporarily failed
+        _failedModels.add(model);
+        setTimeout(()=>_failedModels.delete(model), 90000);
+        hmModelIdx=idx+1;
+        const nxt=HM_MODELS[(idx+1)%MAX].split('/')[1]?.split(':')[0]?.toUpperCase();
+        logML('wrn', short+' limited → '+nxt);
+        document.getElementById('hm-status').textContent='SWITCHING → '+nxt+'…';
+        await new Promise(r=>setTimeout(r,600));
+        await callHM(msg, _attempt+1);
+        return;
+      }
+      // Unknown error — show it and stop
+      addMsg('ai','<span style="color:var(--warn)">⚠ OpenRouter error:</span><br>'+debugHtml+'<br><br>If this keeps happening, check <b>openrouter.ai/activity</b> for your account status.');
+      document.getElementById('hm-status').textContent='ERROR';
+      document.getElementById('hm-btn').disabled=false;
+      return;
+    }
+
+    // Success
+    const txt=d.choices?.[0]?.message?.content||'(empty response)';
+    if(!txt||txt.trim()===''){
+      addMsg('ai','⚠ Model returned empty response. Retrying…');
+      hmModelIdx=idx+1;
+      await new Promise(r=>setTimeout(r,500));
+      await callHM(msg, _attempt+1);
+      return;
+    }
     const html=txt
       .replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')
       .replace(/\*(.*?)\*/g,'<em>$1</em>')
@@ -2046,27 +2126,60 @@ async function callHM(msg, _attempt){
       .replace(/⚔/g,'<span style="color:var(--warn)">⚔</span>')
       .replace(/✓/g,'<span style="color:var(--up)">✓</span>')
       .replace(/\n/g,'<br>');
-    addMsg('ai',html);
+    addMsg('ai', html);
     hmHistory.push({role:'user',content:msg},{role:'assistant',content:txt});
-    hmHistory=hmHistory.slice(-12);
-    // Reset failed models on success
+    hmHistory=hmHistory.slice(-10);
     _failedModels.clear();
     hmModelIdx=idx;
     logML('ai','Hermes('+short+'): '+txt.slice(0,60)+'…');
     document.getElementById('hm-status').textContent='READY';
     document.getElementById('hm-btn').disabled=false;
+
   }catch(e){
     if(typId)removeMsg(typId);
+    console.error('[Hermes] Network error:', e);
     if(_attempt<MAX-1){
       hmModelIdx=idx+1;
+      document.getElementById('hm-status').textContent='NET ERROR, RETRYING…';
       await new Promise(r=>setTimeout(r,900));
-      await callHM(msg,_attempt+1);
+      await callHM(msg, _attempt+1);
       return;
     }
-    addMsg('ai','⚠ Network error: '+e.message+'<br>Check your connection and try again.');
-    document.getElementById('hm-status').textContent='ERROR';
+    addMsg('ai','<span style="color:var(--dn)">⚠ Network error: '+e.message+'</span><br>Check your internet connection. If using a VPN or firewall, OpenRouter may be blocked.');
+    document.getElementById('hm-status').textContent='NET ERROR';
     document.getElementById('hm-btn').disabled=false;
   }
+}
+
+// ── API KEY TEST ─────────────────────────────────────────────────────────────
+async function testApiKey(){
+  const key=getKey();
+  if(!key){addMsg('ai','No API key saved. Paste your key above and click SAVE first.');return;}
+  addMsg('user','Testing API key…');
+  document.getElementById('hm-status').textContent='TESTING…';
+  document.getElementById('hm-btn').disabled=true;
+  try{
+    const res=await fetch('https://openrouter.ai/api/v1/auth/key',{
+      headers:{'Authorization':'Bearer '+key}
+    });
+    const d=await res.json();
+    console.log('[Hermes] Key test response:', d);
+    if(d.data){
+      const info=d.data;
+      addMsg('ai','<span style="color:var(--up)">✓ API key is valid!</span><br>'
+        +'Label: <b>'+(info.label||'unnamed')+'</b><br>'
+        +'Usage: <b>$'+(info.usage?.toFixed(4)||'0')+'</b><br>'
+        +'Rate limit: <b>'+(info.rate_limit?.requests||'?')+' req/interval</b><br>'
+        +'Free tier: <b>'+(info.is_free_tier?'Yes':'No')+'</b><br><br>'
+        +'Key is working — if models fail it is due to per-model rate limits, not the key itself. Try again in 30 seconds.');
+    } else {
+      addMsg('ai','<span style="color:var(--dn)">✗ Key check failed:</span><br><code style="font-size:8px">'+JSON.stringify(d).slice(0,200)+'</code>');
+    }
+  }catch(e){
+    addMsg('ai','⚠ Could not reach OpenRouter to test key: '+e.message);
+  }
+  document.getElementById('hm-status').textContent='READY';
+  document.getElementById('hm-btn').disabled=false;
 }
 
 function addMsg(role,html){
