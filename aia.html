@@ -386,6 +386,7 @@ select:focus,input:focus{border-color:var(--info)}
   <div class="hermes-logo"><div class="dot"></div>HERMES AI</div>
   <div class="hm-status" id="hm-status">READY</div>
   <div class="hm-model-lbl" id="hm-model">MODEL: —</div>
+  <div style="font-size:7px;color:rgba(167,139,250,.35)" id="hm-pool">12 models in rotation</div>
   <div style="flex:1"></div>
   <span style="font-size:7.5px;color:rgba(167,139,250,.45)">LOOPBACK:</span>
   <span style="font-size:9px;font-weight:700;color:#a78bfa" id="lb-count">0</span>
@@ -519,7 +520,7 @@ select:focus,input:focus{border-color:var(--info)}
       <button class="btn-h" onclick="saveKey()" style="font-size:8px;padding:3px 9px">SAVE</button>
       <span class="key-saved" id="key-saved" style="display:none">✓ SAVED</span>
       <span style="font-size:7px;color:rgba(167,139,250,.4);margin-left:10px">
-        Free: llama-3.1-8b · deepseek-r1 · gemma-3-12b · mistral-7b · qwen-2.5-7b
+        Auto-rotates 12 free models: llama-3.1/3.2 · gemma-3/2 · mistral-7b · qwen-2.5 · deepseek · phi-3 · zephyr
       </span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 360px;gap:10px;margin-top:8px">
@@ -1935,12 +1936,20 @@ logML('ok','Click ▶ LIVE SCAN to begin');
 // ═══════════════════════════════════════════════════════════════════════════
 const HM_MODELS = [
   'meta-llama/llama-3.1-8b-instruct:free',
-  'deepseek/deepseek-r1:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+  'meta-llama/llama-3.2-1b-instruct:free',
   'google/gemma-3-12b-it:free',
+  'google/gemma-3-4b-it:free',
+  'google/gemma-2-9b-it:free',
   'mistralai/mistral-7b-instruct:free',
   'qwen/qwen-2.5-7b-instruct:free',
+  'qwen/qwen-2.5-3b-instruct:free',
+  'deepseek/deepseek-r1-distill-qwen-14b:free',
+  'microsoft/phi-3-mini-128k-instruct:free',
+  'huggingfaceh4/zephyr-7b-beta:free',
 ];
 let hmModelIdx = 0, hmHistory = [], hmMsgN = 0;
+const _failedModels = new Set();
 
 function getKey(){ return document.getElementById('hm-apikey').value.trim() || localStorage.getItem('hm_key')||''; }
 function saveKey(){
@@ -1973,51 +1982,91 @@ CONFLICTS: ${conflictSummary||'none detected'}
 STUDIES: RSI(14) MACD BB ATR EMA_Trend Stochastic ZScore VolumeRatio Hurst GannSq9 Spikes Trendline MonteCarlo GameTheory MultiTF Gamma/CTA/Dealer`;
 }
 
-async function callHM(msg){
+async function callHM(msg, _attempt){
+  if(_attempt===undefined) _attempt=0;
   const key=getKey();
-  if(!key){addMsg('ai','Paste your <b>OpenRouter API key</b> above — free at <b>openrouter.ai/keys</b>, no credit card needed.');return;}
-  const sys=`You are Hermes, a senior quant analyst embedded in OpenClaw NEXUS trading scanner. Explain signals precisely, flag conflicts between studies, critique methodology honestly, and give actionable insight. Be direct and specific. Max 220 words unless asked for more. Mark key numbers like [72%]. Use ✓ for agreement, ⚔ for conflict. No markdown headers.`;
-  const ctx=buildCtx();
-  const model=HM_MODELS[hmModelIdx%HM_MODELS.length];
-  document.getElementById('hm-model').textContent='MODEL: '+model.split('/')[1]?.split(':')[0]?.toUpperCase();
-  document.getElementById('hm-status').textContent='THINKING…';
+  if(!key){
+    addMsg('ai','Paste your <b>OpenRouter API key</b> above — free at <b>openrouter.ai/keys</b>, no credit card needed.');
+    return;
+  }
+  const MAX=HM_MODELS.length;
+  if(_attempt>=MAX){
+    addMsg('ai','<span style="color:var(--warn)">⚠ All '+MAX+' free models are rate-limited right now.</span><br>Wait 60–90 seconds and try again. This is normal for free tier — OpenRouter resets limits quickly.<br><br>Tip: shorter questions hit limits less often.');
+    document.getElementById('hm-status').textContent='ALL LIMITED';
+    document.getElementById('hm-btn').disabled=false;
+    return;
+  }
+  // Pick next non-failed model
+  let idx=hmModelIdx, tries=0;
+  while(_failedModels.has(HM_MODELS[idx%HM_MODELS.length])&&tries<MAX){idx++;tries++;}
+  const model=HM_MODELS[idx%HM_MODELS.length];
+  const short=model.split('/')[1]?.split(':')[0]?.toUpperCase()||model;
+  document.getElementById('hm-model').textContent='MODEL: '+short;
+  document.getElementById('hm-status').textContent=_attempt>0?'SWITCHING → '+short+'…':'THINKING…';
   document.getElementById('hm-btn').disabled=true;
-  const typId=addMsg('ai','<div class="hm-typing"><span></span><span></span><span></span></div>');
+  const typId=_attempt===0?addMsg('ai','<div class="hm-typing"><span></span><span></span><span></span></div>'):null;
+  const sys='You are Hermes, a senior quant analyst in OpenClaw NEXUS trading scanner. Explain signals precisely, flag conflicts, critique methodology honestly. Be direct and concise. Max 180 words unless asked for more. Mark key numbers like [72%]. Use ✓ for agreement, ⚔ for conflict. No markdown headers.';
   try{
     const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+key,
         'HTTP-Referer':location.href,'X-Title':'OpenClaw NEXUS'},
-      body:JSON.stringify({model,max_tokens:500,temperature:0.65,
-        messages:[{role:'system',content:sys},{role:'user',content:ctx+'\n\nQuestion: '+msg}]})
+      body:JSON.stringify({model,max_tokens:400,temperature:0.6,
+        messages:[{role:'system',content:sys},{role:'user',content:buildCtx()+'\n\nQuestion: '+msg}]})
     });
     const d=await res.json();
-    removeMsg(typId);
-    if(d.error){
-      hmModelIdx++;
-      addMsg('ai',`⚠ Model rate-limited. Switching to ${HM_MODELS[hmModelIdx%HM_MODELS.length].split('/')[1]}. Please retry.`);
-    } else {
-      const txt=d.choices?.[0]?.message?.content||'No response';
-      const html=txt
-        .replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')
-        .replace(/\*(.*?)\*/g,'<em>$1</em>')
-        .replace(/\[(\d[\d.]*%?)\]/g,'<span style="color:var(--warn);font-weight:700">[$1]</span>')
-        .replace(/BULLISH|BULL_WIN/g,'<span style="color:var(--up);font-weight:600">$&</span>')
-        .replace(/BEARISH|BEAR_WIN/g,'<span style="color:var(--dn);font-weight:600">$&</span>')
-        .replace(/⚔/g,'<span style="color:var(--warn)">⚔</span>')
-        .replace(/✓/g,'<span style="color:var(--up)">✓</span>')
-        .replace(/\n/g,'<br>');
-      addMsg('ai',html);
-      hmHistory.push({role:'user',content:msg},{role:'assistant',content:txt});
-      hmHistory=hmHistory.slice(-12);
-      logML('ai','Hermes: '+txt.slice(0,55)+'…');
+    if(typId)removeMsg(typId);
+    const eMsg=d.error?.message||'';
+    const rateLimited=d.error&&(eMsg.toLowerCase().includes('rate')||eMsg.includes('429')||eMsg.includes('limit')||eMsg.includes('quota')||res.status===429);
+    const modelErr=d.error&&(eMsg.includes('model')||eMsg.includes('not found')||eMsg.includes('unavailable')||res.status===404);
+    if(rateLimited||modelErr){
+      _failedModels.add(model);
+      setTimeout(()=>_failedModels.delete(model),90000);
+      hmModelIdx=idx+1;
+      const nxt=HM_MODELS[(idx+1)%HM_MODELS.length].split('/')[1]?.split(':')[0]?.toUpperCase();
+      logML('wrn',short+' limited → trying '+nxt);
+      document.getElementById('hm-status').textContent='TRYING '+nxt+'…';
+      await new Promise(r=>setTimeout(r,700));
+      await callHM(msg,_attempt+1);
+      return;
     }
+    if(d.error){
+      addMsg('ai','⚠ API error: '+(eMsg||JSON.stringify(d.error))+'<br>Check your key at <b>openrouter.ai/keys</b>');
+      document.getElementById('hm-status').textContent='ERROR';
+      document.getElementById('hm-btn').disabled=false;
+      return;
+    }
+    const txt=d.choices?.[0]?.message?.content||'No response';
+    const html=txt
+      .replace(/\*\*(.*?)\*\*/g,'<b>$1</b>')
+      .replace(/\*(.*?)\*/g,'<em>$1</em>')
+      .replace(/\[(\d[\d.]*%?)\]/g,'<span style="color:var(--warn);font-weight:700">[$1]</span>')
+      .replace(/BULLISH|BULL_WIN/g,'<span style="color:var(--up);font-weight:600">$&</span>')
+      .replace(/BEARISH|BEAR_WIN/g,'<span style="color:var(--dn);font-weight:600">$&</span>')
+      .replace(/⚔/g,'<span style="color:var(--warn)">⚔</span>')
+      .replace(/✓/g,'<span style="color:var(--up)">✓</span>')
+      .replace(/\n/g,'<br>');
+    addMsg('ai',html);
+    hmHistory.push({role:'user',content:msg},{role:'assistant',content:txt});
+    hmHistory=hmHistory.slice(-12);
+    // Reset failed models on success
+    _failedModels.clear();
+    hmModelIdx=idx;
+    logML('ai','Hermes('+short+'): '+txt.slice(0,60)+'…');
+    document.getElementById('hm-status').textContent='READY';
+    document.getElementById('hm-btn').disabled=false;
   }catch(e){
-    removeMsg(typId);
-    addMsg('ai','⚠ Error: '+e.message+'. Check your API key.');
+    if(typId)removeMsg(typId);
+    if(_attempt<MAX-1){
+      hmModelIdx=idx+1;
+      await new Promise(r=>setTimeout(r,900));
+      await callHM(msg,_attempt+1);
+      return;
+    }
+    addMsg('ai','⚠ Network error: '+e.message+'<br>Check your connection and try again.');
+    document.getElementById('hm-status').textContent='ERROR';
+    document.getElementById('hm-btn').disabled=false;
   }
-  document.getElementById('hm-status').textContent='READY';
-  document.getElementById('hm-btn').disabled=false;
 }
 
 function addMsg(role,html){
