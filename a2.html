@@ -3590,12 +3590,13 @@ async function fetchYFCustom(sym, interval, range){
       if(!result) continue;
       const ts=result.timestamp, q=result.indicators?.quote?.[0];
       if(!ts||!q) continue;
-      const closes=[];
+      // Full OHLC, chronological (oldest→newest) — needed for both return calcs and range stats
+      const bars=[];
       for(let i=0;i<ts.length;i++){
-        if(q.close[i]==null||isNaN(q.close[i])) continue;
-        closes.push(q.close[i]);
+        if(q.close[i]==null||isNaN(q.close[i])||q.open[i]==null||q.high[i]==null||q.low[i]==null) continue;
+        bars.push({o:q.open[i], h:q.high[i], l:q.low[i], c:q.close[i]});
       }
-      return closes.length>=10 ? closes : null;
+      return bars.length>=10 ? bars : null;
     }catch(e){ clearTimeout(t); continue; }
   }
   return null;
@@ -3611,10 +3612,50 @@ function erf(x){
 }
 function normCdf(x){ return 0.5*(1+erf(x/Math.sqrt(2))); }
 
-function forwardReturns(closes){
+function forwardReturns(bars){
   const rets=[];
-  for(let i=0;i<closes.length-1;i++) rets.push((closes[i+1]-closes[i])/closes[i]*100);
+  for(let i=0;i<bars.length-1;i++) rets.push((bars[i+1].c-bars[i].c)/bars[i].c*100);
   return rets; // percent, chronological
+}
+
+function percentile(arr, p){
+  if(!arr.length) return 0;
+  const s=[...arr].sort((a,b)=>a-b);
+  const idx=(s.length-1)*p;
+  const lo=Math.floor(idx), hi=Math.ceil(idx);
+  if(lo===hi) return s[lo];
+  return s[lo]+(s[hi]-s[lo])*(idx-lo);
+}
+function median(arr){ return percentile(arr,0.5); }
+
+// For each historical bar, classify it green/red/neutral (vs its own prior close), then
+// bucket its Open/High/Low/Close — expressed as % offset from the PRIOR close — by that
+// bucket. This answers "when the next bar turns out green, how far does it typically
+// stretch on the high side, the low side, and where does open/close tend to land?"
+function computeRangeStats(bars, flatPct){
+  const cats = {up:{o:[],h:[],l:[],c:[]}, down:{o:[],h:[],l:[],c:[]}, flat:{o:[],h:[],l:[],c:[]}};
+  for(let i=1;i<bars.length;i++){
+    const prevClose = bars[i-1].c;
+    if(!prevClose) continue;
+    const closePct=(bars[i].c-prevClose)/prevClose*100;
+    const cat = closePct>flatPct ? 'up' : (closePct<-flatPct ? 'down' : 'flat');
+    cats[cat].o.push((bars[i].o-prevClose)/prevClose*100);
+    cats[cat].h.push((bars[i].h-prevClose)/prevClose*100);
+    cats[cat].l.push((bars[i].l-prevClose)/prevClose*100);
+    cats[cat].c.push(closePct);
+  }
+  const summarize = (g) => {
+    const n = g.c.length;
+    if(!n) return null;
+    return {
+      n,
+      open:  {p25:percentile(g.o,.25), med:median(g.o), p75:percentile(g.o,.75)},
+      high:  {p25:percentile(g.h,.25), med:median(g.h), p75:percentile(g.h,.75)},
+      low:   {p25:percentile(g.l,.25), med:median(g.l), p75:percentile(g.l,.75)},
+      close: {p25:percentile(g.c,.25), med:median(g.c), p75:percentile(g.c,.75)}
+    };
+  };
+  return { up: summarize(cats.up), down: summarize(cats.down), flat: summarize(cats.flat) };
 }
 
 // Method 1: unconditional empirical frequency
@@ -3678,23 +3719,39 @@ window.runProbabilityForecast = async function(sym){
 
   const rows = [];
   for (const h of PROB_HORIZONS) {
-    let closes = null;
-    try { closes = await fetchYFCustom(sym, h.interval, h.range); } catch(e) {}
-    if (!closes || closes.length < 10) { rows.push({h, err:true}); continue; }
-    const rets = forwardReturns(closes);
+    let bars = null;
+    try { bars = await fetchYFCustom(sym, h.interval, h.range); } catch(e) {}
+    if (!bars || bars.length < 10) { rows.push({h, err:true}); continue; }
+    const rets = forwardReturns(bars);
     rows.push({
       h,
-      emp:  computeEmpirical(rets, h.flatPct),
-      cond: computeConditional(rets, h.flatPct),
-      vol:  computeVolImplied(rets, h.flatPct)
+      emp:   computeEmpirical(rets, h.flatPct),
+      cond:  computeConditional(rets, h.flatPct),
+      vol:   computeVolImplied(rets, h.flatPct),
+      range: computeRangeStats(bars, h.flatPct)
     });
     await sleep(250); // be polite to the CORS proxy / avoid rate limits
   }
-  renderProbabilityTable(box, sym, rows);
+
+  // Gamma exposure for the symbol being analyzed (nearest expiry, same method as the Market Summary snapshot)
+  let gamma = null;
+  try { gamma = await fetchGammaSnapshot(sym); } catch(e) { gamma = {ok:false}; }
+
+  renderProbabilityTable(box, sym, rows, gamma);
   if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-run Probability Forecast'; }
 };
 
-function renderProbabilityTable(box, sym, rows) {
+function rangeStatRow(label, s) {
+  if (!s) return `<tr><td style="padding:3px 8px;color:#9ca3af;font-size:10px" colspan="5">${label}: not enough samples</td></tr>`;
+  const fmt = (v) => (v>=0?'+':'') + v.toFixed(2) + '%';
+  const cell = (m) => `<td style="padding:3px 8px;font-size:10px;text-align:right;color:#4b5563" title="25th–75th percentile: ${fmt(m.p25)} to ${fmt(m.p75)}">${fmt(m.med)} <span style="color:#9ca3af">[${fmt(m.p25)}, ${fmt(m.p75)}]</span></td>`;
+  return `<tr>
+    <td style="padding:3px 8px;font-size:10px;font-weight:700;color:#374151;white-space:nowrap">${label} <span style="color:#9ca3af;font-weight:400">(n=${s.n})</span></td>
+    ${cell(s.open)}${cell(s.high)}${cell(s.low)}${cell(s.close)}
+  </tr>`;
+}
+
+function renderProbabilityTable(box, sym, rows, gamma) {
   if (!box) return;
   const methodRow = (name, desc, m) => {
     if (!m || m.n === 0) return `<tr><td style="padding:4px 8px;color:#9ca3af" colspan="4">${name}: not enough history</td></tr>`;
@@ -3727,10 +3784,34 @@ function renderProbabilityTable(box, sym, rows) {
         ${methodRow('Regime-Matched', '', row.cond)}
         ${methodRow('Volatility Model', '', row.vol)}
       </table>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e5e7eb">
+        <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:4px">If the bar turns out… (Open/High/Low/Close, as % offset from prior close — median [25th–75th pct])</div>
+        <table style="width:100%;border-collapse:collapse">
+          <tr style="color:#9ca3af;font-size:9px"><td style="padding:2px 8px"></td><td style="padding:2px 8px;text-align:right">Open</td><td style="padding:2px 8px;text-align:right">High</td><td style="padding:2px 8px;text-align:right">Low</td><td style="padding:2px 8px;text-align:right">Close</td></tr>
+          ${rangeStatRow('🟢 Green', row.range?.up)}
+          ${rangeStatRow('🔴 Red', row.range?.down)}
+          ${rangeStatRow('⚪ Neutral', row.range?.flat)}
+        </table>
+      </div>
     </div>`;
   }).join('');
 
+  const gammaCard = (() => {
+    if (!gamma || !gamma.ok) return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:10px 12px;margin-bottom:10px;text-align:center;color:#9ca3af;font-size:11px">⚡ Gamma exposure for ${sym}: unavailable (no listed options, or proxy/CORS blocked the options endpoint)</div>`;
+    const isPos = gamma.netGamma >= 0;
+    return `<div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;padding:10px 12px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-weight:700;font-size:12px;color:#1e3a8a">⚡ ${sym} Gamma Exposure</span>
+        <span style="font-size:9px;color:#9ca3af">nearest exp ${gamma.expiry}</span>
+      </div>
+      <div style="font-size:18px;font-weight:700;color:${isPos?'#059669':'#dc2626'}">${isPos?'+':''}${(gamma.netGamma/1e6).toFixed(1)}M</div>
+      <div style="font-size:9px;color:${isPos?'#059669':'#dc2626'};font-weight:700;margin-bottom:4px">${isPos?'Positive — dealers net long gamma, tends to dampen/pin price near current levels':'Negative — dealers net short gamma, tends to amplify moves in either direction'}</div>
+      <div style="font-size:9px;color:#9ca3af">Call OI ${gamma.callOI.toLocaleString()} · Put OI ${gamma.putOI.toLocaleString()} · Spot $${gamma.spot.toFixed(2)}</div>
+    </div>`;
+  })();
+
   box.innerHTML = `
+    ${gammaCard}
     <div style="display:flex;gap:10px;font-size:9px;color:#6b7280;margin-bottom:10px;flex-wrap:wrap">
       <span><span style="display:inline-block;width:9px;height:9px;background:#22c55e;border-radius:2px;vertical-align:middle"></span> Up</span>
       <span><span style="display:inline-block;width:9px;height:9px;background:#9ca3af;border-radius:2px;vertical-align:middle"></span> Flat</span>
@@ -3739,6 +3820,8 @@ function renderProbabilityTable(box, sym, rows) {
     ${blocks}
     <div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;padding:10px 12px;font-size:10px;color:#6b7280;line-height:1.7;margin-top:6px">
       <strong>How to read this:</strong> <em>Empirical History</em> is the plain historical frequency of the next bar being up/down/flat for ${sym} at that timeframe — no conditioning, just "how often has this happened." <em>Regime-Matched</em> narrows that history to only the instances where the prior bar moved the same direction as ${sym}'s most recent actual bar — a simple momentum-analog filter, so it's more relevant but has a smaller sample. <em>Volatility Model</em> ignores pattern history entirely and instead assumes ${sym}'s own realized returns are normally distributed, then computes the odds directly from that distribution (the same logic underlying option pricing). When two or three methods agree, treat that as a stronger signal; when they diverge, that divergence is itself useful information. Confidence (Low/Medium/High) is based on sample size — short timeframes have far less historical data available from Yahoo Finance than daily/weekly, so treat 5m/15m odds as noisier by nature.
+      <br><br><strong>Open/High/Low/Close ranges:</strong> for each scenario (bar closes green, red, or neutral), the Open/High/Low/Close columns show where that bar's own OHLC has historically landed, as a % offset from the PRIOR close — the median value with the 25th–75th percentile range in brackets. E.g. if "🟢 Green → High" shows "+0.42% [+0.20%, +0.71%]," that means on the historical bars that ended up green, the high of that bar typically reached about 0.2%–0.7% above the prior close. This gives you a realistic range to expect, not just a single point forecast.
+      <br><br><strong>Gamma exposure</strong> uses the same nearest-expiration approximation as the Market Summary panel — real for any symbol with listed options, but simplified (one expiry, OI-weighted Black-Scholes gamma) rather than a full multi-expiry dealer-positioning model.
     </div>`;
 }
 
