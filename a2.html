@@ -265,7 +265,7 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
   </div>
   <div id="versionBadge" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);border-radius:8px;padding:6px 14px;text-align:right;cursor:pointer;min-width:160px" onclick="document.getElementById('versionLog').style.display=document.getElementById('versionLog').style.display==='none'?'block':'none'">
     <div style="font-size:9px;opacity:0.75;letter-spacing:0.5px;text-transform:uppercase">Version</div>
-    <div style="font-size:14px;font-weight:700;font-family:monospace">20260324.AI</div>
+    <div style="font-size:14px;font-weight:700;font-family:monospace">20260802.1</div>
     <div style="font-size:9px;opacity:0.6">▾ changelog</div>
   </div>
   <div id="aiBar" style="display:flex;align-items:center;gap:8px;padding:5px 12px;background:rgba(0,0,0,0.25);border-radius:8px;font-size:11px;flex-wrap:wrap">
@@ -481,12 +481,13 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
           <th class="r sortable" onclick="sortTable('stop')">Stop</th>
           <th class="c sortable" onclick="sortTable('forecast')">Forecast</th>
           <th class="c sortable" onclick="sortTable('structure')">Structure</th>
+          <th class="c sortable" onclick="sortTable('regime0dte')" title="0DTE-eligible symbols only — quick technical read, no options data">⚡0DTE</th>
           <th class="c sortable" onclick="sortTable('conf')">Conf</th>
           <th class="c sortable" style="color:#7c3aed;background:#f5f3ff" onclick="sortTable('ai')">🤖 AI</th>
           <th class="c sortable" style="color:#7c3aed;background:#f5f3ff" onclick="sortTable('aiconf')">AI%</th>
           <th class="c">Action</th>
         </tr></thead>
-        <tbody id="tBody"><tr><td colspan="15" class="est"><div class="ei">📊</div><div>Choose a timeframe and click Scan</div></td></tr></tbody>
+        <tbody id="tBody"><tr><td colspan="16" class="est"><div class="ei">📊</div><div>Choose a timeframe and click Scan</div></td></tr></tbody>
       </table>
     </div>
   </div>
@@ -533,6 +534,23 @@ const YF_TF={
   '1wk':{interval:'1wk',range:'5y',  label:'Weekly',  unit:'week',   info:'range=5y · ~260 bars · Investor'},
   '1mo':{interval:'1mo',range:'10y', label:'Monthly', unit:'month',  info:'range=10y · ~120 bars · Macro'},
 };
+
+// ═══════ 0DTE SYMBOL ELIGIBILITY — date-aware, not a fixed list ══════════
+// Tier 1: true daily (Mon-Fri) 0DTE. MWF: Monday/Wednesday/Friday only.
+// Index tickers (^GSPC/^NDX/^RUT) are daily-eligible too but Yahoo's public
+// options endpoint doesn't reliably serve index chains — gamma/DTE calcs on
+// those will often come back "unavailable", same as the existing gamma
+// snapshot fallback already handles.
+const TIER1_DAILY_0DTE = ['SPY','QQQ','IWM','DIA','^GSPC','^NDX','^RUT','XSP'];
+const MWF_0DTE = ['AAPL','NVDA','TSLA','MSFT','AMZN','GOOGL','META','AVGO','IBIT'];
+function isZeroDteEligibleToday(sym, date){
+  date = date || new Date();
+  const day = date.getDay(); // 0 Sun ... 6 Sat
+  const isWeekday = day>=1 && day<=5;
+  if(TIER1_DAILY_0DTE.includes(sym)) return isWeekday;
+  if(MWF_0DTE.includes(sym)) return day===1||day===3||day===5;
+  return null; // not on either curated list — unknown until a live options fetch checks it
+}
 
 const PRESETS={
   etfs:'SPY,QQQ,IWM,DIA,EEM,EFA,VXX,XLE,XLF,XLK,XLV,XLI,XLP,XLU,XLY,XLB,XLRE,XLC,SMH,IBB,GLD,SLV,GDX,TLT,HYG,USO,SQQQ,TQQQ,SPXL',
@@ -664,6 +682,11 @@ function sortKey(r, col){
     case 'stop':      return r.stop||0;
     case 'forecast':  return r.fcast?parseFloat(r.fcast.biasPct)||0:0;
     case 'structure': return r.ms?.trend==='uptrend'?0:r.ms?.trend==='downtrend'?2:1;
+    case 'regime0dte':{
+      const g=r.regime0dte;
+      if(!g||g.eligible===false||g.eligible==='unknown') return -1; // push non-eligible to one end
+      return g.score||0;
+    }
     case 'conf':      return r.conf==='high'?0:r.conf==='medium'?1:2;
     case 'ai':{
       const d=typeof AI_SS!=='undefined'?AI_SS[r.sym]:null;
@@ -1013,7 +1036,8 @@ function buildResult(sym,bars,cfg,tfLabel){
     const trig=dir==='buy'?(sw.signal==='buy'?sw.llh:ch.res):(sw.signal==='sell'?sw.lhl:ch.sup);
     if(trig){const brk=Math.abs(price-trig)/trig*100;if(brk>=0.4)conf='high';else if(brk>=0.15)conf='medium';}
   }
-  return{sym,price,change,chgPct,time:cur.time,tfLabel,dir,stype,opt,strike,conf,stop,sw,ch,fcast,ms,bars,fcastN:cfg.fcastN,fcastLB:cfg.fcastLB};
+  const regime0dte = quickRegimeRead(sym, bars, ms);
+  return{sym,price,change,chgPct,time:cur.time,tfLabel,dir,stype,opt,strike,conf,stop,sw,ch,fcast,ms,bars,fcastN:cfg.fcastN,fcastLB:cfg.fcastLB,regime0dte};
 }
 
 // ═══ FETCH — tries all proxies per symbol, never hard-fails ══════════
@@ -1145,6 +1169,13 @@ async function startScan(){
 // ═══════ TABLE ════════════════════════════════════════════════════════════
 function filt(f,e){curFilter=f;document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));if(e)e.target.classList.add('on');updateTable();}
 function f2(v){return v!=null?'$'+Number(v).toFixed(2):'—';}
+function r0dteCell(reg){
+  if(!reg || reg.eligible===false) return '<span style="color:#c4c9d1;font-size:9px" title="No 0DTE expiry today for this symbol">—</span>';
+  if(reg.eligible==='unknown') return '<span style="color:#c4c9d1;font-size:9px" title="Not on curated 0DTE list — verify via deep-dive panel">?</span>';
+  const bg = reg.tone==='gold'?'#fef3c7':reg.tone==='teal'?'#d1fae5':'#f3f4f6';
+  const fg = reg.tone==='gold'?'#92400e':reg.tone==='teal'?'#065f46':'#6b7280';
+  return `<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700" title="Quick technical read only — no gamma/flow/IV yet, run the deep-dive panel for the full picture">${reg.label} ${Math.round(reg.score)}</span>`;
+}
 
 function updateTable(){
   const rc=document.getElementById('resDiv'),tbody=document.getElementById('tBody');
@@ -1170,7 +1201,7 @@ function updateTable(){
   const nBo=all.filter(r=>r.stype==='both').length,nN=all.filter(r=>r.dir==='neutral').length;
   cntEl.textContent=`${all.length} scanned · ${sorted.length} shown`;
   pillsEl.innerHTML=`<span class="pill pb">🟢 Buy:${nB}</span><span class="pill ps">🔴 Sell:${nS}</span><span style="color:#dfe6e9;margin:0 4px">|</span><span class="pill psw">📈 Swing:${nSw}</span><span class="pill pch">📦 Chan:${nCh}</span><span class="pill pbo">⭐ Both:${nBo}</span><span class="pill pn">🟡 None:${nN}</span>`;
-  if(!sorted.length){tbody.innerHTML='<tr><td colspan="15" class="est"><div class="ei">🔍</div><div>No results</div></td></tr>';return;}
+  if(!sorted.length){tbody.innerHTML='<tr><td colspan="16" class="est"><div class="ei">🔍</div><div>No results</div></td></tr>';return;}
   tbody.innerHTML=sorted.map(r=>{    const pos=r.change>=0;
     const fb=r.fcast?(r.fcast.bias==='bullish'?`<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">▲+${r.fcast.biasPct}%</span>`:`<span style="background:#f8d7da;color:#721c24;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">▼${r.fcast.biasPct}%</span>`):'—';
     const mb=r.ms.trend==='uptrend'?'<span style="background:#d4edda;color:#155724;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">↑Up</span>':r.ms.trend==='downtrend'?'<span style="background:#f8d7da;color:#721c24;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">↓Dn</span>':'<span style="background:#fff3cd;color:#856404;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:700">↔Rng</span>';
@@ -1186,6 +1217,7 @@ function updateTable(){
       <td class="r mu">${f2(r.stop)}</td>
       <td class="c">${fb}</td>
       <td class="c">${mb}</td>
+      <td class="c">${r0dteCell(r.regime0dte)}</td>
       <td class="c"><span class="c${r.conf[0]}">${r.conf.toUpperCase()}</span></td>
       <td class="c">${typeof aiSigCell==='function'?aiSigCell(r.sym):'—'}</td>
       <td class="c">${typeof aiConfCell==='function'?aiConfCell(r.sym):'—'}</td>
@@ -1633,6 +1665,21 @@ function buildModalHTML(r,sym,isBuy,isSel){
       <div style="text-align:center;padding:16px;color:#9ca3af">Click "Run Probability Forecast" to pull extended history across 5m/15m/1h/Daily/Weekly and compute odds for ${sym}.</div>
     </div>
   </div>
+
+  <!-- 0DTE STRATEGY SELECTOR PANEL -->
+  <div id="p0dtePanel" style="background:#fdf9f0;border:1px solid #e8d5a8;border-radius:8px;padding:16px;margin-bottom:13px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#78350f">🎯 0DTE Strategy Selector — ${sym}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">Regime score → structure recommendation, using real gamma + your own Probability Forecast if you've run it above</div>
+      </div>
+      <button onclick="run0DteStrategy('${sym}')" id="strategyRunBtn" style="background:linear-gradient(135deg,#c9a24b,#a8842f);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🎯 Run Strategy Selector</button>
+    </div>
+    <div id="strategyPanelContent" style="color:#374151;font-size:11px;line-height:1.6">
+      <div style="text-align:center;padding:16px;color:#9ca3af">Click "Run Strategy Selector" to pull gamma exposure + technicals and compute a regime-based structure recommendation for ${sym}.</div>
+    </div>
+  </div>
+
   <div class="rec">
     <div class="rttl">${r.stype==='both'&&isBuy?'⭐ STRONG BUY — Both signals + Forecast · ATM CALL':r.stype==='both'&&isSel?'⭐ STRONG SELL — Both signals · ATM PUT':isBuy?'🟢 BUY — ATM CALL':isSel?'🔴 SELL — ATM PUT':'🟡 NO SIGNAL — Monitor'}</div>
     <div class="rgr">
@@ -3427,19 +3474,184 @@ async function fetchGammaSnapshot(sym){
       if(!opt || !spot) continue;
       const now = Date.now()/1000;
       const T = Math.max((opt.expirationDate-now)/(365*24*3600), 1/365);
-      let netGamma=0, callOI=0, putOI=0;
+      let netGamma=0, callOI=0, putOI=0, callVol=0, putVol=0;
+      // wall tracking — same BS gamma math as the net figure above, but bucketed
+      // per strike so we can find the single largest dollar-gamma concentration
+      // (a pin/magnet candidate) instead of only the aggregate net number.
+      const byStrike={};
+      let totalAbsGamma=0;
       (opt.calls||[]).forEach(c=>{
         const iv=c.impliedVolatility, oi=c.openInterest||0, K=c.strike;
-        if(iv>0 && oi>0){ netGamma += bsGamma(spot,K,T,iv)*oi*100*spot*spot*0.01; callOI+=oi; }
+        if(iv>0 && oi>0){
+          const g = bsGamma(spot,K,T,iv)*oi*100*spot*spot*0.01;
+          netGamma += g; callOI+=oi; callVol+=(c.volume||0);
+          byStrike[K]=(byStrike[K]||0)+g;
+        }
       });
       (opt.puts||[]).forEach(p=>{
         const iv=p.impliedVolatility, oi=p.openInterest||0, K=p.strike;
-        if(iv>0 && oi>0){ netGamma -= bsGamma(spot,K,T,iv)*oi*100*spot*spot*0.01; putOI+=oi; }
+        if(iv>0 && oi>0){
+          const g = bsGamma(spot,K,T,iv)*oi*100*spot*spot*0.01;
+          netGamma -= g; putOI+=oi; putVol+=(p.volume||0);
+          byStrike[K]=(byStrike[K]||0)-g;
+        }
       });
-      return {ok:true, spot, expiry:new Date(opt.expirationDate*1000).toLocaleDateString(), netGamma, callOI, putOI};
+      let wallStrike=spot, wallMag=0;
+      Object.entries(byStrike).forEach(([k,v])=>{
+        totalAbsGamma+=Math.abs(v);
+        if(Math.abs(v)>wallMag){ wallMag=Math.abs(v); wallStrike=parseFloat(k); }
+      });
+      const pinScore = totalAbsGamma>0 ? Math.min(100,(wallMag/totalAbsGamma)*100) : 0;
+      // ATM IV — average of nearest call/put IV to spot, used for IV-vs-RV comparisons
+      const nearest=(arr)=>arr.reduce((best,o)=>Math.abs(o.strike-spot)<Math.abs((best?.strike??Infinity)-spot)?o:best,null);
+      const atmCall=nearest(opt.calls||[]), atmPut=nearest(opt.puts||[]);
+      const atmIV = ((atmCall?.impliedVolatility||0)+(atmPut?.impliedVolatility||0))/2 || null;
+      const dte = Math.max(0, Math.round((opt.expirationDate-now)/86400));
+      return {ok:true, spot, expiry:new Date(opt.expirationDate*1000).toLocaleDateString(),
+        rawExpiry:opt.expirationDate, dte, netGamma, callOI, putOI, callVol, putVol,
+        wallStrike, pinScore, atmIV, tYears:T, totalAbsGamma};
     }catch(e){ clearTimeout(t); continue; }
   }
   return {ok:false};
+}
+
+// ═══════ 0DTE STRATEGY SELECTOR ENGINE ═══════════════════════════════════
+// Pure functions — same decision table as the standalone dashboard prototype,
+// ported here to consume THIS app's own data (existing compADX, existing
+// 3-method probability forecast's flat%, extended gamma snapshot) instead of
+// re-fetching things this file already computes.
+
+const REGIME_WEIGHTS = { technical:25, gamma:20, flow:15, emotion:15, srProximity:15, forecast:10 };
+
+function clamp0100(v){ return Math.min(100, Math.max(0, v)); }
+
+// Bollinger Band Width percentile — bars must be OLDEST-FIRST for this one
+function bbWidthPercentile(barsOldFirst, period, lookback){
+  period=period||20; lookback=lookback||60;
+  if(barsOldFirst.length < period+10) return 50;
+  const widths=[];
+  for(let end=period; end<barsOldFirst.length; end++){
+    const slice=barsOldFirst.slice(end-period,end).map(b=>b.close);
+    const mean=slice.reduce((a,b)=>a+b,0)/period;
+    const sd=Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2,0)/period);
+    widths.push((4*sd)/mean);
+  }
+  const current=widths[widths.length-1], trailing=widths.slice(-lookback,-1);
+  if(!trailing.length) return 50;
+  return (trailing.filter(w=>w<current).length/trailing.length)*100;
+}
+
+function realizedVolAnn(barsOldFirst, period){
+  period=period||20;
+  const closes=barsOldFirst.slice(-period-1).map(b=>b.close);
+  if(closes.length<3) return 20;
+  const rets=[]; for(let i=1;i<closes.length;i++) rets.push(Math.log(closes[i]/closes[i-1]));
+  const mean=rets.reduce((a,b)=>a+b,0)/rets.length;
+  const varr=rets.reduce((a,b)=>a+(b-mean)**2,0)/rets.length;
+  return Math.sqrt(varr)*Math.sqrt(252)*100;
+}
+
+// Composite regime score (0-100, higher = more chop-favoring).
+// `flatPct2` should come from this app's own runProbabilityForecast output
+// (5m/15m horizon flat%, averaged across the 3 methods) when available —
+// that's a real empirical signal, stronger than any IV/RV proxy alone.
+function compositeRegimeScore(inputs, weights){
+  weights = weights || REGIME_WEIGHTS;
+  const sum = Object.values(weights).reduce((a,b)=>a+b,0)||1;
+  let score=0;
+  for(const k in inputs){ score += (inputs[k]||0) * ((weights[k]||0)/sum); }
+  return clamp0100(score);
+}
+
+function sizeFromScore(s){ return s>=85?'Full':s>=70?'Three-Quarter':'Half'; }
+
+function managementStyleFor(dte){
+  if(dte===0) return 'Same-Day Flatten — must be flat by today\'s close';
+  if(dte<=2) return `Short-Dated (${dte}DTE) — monitor closely, some overnight theta comfort`;
+  return `Near-Dated (${dte}DTE) — standard multi-day management applies`;
+}
+
+// DTE-aware decision table — identical rules to the standalone prototype's
+// Section 16, with `last15` exit-forcing gated to dte===0 only (a 2DTE
+// position doesn't need to be flat by today's 4pm).
+function select0DteStrategy(ctx){
+  const {score, ivRankProxy, pinScore, gammaWallDistanceAtr, catalystFlag, timeWindow,
+         breakoutTrigger, directionalLean, postCompression, dte} = ctx;
+  const urgency = clamp0100(100 - dte*25)/100;
+  const mk = (structure,sizing,rationale,tone) => ({
+    structure, sizing, tone, urgency, dte,
+    rationale: rationale + ' — ' + managementStyleFor(dte)
+  });
+
+  if(catalystFlag) return mk('Defined-Risk Only','Reduced','Rule 4.3.4 — catalyst override','warn');
+  if(dte===0 && timeWindow==='last15') return mk('Exit Only','—','No new entries into close','warn');
+
+  if(score>=70 && ivRankProxy>=50){
+    if(pinScore>70 && gammaWallDistanceAtr<0.3) return mk('Short Iron Fly',sizeFromScore(score),'High pin confidence, centered','gold');
+    return mk('Short Iron Condor',sizeFromScore(score),'Chop confirmed, no dominant pin','gold');
+  }
+  if(score>=55 && score<70){
+    if(ivRankProxy>=50) return mk('Short Iron Condor','Reduced','Moderate chop lean, defined risk only','gold');
+    return mk('Stand Down','—','Thin premium — not worth max-loss exposure','neutral');
+  }
+  if(score>=45 && score<55) return mk('Stand Down','—','Neutral band','neutral');
+
+  if(breakoutTrigger){
+    if(ivRankProxy<=20){
+      if(postCompression && gammaWallDistanceAtr<0.2) return mk('Lotto','Capped 5% daily budget','Post-compression, near gamma wall','red');
+      if(directionalLean) return mk('Debit Spread / Broken-Wing Butterfly',sizeFromScore(100-score),'Directional trigger + cheap IV','teal');
+      if(score<30) return mk('Long Straddle (ATM)',sizeFromScore(100-score),'High breakout confidence','teal');
+      return mk('Long Strangle','Small','Moderate breakout lean','teal');
+    }
+    return mk('Stand Down','—','IV already elevated — late/expensive','neutral');
+  }
+  return mk('Stand Down','—','No trigger — default to no trade','neutral');
+}
+
+function sessionWindowNow(){
+  const d=new Date(); const mins=d.getHours()*60+d.getMinutes(); const at=(h,m)=>h*60+m;
+  if(mins<at(9,30)||mins>=at(16,0)) return 'closed';
+  if(mins<at(10,15)) return 'open';
+  if(mins<at(11,30)) return 'primary';
+  if(mins<at(13,30)) return 'lunch';
+  if(mins<at(14,30)) return 'decision';
+  if(mins<at(15,45)) return 'power';
+  return 'last15';
+}
+
+function lognormalProbCurve(spot, iv, tYears, points){
+  points = points||70;
+  const sigma = iv*Math.sqrt(Math.max(tYears,0.0001));
+  const mu = Math.log(spot) - 0.5*sigma*sigma;
+  const lo = spot*Math.exp(-3.5*sigma), hi = spot*Math.exp(3.5*sigma);
+  const step=(hi-lo)/points, data=[];
+  for(let p=lo;p<=hi;p+=step){
+    const z=(Math.log(p)-mu)/sigma;
+    data.push({x:p, y:Math.exp(-0.5*z*z)/(p*sigma*Math.sqrt(2*Math.PI))});
+  }
+  return {data, oneLo:Math.exp(mu-sigma), oneHi:Math.exp(mu+sigma), twoLo:Math.exp(mu-2*sigma), twoHi:Math.exp(mu+2*sigma)};
+}
+
+// Lightweight, NO-NETWORK-CALL regime read for the main scan table — uses
+// bars already fetched for the row plus market structure already computed.
+// Full precision (gamma, real IV, real forecast flat%) only happens in the
+// deep-dive panel, which is allowed to make extra calls since it's per-symbol.
+function lastValid(arr){ if(!arr||!arr.length) return null; for(let i=arr.length-1;i>=0;i--){ if(arr[i]!=null) return arr[i]; } return null; }
+
+function quickRegimeRead(sym, barsNewFirst, ms){
+  const eligible = isZeroDteEligibleToday(sym);
+  if(eligible===false) return {eligible:false};
+  const oldFirst = barsNewFirst.slice().reverse();
+  const adxRes = (typeof compADX==='function') ? compADX(oldFirst,14) : {adx:[]};
+  const adx = lastValid(adxRes.adx) ?? 20;
+  const bbwPct = bbWidthPercentile(oldFirst,20,60);
+  const adxComp = adx<18?80:adx>25?20:50;
+  const bbwComp = 100-bbwPct;
+  const trendComp = (ms && ms.trend==='ranging') ? 75 : 25;
+  const score = clamp0100((adxComp+bbwComp+trendComp)/3);
+  const tone = score>=70?'gold':score<=29?'teal':'neutral';
+  const label = score>=70?'Chop lean':score<=29?'Breakout lean':'Neutral';
+  return {eligible:eligible===null?'unknown':true, score, tone, label};
 }
 
 window.runMarketSummary = async function(){
@@ -3738,6 +3950,9 @@ window.runProbabilityForecast = async function(sym){
   try { gamma = await fetchGammaSnapshot(sym); } catch(e) { gamma = {ok:false}; }
 
   renderProbabilityTable(box, sym, rows, gamma);
+  // Cache for the 0DTE Strategy panel — its "forecast" input uses your real
+  // empirical flat% here instead of falling back to a weaker technical proxy.
+  window._lastProbForecast = {sym, rows, gamma, fetchedAt:Date.now()};
   if (btn) { btn.disabled = false; btn.textContent = '🔄 Re-run Probability Forecast'; }
 };
 
@@ -3823,6 +4038,236 @@ function renderProbabilityTable(box, sym, rows, gamma) {
       <br><br><strong>Open/High/Low/Close ranges:</strong> for each scenario (bar closes green, red, or neutral), the Open/High/Low/Close columns show where that bar's own OHLC has historically landed, as a % offset from the PRIOR close — the median value with the 25th–75th percentile range in brackets. E.g. if "🟢 Green → High" shows "+0.42% [+0.20%, +0.71%]," that means on the historical bars that ended up green, the high of that bar typically reached about 0.2%–0.7% above the prior close. This gives you a realistic range to expect, not just a single point forecast.
       <br><br><strong>Gamma exposure</strong> uses the same nearest-expiration approximation as the Market Summary panel — real for any symbol with listed options, but simplified (one expiry, OI-weighted Black-Scholes gamma) rather than a full multi-expiry dealer-positioning model.
     </div>`;
+}
+
+// ═══════ 0DTE STRATEGY SELECTOR — deep-dive panel ═══════════════════════
+let _strategyCharts = []; // destroyed/recreated on each run to avoid leaks
+
+window.run0DteStrategy = async function(sym){
+  const btn = document.getElementById('strategyRunBtn');
+  const box = document.getElementById('strategyPanelContent');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Computing…'; }
+  if(box) box.innerHTML = '<div style="text-align:center;padding:16px;color:#9ca3af">🎯 Pulling gamma exposure + daily history…</div>';
+  _strategyCharts.forEach(c=>{try{c.destroy();}catch(e){}}); _strategyCharts=[];
+
+  const eligible = isZeroDteEligibleToday(sym);
+  if(eligible===false){
+    box.innerHTML = `<div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:12px;color:#991b1b;font-size:11px;line-height:1.6">
+      <strong>${sym} has no same-day expiry today.</strong> It's on the Monday/Wednesday/Friday-only list, and today isn't eligible. Session-timing and pin rules below assume a same-day (or near-dated) expiry, so they wouldn't cleanly apply to whatever ${sym}'s next expiry actually is. Try a Tier-1 daily name (SPY/QQQ/IWM/DIA/XSP) instead, or check back Mon/Wed/Fri.
+    </div>`;
+    if(btn){ btn.disabled=false; btn.textContent='🎯 Run Strategy Selector'; }
+    return;
+  }
+
+  try{
+    const [dailyRaw, gamma, vixRaw, vix9dRaw] = await Promise.all([
+      fetchYFCustom(sym,'1d','3mo'),
+      fetchGammaSnapshot(sym),
+      fetchYFCustom('%5EVIX','1d','10d').catch(()=>null),
+      fetchYFCustom('%5EVIX9D','1d','10d').catch(()=>null),
+    ]);
+    if(!dailyRaw || dailyRaw.length<25) throw new Error('Not enough daily history returned for '+sym);
+
+    const daily = dailyRaw.map(b=>({close:b.c, high:b.h, low:b.l, open:b.o})); // oldest-first
+    const adxRes = compADX(daily,14);
+    const adx = lastValid(adxRes.adx) ?? 20;
+    const bbwPct = bbWidthPercentile(daily,20,60);
+    const rv20 = realizedVolAnn(daily,20);
+
+    const row = resultMap.get(sym);
+    const trendComp = (row?.ms?.trend==='ranging') ? 75 : (row?.ms?.trend ? 25 : 50);
+    const adxComp = adx<18?80:adx>25?20:50;
+    const bbwComp = 100-bbwPct;
+    const technical = clamp0100((adxComp+bbwComp+trendComp)/3);
+
+    // gamma inputs — real, from the extended snapshot
+    let gammaScore=50, pinScore=0, gammaWallDistanceAtr=1, ivRankProxy=50, dte=0, spot=daily[daily.length-1].close, wallStrike=spot, atmIV=null, tYears=1/365;
+    const atr14 = (()=>{ const trs=[]; for(let i=1;i<daily.length;i++){ const h=daily[i].high,l=daily[i].low,pc=daily[i-1].close; trs.push(Math.max(h-l,Math.abs(h-pc),Math.abs(l-pc))); } const rec=trs.slice(-14); return rec.reduce((a,b)=>a+b,0)/(rec.length||1); })();
+
+    let gammaNote = '';
+    if(gamma && gamma.ok){
+      spot = gamma.spot; wallStrike = gamma.wallStrike; dte = gamma.dte; atmIV = gamma.atmIV; tYears = gamma.tYears;
+      gammaScore = clamp0100(50 + (gamma.totalAbsGamma>0 ? (gamma.netGamma/gamma.totalAbsGamma)*50 : 0));
+      pinScore = gamma.pinScore || 0;
+      gammaWallDistanceAtr = Math.abs(spot-wallStrike)/(atr14||1);
+      if(atmIV && rv20) ivRankProxy = clamp0100(50 + ((atmIV*100/rv20)-1)*50);
+    } else {
+      gammaNote = `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:8px 10px;font-size:10px;color:#92400e;margin-bottom:10px">⚠️ Gamma exposure unavailable for ${sym} (no listed options data came back) — gamma/pin/DTE inputs below are neutral defaults, not real reads. Structure/IV inputs are still real.</div>`;
+    }
+
+    // flow — coarse call/put OI ratio (same caveat as the standalone prototype:
+    // this is NOT buy-to-open-filtered flow, Yahoo doesn't tag that)
+    let flow = 50;
+    if(gamma && gamma.ok && (gamma.callOI||gamma.putOI)){
+      const ratio = gamma.putOI/(gamma.callOI||1);
+      flow = clamp0100(100 - Math.abs(ratio-1)*40);
+    }
+
+    // emotion — VIX9D/VIX term structure
+    let emotion = 50;
+    const vixLast = vixRaw ? vixRaw[vixRaw.length-1]?.c : null;
+    const vix9dLast = vix9dRaw ? vix9dRaw[vix9dRaw.length-1]?.c : null;
+    if(vixLast && vix9dLast){
+      const ratio = vix9dLast/vixLast;
+      emotion = clamp0100(100 - (ratio-1)*200);
+    }
+
+    // S/R proximity — distance from prior-day range midpoint
+    const priorDay = daily[daily.length-2] || daily[daily.length-1];
+    const priorMid = (priorDay.high+priorDay.low)/2, priorHalf = (priorDay.high-priorDay.low)/2 || atr14;
+    const srProximity = clamp0100(100 - (Math.abs(spot-priorMid)/priorHalf)*100);
+
+    // forecast — REAL empirical flat% from your own Probability Forecast panel,
+    // if you've run it for this symbol in this session; otherwise neutral.
+    let forecast = 50, forecastNote = 'not run yet — using neutral default';
+    const cached = window._lastProbForecast;
+    if(cached && cached.sym===sym){
+      const shortRows = cached.rows.filter(rr=>!rr.err && (rr.h.label==='5-Minute'||rr.h.label==='15-Minute'));
+      if(shortRows.length){
+        const flats = [];
+        shortRows.forEach(rr=>{ [rr.emp,rr.cond,rr.vol].forEach(m=>{ if(m&&m.n>0) flats.push(m.flatPct2); }); });
+        if(flats.length){ forecast = clamp0100(flats.reduce((a,b)=>a+b,0)/flats.length); forecastNote = `from your Probability Forecast (${flats.length} method reads averaged)`; }
+      }
+    }
+
+    const inputs = {technical, gamma:gammaScore, flow, emotion, srProximity, forecast};
+    const score = compositeRegimeScore(inputs);
+    const timeWindow = sessionWindowNow();
+    const decision = select0DteStrategy({
+      score, ivRankProxy, pinScore, gammaWallDistanceAtr, catalystFlag:false,
+      timeWindow, breakoutTrigger:score<45, directionalLean:false, postCompression:bbwPct<25, dte
+    });
+
+    const toneColors = {gold:['#fef3c7','#92400e'], teal:['#d1fae5','#065f46'], red:['#fee2e2','#991b1b'], warn:['#fee2e2','#991b1b'], neutral:['#f3f4f6','#6b7280']};
+    const [tbg,tfg] = toneColors[decision.tone]||toneColors.neutral;
+
+    box.innerHTML = `
+      ${gammaNote}
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
+        <div style="background:${tbg};color:${tfg};border-radius:8px;padding:14px 18px;min-width:220px">
+          <div style="font-size:19px;font-weight:800;margin-bottom:4px">${decision.structure}</div>
+          <div style="font-size:10px;font-weight:700;opacity:.85">SIZING: ${decision.sizing} · URGENCY: ${Math.round(decision.urgency*100)}%</div>
+          <div style="font-size:11px;margin-top:8px;line-height:1.5">${decision.rationale}</div>
+        </div>
+        <div style="flex:1;min-width:180px">
+          <div style="font-size:9px;font-weight:700;color:#6b7280;text-transform:uppercase;margin-bottom:6px">Composite Score: ${Math.round(score)}/100</div>
+          <div style="background:#e5e7eb;border-radius:5px;height:10px;overflow:hidden;margin-bottom:8px">
+            <div style="width:${score}%;height:100%;background:${score>=70?'#c9a24b':score<=29?'#4fa8a0':'#9ca3af'}"></div>
+          </div>
+          <div style="font-size:9px;color:#9ca3af;display:grid;grid-template-columns:1fr 1fr;gap:3px 10px">
+            <span>Technical: ${Math.round(technical)}</span><span>Gamma: ${Math.round(gammaScore)}</span>
+            <span>Flow: ${Math.round(flow)}</span><span>Emotion: ${Math.round(emotion)}</span>
+            <span>S/R: ${Math.round(srProximity)}</span><span>Forecast: ${Math.round(forecast)} <em style="color:#c4c9d1">(${forecastNote})</em></span>
+          </div>
+          <div style="font-size:9px;color:#9ca3af;margin-top:8px">IV vs RV proxy: ${Math.round(ivRankProxy)}% · Pin score: ${Math.round(pinScore)} · Wall: ${f2(wallStrike)} · DTE: ${dte}</div>
+        </div>
+      </div>
+      <div class="cpanel">
+        <div class="phdr"><div class="pttl">📈 Price + Studies (Daily)</div><div class="psub">EMA9/21 · Bollinger(20,2)</div></div>
+        <div class="cmd"><canvas id="strat0dtePriceChart"></canvas></div>
+      </div>
+      <div class="cpanel">
+        <div class="phdr"><div class="pttl">📐 Probability Distribution</div><div class="psub">Lognormal, from ATM IV — the market's implied range, not a guarantee</div></div>
+        <div class="csm"><canvas id="strat0dteProbChart"></canvas></div>
+      </div>
+      <div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;padding:10px 12px;font-size:10px;color:#6b7280;line-height:1.7">
+        <strong>How to read this:</strong> the composite score blends six inputs — technical (ADX/Bollinger compression/trend), gamma (dealer positioning sign), flow (coarse put/call OI ratio — not buy-to-open filtered, treat as a weak signal), emotion (VIX term structure), support/resistance proximity, and forecast (your own empirical flat% if you've run Probability Forecast above, otherwise neutral). Above 70 leans chop/sell-premium, below 30 leans breakout/buy-premium, 45–54 is a deliberate no-trade band. <strong>IV vs RV is a proxy, not a true IV Rank</strong> — Yahoo has no historical IV series, so this compares today's ATM IV to trailing realized vol instead.
+      </div>`;
+
+    renderStrategyPriceChart(daily, sym);
+    if(gamma && gamma.ok && atmIV) renderStrategyProbChart(spot, atmIV, tYears);
+
+  }catch(e){
+    box.innerHTML = `<div style="color:#dc2626;font-size:11px;padding:10px">Failed to compute: ${e.message}. CORS proxies may be rate-limited — try again in a moment.</div>`;
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='🔄 Re-run Strategy Selector'; }
+  }
+};
+
+function renderStrategyPriceChart(dailyOldFirst, sym){
+  const canvas = document.getElementById('strat0dtePriceChart');
+  if(!canvas || typeof Chart==='undefined') return;
+  const bars = dailyOldFirst.slice(-60); // last ~60 sessions, oldest-first
+  const N = bars.length;
+  const closes = bars.map(b=>b.close), opens = bars.map(b=>b.open), highs=bars.map(b=>b.high), lows=bars.map(b=>b.low);
+  const labels = bars.map((_,i)=>i);
+
+  const ema=(vals,period)=>{ const k=2/(period+1); let v=vals[0]; const out=[v]; for(let i=1;i<vals.length;i++){ v=vals[i]*k+v*(1-k); out.push(v);} return out; };
+  const ema9=ema(closes,9), ema21=ema(closes,21);
+  const bbUpper=[], bbLower=[];
+  for(let i=0;i<N;i++){
+    if(i<19){ bbUpper.push(null); bbLower.push(null); continue; }
+    const slice=closes.slice(i-19,i+1);
+    const mean=slice.reduce((a,b)=>a+b,0)/20;
+    const sd=Math.sqrt(slice.reduce((a,b)=>a+(b-mean)**2,0)/20);
+    bbUpper.push(mean+2*sd); bbLower.push(mean-2*sd);
+  }
+
+  const candlePlugin0dte = {id:'cp0dte', afterDatasetsDraw(chart){
+    const xs=chart.scales.x, ys=chart.scales.y;
+    if(!xs||!ys) return;
+    const ctx=chart.ctx, area=chart.chartArea;
+    const cw=Math.max(2,Math.min(10,(area.right-area.left)/N*0.6)), hw=cw/2;
+    ctx.save();
+    for(let i=0;i<N;i++){
+      const px=xs.getPixelForValue(i), po=ys.getPixelForValue(opens[i]), ph=ys.getPixelForValue(highs[i]), pl=ys.getPixelForValue(lows[i]), pc=ys.getPixelForValue(closes[i]);
+      if([px,po,ph,pl,pc].some(isNaN)) continue;
+      const bull=closes[i]>=opens[i], col=bull?'#4fa8a0':'#c1554a';
+      ctx.strokeStyle=col; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(px,ph); ctx.lineTo(px,pl); ctx.stroke();
+      const top=Math.min(po,pc), ht=Math.max(Math.abs(pc-po),1);
+      ctx.fillStyle=col; ctx.fillRect(px-hw,top,cw,ht);
+    }
+    ctx.restore();
+  }};
+
+  const ch = new Chart(canvas, {
+    type:'line',
+    data:{ labels, datasets:[
+      {label:'EMA9', data:ema9, borderColor:'#c9a24b', borderWidth:1.2, pointRadius:0, tension:0.2},
+      {label:'EMA21', data:ema21, borderColor:'#4fa8a0', borderWidth:1.2, pointRadius:0, tension:0.2},
+      {label:'BB Upper', data:bbUpper, borderColor:'#cbd5e1', borderWidth:1, pointRadius:0, borderDash:[3,3]},
+      {label:'BB Lower', data:bbLower, borderColor:'#cbd5e1', borderWidth:1, pointRadius:0, borderDash:[3,3]},
+    ]},
+    plugins:[candlePlugin0dte],
+    options:{ responsive:true, maintainAspectRatio:false, animation:false,
+      scales:{ x:{ display:false }, y:{ ticks:{font:{size:9}} } },
+      plugins:{ legend:{display:true, labels:{font:{size:9}, boxWidth:10}} }
+    }
+  });
+  _strategyCharts.push(ch);
+}
+
+function renderStrategyProbChart(spot, atmIV, tYears){
+  const canvas = document.getElementById('strat0dteProbChart');
+  if(!canvas || typeof Chart==='undefined') return;
+  const curve = lognormalProbCurve(spot, atmIV, tYears, 70);
+
+  const spotLinePlugin = {id:'spotline', afterDatasetsDraw(chart){
+    const xs=chart.scales.x, ys=chart.scales.y, area=chart.chartArea;
+    if(!xs||!ys) return;
+    const px = xs.getPixelForValue(spot);
+    const ctx=chart.ctx;
+    ctx.save(); ctx.strokeStyle='#2d3436'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(px,area.top); ctx.lineTo(px,area.bottom); ctx.stroke();
+    ctx.restore();
+  }};
+
+  const ch = new Chart(canvas, {
+    type:'line',
+    data:{ datasets:[{
+      label:'Implied density', data:curve.data, borderColor:'#c9a24b', backgroundColor:'rgba(201,162,75,0.18)',
+      fill:true, pointRadius:0, borderWidth:1.5, tension:0.3,
+      parsing:{xAxisKey:'x', yAxisKey:'y'}
+    }]},
+    plugins:[spotLinePlugin],
+    options:{ responsive:true, maintainAspectRatio:false, animation:false,
+      scales:{ x:{type:'linear', ticks:{font:{size:9}, callback:v=>v.toFixed(0)}}, y:{display:false} },
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label:(ctx)=>`$${ctx.parsed.x.toFixed(2)}` } } }
+    }
+  });
+  _strategyCharts.push(ch);
 }
 
 // ── Run AI Analysis via Claude ────────────────────────────────────────
@@ -4010,9 +4455,22 @@ console.log('OpenClaw AI Engine loaded');
 // ═══════ VERSION HISTORY ══════════════════════════════════════════════
 const VERSION_HISTORY = [
   {
+    version: '20260802.1',
+    date: 'Aug 2, 2026',
+    label: 'Current',
+    changes: [
+      'Added 0DTE Strategy Selector — composite regime score (technical/gamma/flow/emotion/S-R/forecast) mapped to a DTE-aware structure recommendation (iron fly/condor, long straddle/strangle, debit spread, lotto, or stand down)',
+      'Date-aware 0DTE eligibility: SPY/QQQ/IWM/DIA/XSP/index tickers checked as daily-eligible, single-name MWF tickers (AAPL/NVDA/TSLA/etc.) checked against actual day-of-week rather than assumed',
+      'New ⚡0DTE column in the results table — quick technical-only regime read (no extra network calls) for every eligible symbol in a scan',
+      'New 0DTE Strategy panel in the per-symbol analysis modal — pulls real gamma exposure (extended with wall-strike + pin concentration), reuses your own Probability Forecast flat% when available, and renders a price chart (candles + EMA9/21 + Bollinger) plus a lognormal probability distribution chart from ATM IV',
+      'Extended fetchGammaSnapshot() with wall strike, pin score, ATM IV, and DTE — all original fields kept for backward compatibility with the Market Summary panel',
+      'DTE-aware session urgency: same-day-close rules only enforce on true 0DTE (DTE=0); 1-4DTE positions get standard multi-day management guidance instead',
+    ]
+  },
+  {
     version: '20260323.1904',
     date: 'Mar 23, 2026 19:04',
-    label: 'Current',
+    label: '',
     changes: [
       'Unified synchronized multi-pane chart layout — all subgraphs stacked under price action',
       'Shared x-axis (xAxFcast) with same domain across all 11 panels',
