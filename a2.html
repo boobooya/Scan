@@ -476,7 +476,7 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
           <th class="r sortable" onclick="sortTable('chg')">Chg%</th>
           <th class="c sortable" onclick="sortTable('signal')">Signal</th>
           <th class="c sortable" onclick="sortTable('type')">Type</th>
-          <th class="c">Option</th>
+          <th class="c" title="Directional LONG option suggestion — buy this, never sell it, per the swing/channel signal">Buy Option</th>
           <th class="r sortable" onclick="sortTable('strike')">Strike</th>
           <th class="r sortable" onclick="sortTable('stop')">Stop</th>
           <th class="c sortable" onclick="sortTable('forecast')">Forecast</th>
@@ -1089,8 +1089,33 @@ function buildResult(sym,bars,cfg,tfLabel){
   return{sym,price,change,chgPct,time:cur.time,tfLabel,dir,stype,opt,strike,conf,stop,sw,ch,fcast,ms,bars,fcastN:cfg.fcastN,fcastLB:cfg.fcastLB,regime0dte};
 }
 
+// ═══ FETCH CACHE — dedupes the exact redundancy the code review flagged:
+// main scan → modal → probability forecast can all request the same
+// symbol+timeframe within seconds. Short TTL on purpose — long enough to
+// dedupe that overlap, short enough that a genuine re-scan still gets
+// fresh data, not stale cached bars from minutes ago.
+const _yfCache = new Map();
+const YF_CACHE_TTL_MS = 45000;
+function yfCacheGet(key){
+  const hit = _yfCache.get(key);
+  if(hit && (Date.now()-hit.ts) < YF_CACHE_TTL_MS) return hit.data;
+  return null;
+}
+function yfCacheSet(key, data){
+  _yfCache.set(key, {data, ts:Date.now()});
+  if(_yfCache.size > 300){ // simple bound so this can't grow unbounded in a long session
+    let oldestKey=null, oldestTs=Infinity;
+    for(const [k,v] of _yfCache){ if(v.ts<oldestTs){oldestTs=v.ts;oldestKey=k;} }
+    if(oldestKey) _yfCache.delete(oldestKey);
+  }
+}
+
 // ═══ FETCH — tries all proxies per symbol, never hard-fails ══════════
 async function fetchYF(sym,tfKey){
+  const cacheKey = `yf|${sym}|${tfKey}`;
+  const cached = yfCacheGet(cacheKey);
+  if(cached) return cached;
+
   const rawUrl = yfUrl(sym, tfKey);
 
   // Try last-known-good proxy first, then all others
@@ -1133,7 +1158,7 @@ async function fetchYF(sym,tfKey){
           open:q.open[i]??q.close[i], high:q.high[i]??q.close[i],
           low:q.low[i]??q.close[i],   close:q.close[i], vol:q.volume[i]??0});
       }
-      return bars.length>=5 ? bars : null;
+      return bars.length>=5 ? (yfCacheSet(cacheKey, bars), bars) : null;
 
     }catch(e){ clearTimeout(t); continue; }
   }
@@ -1200,7 +1225,7 @@ async function startScan(){
           chips[s].className='bc '+(r.stype==='both'?'bo':r.dir==='buy'?'bu':r.dir==='sell'?'se':'nn');
           dbg(s+' · '+bars.length+'b · '+r.dir,'o');
           updateTable();
-        }else{chips[s].className='bc er';}
+        }else{chips[s].className='bc er';dbg(s+' · insufficient bars ('+(bars?bars.length:0)+'/10 needed)','e');}
       }catch(e){chips[s].className='bc er';dbg(s+' · '+e.message,'e');}
       finally{done++;}
     }));
@@ -1344,21 +1369,21 @@ function buildModalHTML(r,sym,isBuy,isSel){
   return `
   <div class="agrid">
     <div class="zbox zbull">
-      <div class="ztl">🟢 BUY ZONE — ATM CALL</div>
+      <div class="ztl">🟢 BULLISH — BUY ATM CALL</div>
       <div class="zpr">${isBuy?f2(r.price):'—'}</div>
       <div class="zds">
-        ${r.sw.signal==='buy'?`<b>📈 Swing:</b> Above ${f2(r.sw.llh)} · Low: ${f2(r.sw.swingLow)}<br>`:''}
-        ${r.ch.signal==='buy'?`<b>📦 Channel:</b> Above ${f2(r.ch.res)} · Sup: ${f2(r.ch.sup)}<br>`:''}
-        ATM CALL: <b>${f2(r.strike)}</b> · ${isBuy?'<b style="color:#155724">✅ Active</b>':'No buy signal'}
+        ${r.sw.signal==='buy'?`<b>📈 Swing:</b> Above ${f2(r.sw.llh)} · Stop below: ${f2(r.sw.swingLow)}<br>`:''}
+        ${r.ch.signal==='buy'?`<b>📦 Channel:</b> Above ${f2(r.ch.res)} · Stop below: ${f2(r.ch.sup)}<br>`:''}
+        Buy ATM CALL: <b>${f2(r.strike)}</b> · ${isBuy?'<b style="color:#155724">✅ Active</b>':'No buy signal'}
       </div>
     </div>
     <div class="zbox zbear">
-      <div class="ztl">🔴 SELL ZONE — ATM PUT</div>
+      <div class="ztl">🔴 BEARISH — BUY ATM PUT</div>
       <div class="zpr">${isSel?f2(r.price):'—'}</div>
       <div class="zds">
-        ${r.sw.signal==='sell'?`<b>📈 Swing:</b> Below ${f2(r.sw.lhl)} · High: ${f2(r.sw.swingHigh)}<br>`:''}
-        ${r.ch.signal==='sell'?`<b>📦 Channel:</b> Below ${f2(r.ch.sup)} · Res: ${f2(r.ch.res)}<br>`:''}
-        ATM PUT: <b>${f2(r.strike)}</b> · ${isSel?'<b style="color:#721c24">✅ Active</b>':'No sell signal'}
+        ${r.sw.signal==='sell'?`<b>📈 Swing:</b> Below ${f2(r.sw.lhl)} · Stop above: ${f2(r.sw.swingHigh)}<br>`:''}
+        ${r.ch.signal==='sell'?`<b>📦 Channel:</b> Below ${f2(r.ch.sup)} · Stop above: ${f2(r.ch.res)}<br>`:''}
+        Buy ATM PUT: <b>${f2(r.strike)}</b> · ${isSel?'<b style="color:#721c24">✅ Active</b>':'No sell signal'}
       </div>
     </div>
   </div>
@@ -1734,7 +1759,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
     <div class="rgr">
       <div class="ri"><div class="rl">Symbol</div><div class="rv">${sym}</div></div>
       <div class="ri"><div class="rl">Timeframe</div><div class="rv">${r.tfLabel}</div></div>
-      <div class="ri"><div class="rl">Option</div><div class="rv">${r.opt??'—'}</div></div>
+      <div class="ri"><div class="rl">Buy Option (long)</div><div class="rv">${r.opt??'—'}</div></div>
       <div class="ri"><div class="rl">ATM Strike</div><div class="rv">${f2(r.strike)}</div></div>
       <div class="ri"><div class="rl">Stop Loss</div><div class="rv">${f2(r.stop)}</div></div>
       <div class="ri"><div class="rl">DTE Pref</div><div class="rv">≤ 7 days</div></div>
@@ -3521,6 +3546,7 @@ async function fetchGammaSnapshot(sym){
       const spot = result.quote?.regularMarketPrice;
       const opt = result.options?.[0];
       if(!opt || !spot) continue;
+      proxy = {name}; // promote — same fix as fetchYFCustom, this was missing too
       const now = Date.now()/1000;
       const T = Math.max((opt.expirationDate-now)/(365*24*3600), 1/365);
       let netGamma=0, callOI=0, putOI=0, callVol=0, putVol=0;
@@ -3805,6 +3831,10 @@ const PROB_HORIZONS = [
 // Fetch raw closes (chronological, oldest→newest) at a custom interval/range,
 // independent of the display timeframe — we want max available history here.
 async function fetchYFCustom(sym, interval, range){
+  const cacheKey = `yfc|${sym}|${interval}|${range}`;
+  const cached = yfCacheGet(cacheKey);
+  if(cached) return cached;
+
   const rawUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=${interval}&range=${range}&includePrePost=false`;
   const order = [proxy.name, ...PROXY_NAMES.filter(n=>n!==proxy.name)];
   for(const name of order){
@@ -3820,13 +3850,16 @@ async function fetchYFCustom(sym, interval, range){
       if(!result) continue;
       const ts=result.timestamp, q=result.indicators?.quote?.[0];
       if(!ts||!q) continue;
+      proxy = {name}; // promote — was previously missing here, meaning other
+                       // fetch functions kept retrying a stale/dead proxy first
       // Full OHLC, chronological (oldest→newest) — needed for both return calcs and range stats
       const bars=[];
       for(let i=0;i<ts.length;i++){
         if(q.close[i]==null||isNaN(q.close[i])||q.open[i]==null||q.high[i]==null||q.low[i]==null) continue;
         bars.push({o:q.open[i], h:q.high[i], l:q.low[i], c:q.close[i]});
       }
-      return bars.length>=10 ? bars : null;
+      if(bars.length>=10){ yfCacheSet(cacheKey, bars); return bars; }
+      return null;
     }catch(e){ clearTimeout(t); continue; }
   }
   return null;
@@ -4181,6 +4214,10 @@ window.run0DteStrategy = async function(sym){
         </div>
       </div>
       <div class="cpanel">
+        <div class="phdr"><div class="pttl">🛑 Management &amp; Stops</div><div class="psub">Direction-correct for THIS structure — not a generic single-sided stop</div></div>
+        ${structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, priorHalf)}
+      </div>
+      <div class="cpanel">
         <div class="phdr"><div class="pttl">📈 Price + Studies (Daily)</div><div class="psub">EMA9/21 · Bollinger(20,2)</div></div>
         <div class="cmd"><canvas id="strat0dtePriceChart"></canvas></div>
       </div>
@@ -4201,6 +4238,41 @@ window.run0DteStrategy = async function(sym){
     if(btn){ btn.disabled=false; btn.textContent='🔄 Re-run Strategy Selector'; }
   }
 };
+
+// ═══════ Structure-specific management guidance — direction matters ══════
+// Short premium (iron fly/condor) is NEUTRAL — both sides matter equally,
+// no single "stop above/below" applies. Long premium structures don't have
+// a clean price-level stop either (the position "loses" from decay while
+// price sits still, not from a single level breach) — theirs is time+value
+// based instead. Getting this distinction right is the actual point.
+function structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, priorHalf){
+  const s = decision.structure;
+  const width = Math.max(atr14, spot*0.003); // rough short-strike width approximation — NOT real 16-delta strike selection
+  const upper = (wallStrike||spot) + width, lower = (wallStrike||spot) - width;
+
+  if(s==='Short Iron Fly' || s==='Short Iron Condor'){
+    return `<div style="font-size:11px;color:#374151;line-height:1.8;padding:4px 2px">
+      <strong>Neutral structure — two-sided, not bullish or bearish.</strong> Both strikes matter equally; there is no single "stop above" or "stop below" for this position.<br>
+      Approx. upper short strike: <b style="color:#c9a24b">${f2(upper)}</b> (call side) &nbsp;·&nbsp; Approx. lower short strike: <b style="color:#c9a24b">${f2(lower)}</b> (put side)<br>
+      <span style="color:#6b7280">Strike width above is a rough ATR-based approximation, not a real 16-delta selection — verify against the actual chain before sizing.</span><br>
+      <strong>Exit/adjust if:</strong> price closes beyond either strike, <em>or</em> cost-to-close reaches 2× the credit received (tastylive's mechanical stop) — whichever comes first. Take profit at 50–70% of max credit; don't hold for the last 20–30% given 0DTE gamma risk near the close.
+    </div>`;
+  }
+  if(s==='Long Straddle (ATM)' || s==='Long Strangle' || s==='Debit Spread / BWB'){
+    return `<div style="font-size:11px;color:#374151;line-height:1.8;padding:4px 2px">
+      <strong>Long premium — decays from sitting still, doesn't "stop out" from a single price level.</strong><br>
+      Invalidation zone: back inside prior-day range, ~<b style="color:#4fa8a0">${f2(priorMid)}</b> (± ${f2(priorHalf)}) — if price re-enters this zone within 30–45 minutes without follow-through, exit. 0DTE theta punishes indecision hard.<br>
+      <strong>Value stop:</strong> close if the position is down ~50% of premium paid. Scale out winners in tranches (⅓ at 50% gain, ⅓ at 100%, trail the rest) rather than holding for a single exit.
+    </div>`;
+  }
+  if(s==='Lotto'){
+    return `<div style="font-size:11px;color:#374151;line-height:1.8;padding:4px 2px">
+      <strong>Vega risk dominates delta risk here</strong> — this position can lose value from IV crush even if price moves the right way a little. Not a price-level stop situation.<br>
+      Hard cap: ≤5% of daily risk budget, sized separately from your primary structure. No averaging down if it's not working.
+    </div>`;
+  }
+  return `<div style="font-size:11px;color:#6b7280;line-height:1.8;padding:4px 2px">No new position — no stop/management applies. ${decision.rationale}</div>`;
+}
 
 function renderStrategyPriceChart(dailyOldFirst, sym){
   const canvas = document.getElementById('strat0dtePriceChart');
