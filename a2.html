@@ -545,7 +545,12 @@ const TIER1_DAILY_0DTE = ['SPY','QQQ','IWM','DIA','^GSPC','^NDX','^RUT','XSP'];
 const MWF_0DTE = ['AAPL','NVDA','TSLA','MSFT','AMZN','GOOGL','META','AVGO','IBIT'];
 function isZeroDteEligibleToday(sym, date){
   date = date || new Date();
-  const day = date.getDay(); // 0 Sun ... 6 Sat
+  // Options markets run on US Eastern time — using the browser's local
+  // day-of-week is wrong for anyone outside US timezones (e.g. testing
+  // from Tokyo on Monday morning is still Sunday night in NY), and even
+  // within the US it's wrong right around the midnight ET boundary.
+  const etWeekday = new Intl.DateTimeFormat('en-US', {timeZone:'America/New_York', weekday:'short'}).format(date);
+  const day = {Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}[etWeekday];
   const isWeekday = day>=1 && day<=5;
   if(TIER1_DAILY_0DTE.includes(sym)) return isWeekday;
   if(MWF_0DTE.includes(sym)) return day===1||day===3||day===5;
@@ -759,6 +764,17 @@ function chandelier(bars,atr,mult=CHAND_MULT){
 function compVWAP(bars){
   let cpv=0,cv=0;
   return bars.map(b=>{const tp=(b.high+b.low+b.close)/3;cpv+=tp*(b.vol||1);cv+=(b.vol||1);return cv>0?cpv/cv:tp;});
+}
+
+// Yahoo frequently omits volume on intraday intervals — when that happens,
+// compVWAP's `b.vol||1` fallback silently degrades VWAP into an unweighted
+// average price with no indication to the user. This flags that case
+// without touching compVWAP's signature (many callers depend on it staying
+// a plain array).
+function hasRealVolumeData(bars){
+  if(!bars || !bars.length) return false;
+  const withVol = bars.filter(b=>b.vol && b.vol>0).length;
+  return (withVol / bars.length) > 0.5; // majority of bars need real volume to trust it
 }
 
 function vwapBands(bars,vwap){
@@ -1064,7 +1080,17 @@ function detChannel(bars,chanBars,maxW){
   return{signal,inCh:true,res,sup,width,stop};
 }
 
-function calcATM(price){const iv=price<25?0.5:price<200?1:5;return Math.round(price/iv)*iv;}
+// SPY/QQQ/IWM/DIA (and index proxies) trade in $1 strikes regardless of
+// price — the old price-threshold rounding (iv=5 above $200) put SPY at
+// $543 onto a $545 strike, which is real strike-selection error for the
+// most liquid names in the whole scanner. Special-case them; fall back to
+// the threshold heuristic only for names not known to have tight strikes.
+const DOLLAR_STRIKE_SYMBOLS = new Set([...TIER1_DAILY_0DTE, 'DIA']);
+function calcATM(price, sym){
+  if(sym && DOLLAR_STRIKE_SYMBOLS.has(sym)) return Math.round(price);
+  const iv=price<25?0.5:price<200?1:5;
+  return Math.round(price/iv)*iv;
+}
 
 function buildResult(sym,bars,cfg,tfLabel){
   const cur=bars[0],prev=bars[1];
@@ -1077,7 +1103,7 @@ function buildResult(sym,bars,cfg,tfLabel){
   if(sw.signal!=='neutral'){types.push('swing');dir=sw.signal;stop=sw.stop;}
   if(ch.signal!=='neutral'){types.push('channel');if(dir==='neutral'){dir=ch.signal;stop=ch.stop;}}
   const stype=types.length===2?'both':types.length===1?types[0]:'none';
-  const strike=calcATM(price);
+  const strike=calcATM(price, sym);
   const opt=dir==='buy'?'CALL':dir==='sell'?'PUT':null;
   let conf='low';
   if(stype==='both'&&sw.signal===ch.signal){conf='high';}
@@ -1103,10 +1129,11 @@ function yfCacheGet(key){
 }
 function yfCacheSet(key, data){
   _yfCache.set(key, {data, ts:Date.now()});
-  if(_yfCache.size > 300){ // simple bound so this can't grow unbounded in a long session
-    let oldestKey=null, oldestTs=Infinity;
-    for(const [k,v] of _yfCache){ if(v.ts<oldestTs){oldestTs=v.ts;oldestKey=k;} }
-    if(oldestKey) _yfCache.delete(oldestKey);
+  if(_yfCache.size > 300){
+    // Map preserves insertion order — first key is oldest, O(1) instead of
+    // scanning all 300 entries for the minimum timestamp every time
+    const oldestKey = _yfCache.keys().next().value;
+    if(oldestKey !== undefined) _yfCache.delete(oldestKey);
   }
 }
 
@@ -2172,7 +2199,7 @@ function renderPanels(r){
   });
 
   // ── PANEL 6: VWAP ─────────────────────────────────────────────────────
-  document.getElementById('vwapLabel').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}`;
+  document.getElementById('vwapLabel').textContent=`VWAP:${f2(curVW)} · Price ${r.price>curVW?'ABOVE (bullish)':'BELOW (bearish)'}${hasRealVolumeData(r.bars)?'':' ⚠ unweighted (no volume data)'}`;
   function vPts(arr){return arr.map((v,i)=>({x:i,y:v})).filter(p=>!isNaN(p.y)&&p.y>0);}
   const dsVWAP=[
     {label:'Price',data:priceLine,borderColor:'#9ca3af',borderWidth:1.5,pointRadius:0,fill:false,parsing:false,tension:.1},
@@ -2189,7 +2216,7 @@ function renderPanels(r){
     dsVWAP.push({label:'VWAP proj', data:[{x:N-1,y:lastVWAP},...vwapProj.map((v,i)=>({x:N+i,y:v}))],borderColor:'rgba(9,132,227,.75)',borderWidth:2,borderDash:[6,4],pointRadius:0,fill:false,parsing:false});
     dsVWAP.push(fDivDs(vwapYmin2,vwapYmax2));
   }
-  document.getElementById('vwapLabel').textContent='VWAP '+f2(curVW)+' · Price '+(r.price>curVW?'ABOVE ▲':'BELOW ▼');
+  document.getElementById('vwapLabel').textContent='VWAP '+f2(curVW)+' · Price '+(r.price>curVW?'ABOVE ▲':'BELOW ▼')+(hasRealVolumeData(r.bars)?'':' ⚠ unweighted');
   mkChart('cVWAP','line',dsVWAP,{
     plugins:{legend:{display:true,position:'top',labels:{font:{size:8},boxWidth:8,color:'#9ca3af',filter:i=>!i.text.startsWith('_')}}},
     scales:{x:xAxFcast(), y:{min:vwapYmin2,max:vwapYmax2,position:'right',ticks:{callback:v=>'$'+v.toFixed(2),color:'#9ca3af',font:{size:8},maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.06)'},border:{color:'rgba(255,255,255,0.1)'}}}
