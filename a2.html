@@ -362,6 +362,18 @@ td{padding:9px 11px;font-size:12px;color:#2d3436;white-space:nowrap}
       </div>
     </div>
     <div class="tf-info" id="tfInfo">ℹ️ <strong>5 Min:</strong> range=1d · ~78 bars · Day trading</div>
+
+    <div style="position:relative;margin-bottom:14px;padding:12px 14px;background:linear-gradient(90deg,#667eea08,#764ba208);border:1px solid #667eea28;border-radius:8px">
+      <label style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+        🔍 <span>Quick Search — ticker or company name</span>
+      </label>
+      <input type="text" id="quickSearchInput" placeholder="e.g. AAPL or Apple"
+        autocomplete="off"
+        style="width:100%;padding:9px 12px;border:2px solid #667eea44;border-radius:7px;font-size:13px"
+        oninput="onQuickSearchInput()" onkeydown="onQuickSearchKeydown(event)" />
+      <div id="quickSearchDropdown" style="display:none;position:absolute;left:14px;right:14px;top:100%;margin-top:4px;background:#fff;border:1px solid #dfe6e9;border-radius:7px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:50;max-height:280px;overflow-y:auto"></div>
+    </div>
+
     <div class="ctrl">
       <div>
         <label>Symbols</label>
@@ -1424,19 +1436,19 @@ function buildModalHTML(r,sym,isBuy,isSel){
   </div>
   <div class="itbar">
     <span style="font-size:10px;font-weight:700;color:#636e72;margin-right:3px">Panels:</span>
-    <label class="itog on" style="color:#6c5ce7" onclick="togP('pMain')"><span class="idot" style="background:#6c5ce7"></span><span class="il">🕯️ Price + Keltner + Forecast</span></label>
-    <label class="itog on" style="color:#6366f1" onclick="togP('pCycles')"><span class="idot" style="background:#6366f1"></span><span class="il">🔄 Hurst Cycle Arcs</span></label>
-    <label class="itog on" style="color:#2d3436" onclick="togP('pMS')"><span class="idot" style="background:#2d3436"></span><span class="il">📐 Market Structure</span></label>
-    <label class="itog on" style="color:#e84393" onclick="togP('pRSI')"><span class="idot" style="background:#e84393"></span><span class="il">📉 RSI Divergence</span></label>
-    <label class="itog on" style="color:#f59e0b" onclick="togP('pATR')"><span class="idot" style="background:#f59e0b"></span><span class="il">🛡 ATR Stop</span></label>
-    <label class="itog on" style="color:#0984e3" onclick="togP('pVWAP')"><span class="idot" style="background:#0984e3"></span><span class="il">📊 VWAP</span></label>
-    <label class="itog on" style="color:#00b894" onclick="togP('pVP')"><span class="idot" style="background:#00b894"></span><span class="il">📦 Volume Profile</span></label>
-    <label class="itog on" style="color:#c4b5fd" onclick="togP('pReason')"><span class="idot" style="background:#c4b5fd"></span><span class="il">🧠 Reasoning</span></label>
-    <label class="itog on" style="color:#7c3aed" onclick="togP('pAIPanel')"><span class="idot" style="background:#7c3aed"></span><span class="il">🤖 AI Learning</span></label>
-    <label class="itog on" style="color:#ef4444" onclick="togP('pADX')"><span class="idot" style="background:#ef4444"></span><span class="il">📈 ADX/DI</span></label>
-    <label class="itog on" style="color:#f59e0b" onclick="togP('pFib')"><span class="idot" style="background:#f59e0b"></span><span class="il">🌀 Fibonacci</span></label>
-    <label class="itog on" style="color:#8b5cf6" onclick="togP('pGann')"><span class="idot" style="background:#8b5cf6"></span><span class="il">⬡ Gann Square</span></label>
-    <label class="itog on" style="color:#06b6d4" onclick="togP('pZScore')"><span class="idot" style="background:#06b6d4"></span><span class="il">📊 Z-Score</span></label>
+    <label class="itog on" style="color:#6c5ce7" onclick="togP('panePrice',this)"><span class="idot" style="background:#6c5ce7"></span><span class="il">🕯️ Price + Keltner + Forecast</span></label>
+    <label class="itog" style="color:#6366f1" onclick="togP('paneHurst',this)"><span class="idot" style="background:#6366f1"></span><span class="il">🔄 Hurst Cycle Arcs</span></label>
+    <label class="itog on" style="color:#2d3436" onclick="togP('paneMS',this)"><span class="idot" style="background:#2d3436"></span><span class="il">📐 Market Structure</span></label>
+    <label class="itog" style="color:#e84393" onclick="togP('paneRSI',this)"><span class="idot" style="background:#e84393"></span><span class="il">📉 RSI Divergence</span></label>
+    <label class="itog" style="color:#f59e0b" onclick="togP('paneATR',this)"><span class="idot" style="background:#f59e0b"></span><span class="il">🛡 ATR Stop</span></label>
+    <label class="itog" style="color:#0984e3" onclick="togP('paneVWAP',this)"><span class="idot" style="background:#0984e3"></span><span class="il">📊 VWAP</span></label>
+    <label class="itog" style="color:#00b894" onclick="togP('paneVP',this)"><span class="idot" style="background:#00b894"></span><span class="il">📦 Volume Profile</span></label>
+    <label class="itog" style="color:#c4b5fd" onclick="togP('pReason',this)"><span class="idot" style="background:#c4b5fd"></span><span class="il">🧠 Reasoning</span></label>
+    <label class="itog" style="color:#7c3aed" onclick="togP('pAIPanel',this)"><span class="idot" style="background:#7c3aed"></span><span class="il">🤖 AI Learning</span></label>
+    <label class="itog" style="color:#ef4444" onclick="togP('paneADX',this)"><span class="idot" style="background:#ef4444"></span><span class="il">📈 ADX/DI</span></label>
+    <label class="itog" style="color:#f59e0b" onclick="togP('paneFib',this)"><span class="idot" style="background:#f59e0b"></span><span class="il">🌀 Fibonacci</span></label>
+    <label class="itog" style="color:#8b5cf6" onclick="togP('paneGann',this)"><span class="idot" style="background:#8b5cf6"></span><span class="il">⬡ Gann Square</span></label>
+    <label class="itog" style="color:#06b6d4" onclick="togP('paneZScore',this)"><span class="idot" style="background:#06b6d4"></span><span class="il">📊 Z-Score</span></label>
   </div>
 
   <!-- UNIFIED SYNCHRONIZED CHART PANES -->
@@ -1519,37 +1531,37 @@ function buildModalHTML(r,sym,isBuy,isSel){
     </div>
 
     <!-- PANE: Hurst Cycles -->
-    <div class="sg-pane sg-sub" id="paneHurst">
+    <div class="sg-pane sg-sub" id="paneHurst" style="display:none">
       <div class="sg-label">Hurst Cycle Phase — <span id="cycStatus" style="font-weight:400;text-transform:none;letter-spacing:0;color:#9ca3af"></span></div>
       <div style="position:relative;height:130px"><canvas id="cCycles"></canvas></div>
     </div>
 
     <!-- PANE: RSI -->
-    <div class="sg-pane sg-sub" id="paneRSI">
+    <div class="sg-pane sg-sub" id="paneRSI" style="display:none">
       <div class="sg-label" id="rsiLabel">RSI (14)</div>
       <div style="position:relative;height:110px"><canvas id="cRSI"></canvas></div>
     </div>
 
     <!-- PANE: ATR Stop -->
-    <div class="sg-pane sg-sub" id="paneATR">
+    <div class="sg-pane sg-sub" id="paneATR" style="display:none">
       <div class="sg-label" id="atrLabel">ATR Chandelier Stop</div>
       <div style="position:relative;height:130px"><canvas id="cATR"></canvas></div>
     </div>
 
     <!-- PANE: ADX/DI -->
-    <div class="sg-pane sg-sub" id="paneADX">
+    <div class="sg-pane sg-sub" id="paneADX" style="display:none">
       <div class="sg-label" id="adxLabel">ADX / +DI / -DI</div>
       <div style="position:relative;height:110px"><canvas id="cADX"></canvas></div>
     </div>
 
     <!-- PANE: VWAP -->
-    <div class="sg-pane sg-sub" id="paneVWAP">
+    <div class="sg-pane sg-sub" id="paneVWAP" style="display:none">
       <div class="sg-label" id="vwapLabel">VWAP + σ Bands</div>
       <div style="position:relative;height:130px"><canvas id="cVWAP"></canvas></div>
     </div>
 
     <!-- PANE: Volume Profile -->
-    <div class="sg-pane sg-sub" id="paneVP">
+    <div class="sg-pane sg-sub" id="paneVP" style="display:none">
       <div class="sg-label" id="vpLabel">Volume Profile</div>
       <div style="position:relative;display:grid;grid-template-columns:1fr 110px;height:130px">
         <div style="position:relative;height:130px"><canvas id="cVP"></canvas></div>
@@ -1558,19 +1570,19 @@ function buildModalHTML(r,sym,isBuy,isSel){
     </div>
 
     <!-- PANE: Fibonacci -->
-    <div class="sg-pane sg-sub" id="paneFib">
+    <div class="sg-pane sg-sub" id="paneFib" style="display:none">
       <div class="sg-label" id="fibLabel">Fibonacci Retracements</div>
       <div style="position:relative;height:130px"><canvas id="cFib"></canvas></div>
     </div>
 
     <!-- PANE: Gann Square -->
-    <div class="sg-pane sg-sub" id="paneGann">
+    <div class="sg-pane sg-sub" id="paneGann" style="display:none">
       <div class="sg-label" id="gannLabel">Gann Square of Nine</div>
       <div style="position:relative;height:130px"><canvas id="cGann"></canvas></div>
     </div>
 
     <!-- PANE: Z-Score -->
-    <div class="sg-pane sg-sub" id="paneZScore">
+    <div class="sg-pane sg-sub" id="paneZScore" style="display:none">
       <div class="sg-label" id="zLabel">Z-Score (20)</div>
       <div style="position:relative;height:110px"><canvas id="cZScore"></canvas></div>
     </div>
@@ -1794,7 +1806,18 @@ function buildModalHTML(r,sym,isBuy,isSel){
   </div>`;
 }
 
-function togP(id){const el=document.getElementById(id);if(el)el.style.display=el.style.display==='none'?'':'none';}
+function togP(id, btn){
+  const el=document.getElementById(id);
+  if(!el) return;
+  const nowHidden = el.style.display!=='none';
+  el.style.display = nowHidden ? 'none' : '';
+  if(btn) btn.classList.toggle('on', !nowHidden);
+  if(nowHidden===false){
+    // un-hiding: charts rendered into a display:none canvas can initialize
+    // at zero size — nudge Chart.js's responsive resize listeners to fix it
+    setTimeout(()=>window.dispatchEvent(new Event('resize')), 50);
+  }
+}
 
 // ═══════ RENDER PANELS ════════════════════════════════════════════════════
 function renderPanels(r){
@@ -3939,6 +3962,107 @@ async function fetchYFCustom(sym, interval, range){
   }
   return null;
 }
+
+// ═══════ QUICK SEARCH — ticker or company name, resolves and jumps straight
+// to the full analysis, reusing the existing scan pipeline (buildResult +
+// showDetail) rather than duplicating it ═══════════════════════════════════
+async function fetchSymbolSearch(query){
+  const rawUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&lang=en-US&region=US&quotesCount=8&newsCount=0`;
+  const order = [proxy.name, ...PROXY_NAMES.filter(n=>n!==proxy.name)];
+  for(const name of order){
+    const ctrl = new AbortController();
+    const t = setTimeout(()=>ctrl.abort(), 8000);
+    try{
+      const url = makeProxyUrl(rawUrl, name);
+      const res = await fetch(url, {signal:ctrl.signal});
+      clearTimeout(t);
+      if(!res.ok) continue;
+      const json = await parseYFResponse(res, name);
+      const quotes = json?.quotes;
+      if(!quotes) continue;
+      proxy = {name};
+      return quotes
+        .filter(q=>q.symbol && (q.quoteType==='EQUITY'||q.quoteType==='ETF'||q.quoteType==='INDEX'))
+        .map(q=>({symbol:q.symbol, name:q.shortname||q.longname||q.symbol, exch:q.exchDisp||'', type:q.quoteType}))
+        .slice(0,8);
+    }catch(e){ clearTimeout(t); continue; }
+  }
+  return [];
+}
+
+let _qsDebounce = null;
+window.onQuickSearchInput = function(){
+  clearTimeout(_qsDebounce);
+  const q = document.getElementById('quickSearchInput').value.trim();
+  const dd = document.getElementById('quickSearchDropdown');
+  if(q.length<1){ dd.style.display='none'; return; }
+  _qsDebounce = setTimeout(async ()=>{
+    // A bare 1-5 letter uppercase-ish string is almost certainly already a
+    // ticker — still show search results below, but don't make the user
+    // wait for them if they just hit Enter immediately after typing it.
+    dd.innerHTML = '<div style="padding:10px;color:#9ca3af;font-size:11px">Searching…</div>';
+    dd.style.display='block';
+    const results = await fetchSymbolSearch(q);
+    if(!results.length){
+      dd.innerHTML = '<div style="padding:10px;color:#9ca3af;font-size:11px">No matches — press Enter to try it as a direct ticker</div>';
+      return;
+    }
+    dd.innerHTML = results.map(r=>`
+      <div onclick="quickAnalyze('${r.symbol}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid #f1f2f6;display:flex;justify-content:space-between;align-items:center"
+        onmouseover="this.style.background='#f8f9fa'" onmouseout="this.style.background=''">
+        <div><b style="font-size:12px">${r.symbol}</b> <span style="font-size:11px;color:#636e72">${r.name}</span></div>
+        <span style="font-size:9px;color:#b2bec3">${r.exch}</span>
+      </div>`).join('');
+  }, 300);
+};
+
+window.onQuickSearchKeydown = function(e){
+  if(e.key!=='Enter') return;
+  clearTimeout(_qsDebounce);
+  const raw = document.getElementById('quickSearchInput').value.trim().toUpperCase();
+  if(!raw) return;
+  // Looks like a bare ticker already (1-5 letters, optional ^ prefix for
+  // indices) — skip the search round-trip and go straight to analysis
+  if(/^\^?[A-Z]{1,5}$/.test(raw)){ quickAnalyze(raw); return; }
+  // Otherwise resolve it first (company name case) and use the top match
+  fetchSymbolSearch(raw).then(results=>{
+    if(results.length) quickAnalyze(results[0].symbol);
+    else document.getElementById('quickSearchDropdown').innerHTML = '<div style="padding:10px;color:#dc2626;font-size:11px">No match found for "'+raw+'"</div>';
+  });
+};
+
+window.quickAnalyze = async function(sym){
+  sym = sym.toUpperCase();
+  const dd = document.getElementById('quickSearchDropdown');
+  dd.innerHTML = `<div style="padding:10px;color:#636e72;font-size:11px">⚡ Analyzing ${sym}…</div>`;
+  dd.style.display='block';
+  try{
+    const tfKey=activeTF, tfLabel=YF_TF[tfKey].label;
+    const cfg={
+      swingL:+document.getElementById('swingL').value, swingR:+document.getElementById('swingR').value,
+      chanBars:+document.getElementById('chanBars').value, chanW:+document.getElementById('chanW').value,
+      fcastN:+document.getElementById('fcastN').value, fcastLB:+document.getElementById('fcastLB').value,
+    };
+    const bars = await fetchYF(sym, tfKey);
+    if(!bars){ dd.innerHTML = `<div style="padding:10px;color:#dc2626;font-size:11px">Couldn't fetch data for ${sym} — check the symbol or try again.</div>`; return; }
+    const r = buildResult(sym, bars, cfg, tfLabel);
+    resultMap.set(sym, r);
+    updateTable(); // keeps the main table in sync too, not just a side-channel lookup
+    dd.style.display='none';
+    document.getElementById('quickSearchInput').value='';
+    showDetail(sym);
+  }catch(e){
+    dd.innerHTML = `<div style="padding:10px;color:#dc2626;font-size:11px">${e.message||'Something went wrong'}</div>`;
+  }
+};
+
+// Click-away to close the dropdown
+document.addEventListener('click', function(e){
+  const wrap = document.getElementById('quickSearchInput');
+  const dd = document.getElementById('quickSearchDropdown');
+  if(!wrap || !dd) return;
+  if(e.target!==wrap && !dd.contains(e.target)) dd.style.display='none';
+});
 
 // Abramowitz-Stegun erf approximation (good to ~1e-7) — no external math lib needed
 function erf(x){
