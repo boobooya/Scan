@@ -3554,6 +3554,50 @@ function bsGamma(S,K,T,sigma,r){
   return pdf/(S*sigma*Math.sqrt(T));
 }
 
+// ═══ PROBABILITY-OF-TOUCH STRIKE SELECTION ═══════════════════════════════
+// Ported from the AGAIG 0DTE Iron Fly ThinkScript indicator (Acklam's
+// rational approximation for inverse normal CDF, Zelen-Severo for normal
+// CDF) — verified against known reference values before wiring in
+// (invNorm(0.975)=1.959964, normCDF(1.0)=0.841345, etc. all match to 6dp).
+// This replaces the old ATR-based width guess in structureManagementHTML
+// with real math: solve for the strike distance matching a TARGET touch
+// probability, same as tastylive's delta-based selection but expressed in
+// probability-of-touch terms instead, which is what the source indicator uses.
+function invNorm(p){
+  const a1=-39.6968302866538,a2=220.946098424521,a3=-275.928510446969,a4=138.357751867269,a5=-30.6647980661472,a6=2.50662827745924;
+  const b1=-54.4760987982241,b2=161.585836858041,b3=-155.698979859887,b4=66.8013118877197,b5=-13.2806815528857;
+  const c1=-7.78489400243029e-3,c2=-0.322396458041136,c3=-2.40075827716184,c4=-2.54973253934373,c5=4.37466414146497,c6=2.93816398269878;
+  const d1v=7.78469570904146e-3,d2=0.32246712907004,d3=2.445134137143,d4=3.75440866190742;
+  const p_low=0.02425,p_high=1-p_low;
+  if(p<p_low){ const q=Math.sqrt(-2*Math.log(p)); return (((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1v*q+d2)*q+d3)*q+d4)*q+1); }
+  if(p<=p_high){ const q=p-0.5,r=q*q; return (((((a1*r+a2)*r+a3)*r+a4)*r+a5)*r+a6)*q/(((((b1*r+b2)*r+b3)*r+b4)*r+b5)*r+1); }
+  const q=Math.sqrt(-2*Math.log(1-p)); return -(((((c1*q+c2)*q+c3)*q+c4)*q+c5)*q+c6)/((((d1v*q+d2)*q+d3)*q+d4)*q+1);
+}
+function normCDF(x){
+  const ax=Math.abs(x), t=1/(1+0.2316419*ax);
+  const dd=0.3989423*Math.exp(-ax*ax/2);
+  const poly=t*(0.319381530+t*(-0.356563782+t*(1.781477937+t*(-1.821255978+t*1.330274429))));
+  const prob=1-dd*poly;
+  return x>=0?prob:1-prob;
+}
+// spot/iv/tYears same as elsewhere in this file; targetPOT e.g. 0.25 = 25%
+// chance of the wing being touched before expiry (source indicator's own
+// default for the sell/short side). No drift term — same zero-drift
+// simplification as the source indicator, reasonable for same-day expiry
+// where drift over a few hours is negligible.
+function probabilityOfTouchStrikes(spot, iv, tYears, targetPOT, strikeIncrement){
+  strikeIncrement = strikeIncrement || 1;
+  if(!spot || !iv || !tYears || iv<=0 || tYears<=0) return null;
+  const z = invNorm(1 - targetPOT/2);
+  const factor = Math.exp(z * iv * Math.sqrt(tYears));
+  const upperRaw = spot * factor, lowerRaw = spot / factor;
+  const upper = Math.round(upperRaw/strikeIncrement)*strikeIncrement;
+  const lower = Math.round(lowerRaw/strikeIncrement)*strikeIncrement;
+  const wingDistX = Math.abs(Math.log(upper/spot)) / (iv * Math.sqrt(tYears));
+  const estPOT = 2 * normCDF(-wingDistX);
+  return {upper, lower, estPOT};
+}
+
 // Simplified net gamma exposure snapshot for the NEAREST expiration only
 // (approximation — a full multi-expiry GEX model needs a proper options data feed,
 // this is meant as a directional read, not a precise dealer-positioning number)
@@ -3879,11 +3923,15 @@ async function fetchYFCustom(sym, interval, range){
       if(!ts||!q) continue;
       proxy = {name}; // promote — was previously missing here, meaning other
                        // fetch functions kept retrying a stale/dead proxy first
-      // Full OHLC, chronological (oldest→newest) — needed for both return calcs and range stats
+      // Full OHLC, chronological (oldest→newest) — needed for return calcs,
+      // range stats, AND burst detection (which needs v/t — added here since
+      // the original shape only had o/h/l/c, and the burst detector needs
+      // volume + timestamp to distinguish "today's recent bars" and confirm
+      // range expansion with actual volume, not just price movement alone).
       const bars=[];
       for(let i=0;i<ts.length;i++){
         if(q.close[i]==null||isNaN(q.close[i])||q.open[i]==null||q.high[i]==null||q.low[i]==null) continue;
-        bars.push({o:q.open[i], h:q.high[i], l:q.low[i], c:q.close[i]});
+        bars.push({o:q.open[i], h:q.high[i], l:q.low[i], c:q.close[i], v:q.volume?.[i]||0, t:ts[i]*1000});
       }
       if(bars.length>=10){ yfCacheSet(cacheKey, bars); return bars; }
       return null;
@@ -4138,8 +4186,9 @@ window.run0DteStrategy = async function(sym){
   }
 
   try{
-    const [dailyRaw, gamma, vixRaw, vix9dRaw] = await Promise.all([
+    const [dailyRaw, intradayRaw, gamma, vixRaw, vix9dRaw] = await Promise.all([
       fetchYFCustom(sym,'1d','3mo'),
+      fetchYFCustom(sym,'5m','2d').catch(()=>null),
       fetchGammaSnapshot(sym),
       fetchYFCustom('%5EVIX','1d','10d').catch(()=>null),
       fetchYFCustom('%5EVIX9D','1d','10d').catch(()=>null),
@@ -4216,11 +4265,44 @@ window.run0DteStrategy = async function(sym){
       timeWindow, breakoutTrigger:score<45, directionalLean:false, postCompression:bbwPct<25, dte
     });
 
+    // ═══ BURST LOTTO STRADDLE — separate, real-time overlay signal ═══════
+    // Runs independently of the composite score/decision above, since a
+    // burst is fresh evidence the slower-updating score may not reflect yet.
+    let burstCardHTML = '';
+    const burst = detectBurst(intradayRaw, atr14);
+    if(burst.isBurst && gamma && gamma.ok && atmIV){
+      const ivBase = ivSessionBaseline(sym, atmIV);
+      const lottoPOT = probabilityOfTouchStrikes(spot, atmIV, tYears, 0.15); // wider target = further OTM = cheaper than the Iron Fly's 25%
+      if(lottoPOT){
+        logLottoTrigger(sym, lottoPOT.upper, lottoPOT.lower, lottoPOT.estPOT);
+        const track = getLottoTrackRecord();
+        const totalTrack = track.wins+track.losses;
+        burstCardHTML = `<div style="background:linear-gradient(135deg,#c1554a11,#c1554a05);border:1px solid #c1554a55;border-radius:8px;padding:14px 16px;margin-bottom:14px">
+          <div style="font-size:14px;font-weight:800;color:#7a3931;margin-bottom:4px">🎰 Burst Detected — Lotto Straddle Candidate</div>
+          <div style="font-size:10px;color:#7a3931;opacity:.85;margin-bottom:8px">
+            Range expansion ${burst.rangeRatio.toFixed(1)}× normal · Volume ${burst.volRatio.toFixed(1)}× recent average
+            ${ivBase.changePct>0 ? ` · IV up ${ivBase.changePct.toFixed(0)}% from this morning's baseline` : ''}
+          </div>
+          <div style="font-size:11px;color:#374151;line-height:1.7">
+            <strong>Two-sided — betting on magnitude, not direction.</strong> Cheap far-OTM call AND put together, not picking a side.<br>
+            Call leg: <b style="color:#4fa8a0">${f2(lottoPOT.upper)}</b> &nbsp;·&nbsp; Put leg: <b style="color:#c1554a">${f2(lottoPOT.lower)}</b> &nbsp;·&nbsp; Est. probability at least one pays: <b>${(lottoPOT.estPOT*100).toFixed(0)}%</b><br>
+            <span style="color:#92400e">⚠ Timing honesty: this fired AFTER the burst started — IV has likely already moved some, so these legs aren't as cheap as they'd have been pre-burst. You're catching the move in progress, not before it.</span><br>
+            <span style="color:#92400e">⚠ Vega risk dominates here — this can lose value from IV mean-reverting even if price keeps moving your way a little.</span><br>
+            Hard cap: ≤5% of daily risk budget combined across both legs. No averaging down.
+          </div>
+          <div id="lottoTrackDisplay" style="margin-top:10px;padding-top:8px;border-top:1px dashed #c1554a33;font-size:10px;color:#7a3931">
+            Win rate: ${totalTrack>0?((track.wins/totalTrack)*100).toFixed(0)+'%':'—'} (${track.wins}W / ${track.losses}L, self-reported — no brokerage connection, so this can't see your real fills)
+          </div>
+        </div>`;
+      }
+    }
+
     const toneColors = {gold:['#fef3c7','#92400e'], teal:['#d1fae5','#065f46'], red:['#fee2e2','#991b1b'], warn:['#fee2e2','#991b1b'], neutral:['#f3f4f6','#6b7280']};
     const [tbg,tfg] = toneColors[decision.tone]||toneColors.neutral;
 
     box.innerHTML = `
       ${gammaNote}
+      ${burstCardHTML}
       <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;margin-bottom:14px">
         <div style="background:${tbg};color:${tfg};border-radius:8px;padding:14px 18px;min-width:220px">
           <div style="font-size:19px;font-weight:800;margin-bottom:4px">${decision.structure}</div>
@@ -4234,6 +4316,7 @@ window.run0DteStrategy = async function(sym){
           </div>
           <div style="font-size:9px;color:#9ca3af;display:grid;grid-template-columns:1fr 1fr;gap:3px 10px">
             <span>Technical: ${Math.round(technical)}</span><span>Gamma: ${Math.round(gammaScore)}</span>
+
             <span>Flow: ${Math.round(flow)}</span><span>Emotion: ${Math.round(emotion)}</span>
             <span>S/R: ${Math.round(srProximity)}</span><span>Forecast: ${Math.round(forecast)} <em style="color:#c4c9d1">(${forecastNote})</em></span>
           </div>
@@ -4242,7 +4325,7 @@ window.run0DteStrategy = async function(sym){
       </div>
       <div class="cpanel">
         <div class="phdr"><div class="pttl">🛑 Management &amp; Stops</div><div class="psub">Direction-correct for THIS structure — not a generic single-sided stop</div></div>
-        ${structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, priorHalf)}
+        ${structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, priorHalf, atmIV, tYears)}
       </div>
       <div class="cpanel">
         <div class="phdr"><div class="pttl">📈 Price + Studies (Daily)</div><div class="psub">EMA9/21 · Bollinger(20,2)</div></div>
@@ -4258,6 +4341,7 @@ window.run0DteStrategy = async function(sym){
 
     renderStrategyPriceChart(daily, sym);
     if(gamma && gamma.ok && atmIV) renderStrategyProbChart(spot, atmIV, tYears);
+    if(burstCardHTML) renderLottoTrackUI();
 
   }catch(e){
     box.innerHTML = `<div style="color:#dc2626;font-size:11px;padding:10px">Failed to compute: ${e.message}. CORS proxies may be rate-limited — try again in a moment.</div>`;
@@ -4272,16 +4356,30 @@ window.run0DteStrategy = async function(sym){
 // a clean price-level stop either (the position "loses" from decay while
 // price sits still, not from a single level breach) — theirs is time+value
 // based instead. Getting this distinction right is the actual point.
-function structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, priorHalf){
+function structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, priorHalf, atmIV, tYears){
   const s = decision.structure;
-  const width = Math.max(atr14, spot*0.003); // rough short-strike width approximation — NOT real 16-delta strike selection
-  const upper = (wallStrike||spot) + width, lower = (wallStrike||spot) - width;
 
   if(s==='Short Iron Fly' || s==='Short Iron Condor'){
+    // Real probability-of-touch strikes when we have IV+time (ported from
+    // AGAIG's ThinkScript indicator, verified against known InvNorm/NormCDF
+    // reference values before wiring in). Falls back to the old ATR-based
+    // guess only when gamma/IV data wasn't available for this symbol.
+    const pot = (atmIV && tYears) ? probabilityOfTouchStrikes(spot, atmIV, tYears, 0.25) : null;
+    if(pot){
+      return `<div style="font-size:11px;color:#374151;line-height:1.8;padding:4px 2px">
+        <strong>Neutral structure — two-sided, not bullish or bearish.</strong> Both strikes matter equally; there is no single "stop above" or "stop below" for this position.<br>
+        Probability-of-touch strikes (~25% target): <b style="color:#c9a24b">${f2(pot.lower)}</b> / <b style="color:#c9a24b">${f2(pot.upper)}</b> &nbsp;·&nbsp; est. actual touch prob: <b>${(pot.estPOT*100).toFixed(0)}%</b><br>
+        <span style="color:#6b7280">Solved from today's ATM IV (${(atmIV*100).toFixed(1)}%) and time to close — same zero-drift approximation the source indicator uses, reasonable for 0DTE. Assumes flat vol skew (doesn't distinguish put-side vs call-side IV), so treat as a solid starting point, not the exact chain price.</span><br>
+        <strong>Exit/adjust if:</strong> price closes beyond either strike, <em>or</em> cost-to-close reaches 2× the credit received (tastylive's mechanical stop) — whichever comes first. Take profit at 50–70% of max credit; don't hold for the last 20–30% given 0DTE gamma risk near the close.
+        ${gtcCalculatorHTML()}
+      </div>`;
+    }
+    const width = Math.max(atr14, spot*0.003);
+    const upper = (wallStrike||spot) + width, lower = (wallStrike||spot) - width;
     return `<div style="font-size:11px;color:#374151;line-height:1.8;padding:4px 2px">
       <strong>Neutral structure — two-sided, not bullish or bearish.</strong> Both strikes matter equally; there is no single "stop above" or "stop below" for this position.<br>
       Approx. upper short strike: <b style="color:#c9a24b">${f2(upper)}</b> (call side) &nbsp;·&nbsp; Approx. lower short strike: <b style="color:#c9a24b">${f2(lower)}</b> (put side)<br>
-      <span style="color:#6b7280">Strike width above is a rough ATR-based approximation, not a real 16-delta selection — verify against the actual chain before sizing.</span><br>
+      <span style="color:#6b7280">No IV data available for this symbol, so this is a rough ATR-based fallback, not probability-of-touch — verify against the actual chain before sizing.</span><br>
       <strong>Exit/adjust if:</strong> price closes beyond either strike, <em>or</em> cost-to-close reaches 2× the credit received (tastylive's mechanical stop) — whichever comes first. Take profit at 50–70% of max credit; don't hold for the last 20–30% given 0DTE gamma risk near the close.
     </div>`;
   }
@@ -4299,6 +4397,105 @@ function structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, pr
     </div>`;
   }
   return `<div style="font-size:11px;color:#6b7280;line-height:1.8;padding:4px 2px">No new position — no stop/management applies. ${decision.rationale}</div>`;
+}
+
+// GTC profit-target calculator — same concept as the AGAIG indicator's
+// built-in calculator: type your actual fill, get the exact limit price
+// for a 50% profit target (matches the 50-70% rule already in Section 7).
+function gtcCalculatorHTML(){
+  return `<div style="margin-top:8px;padding:8px;background:#fdf9f0;border:1px dashed #e8d5a8;border-radius:5px">
+    <label style="font-size:10px;font-weight:700;color:#78350f;text-transform:uppercase">Your actual credit received ($, per share)</label>
+    <div style="display:flex;gap:6px;margin-top:4px;align-items:center">
+      <input type="number" id="gtcFillInput" step="0.01" min="0" placeholder="e.g. 2.15"
+        style="width:100px;padding:4px 6px;border:1px solid #e8d5a8;border-radius:4px;font-size:11px"
+        oninput="updateGtcTarget()" />
+      <span id="gtcResult" style="font-size:11px;color:#78350f;font-weight:600">enter your fill above</span>
+    </div>
+  </div>`;
+}
+window.updateGtcTarget = function(){
+  const el = document.getElementById('gtcFillInput');
+  const out = document.getElementById('gtcResult');
+  if(!el || !out) return;
+  const credit = parseFloat(el.value);
+  if(!credit || credit<=0){ out.textContent='enter your fill above'; return; }
+  const target50 = credit * 0.5, target70 = credit * 0.3; // 50% and 70% of max credit captured
+  out.innerHTML = `Buy-to-close at <b>$${target50.toFixed(2)}</b> (50% profit) or <b>$${target70.toFixed(2)}</b> (70% profit)`;
+};
+
+// ═══ BURST DETECTOR — real intraday evidence, not a manual toggle ════════
+// Requires BOTH range expansion AND volume confirmation, since a single
+// noisy bar shouldn't trigger this. This fires on REAL data independent of
+// the composite score, since a burst is fresh evidence the slower-updating
+// score may not have caught yet.
+function detectBurst(intradayBars, atr14){
+  if(!intradayBars || intradayBars.length<10) return {isBurst:false};
+  const today = new Date().toDateString();
+  const todays = intradayBars.filter(b=>new Date(b.t).toDateString()===today);
+  const bars = todays.length>=6 ? todays : intradayBars.slice(-30); // fallback if today has too few bars (e.g. just after open)
+  if(bars.length<6) return {isBurst:false};
+  const recent = bars.slice(-3);
+  const recentHigh = Math.max(...recent.map(b=>b.h)), recentLow = Math.min(...recent.map(b=>b.l));
+  const recentRange = recentHigh - recentLow;
+  const rangeRatio = atr14>0 ? recentRange/(atr14*0.15) : 0; // ~15% of daily ATR as the "normal" 15-min range reference
+  const recentVol = recent.reduce((a,b)=>a+(b.v||0),0)/3;
+  const priorBars = bars.slice(0,-3);
+  const priorVol = priorBars.length ? priorBars.reduce((a,b)=>a+(b.v||0),0)/priorBars.length : recentVol;
+  const volRatio = priorVol>0 ? recentVol/priorVol : 1;
+  const isBurst = rangeRatio > 2.0 && volRatio > 1.5;
+  return {isBurst, rangeRatio, volRatio, recentRange};
+}
+
+// Session IV baseline — Yahoo has no historical intraday IV series, so this
+// stores the FIRST atmIV seen today per-symbol in localStorage and compares
+// current IV against it. One reference point, not a continuous series —
+// still meaningfully informative for "has vol popped since this morning."
+function ivSessionBaseline(sym, currentIV){
+  const key = 'oc_iv_baseline_'+sym+'_'+new Date().toDateString();
+  let baseline = parseFloat(localStorage.getItem(key));
+  if(!baseline || isNaN(baseline)){
+    baseline = currentIV;
+    localStorage.setItem(key, String(currentIV));
+  }
+  const changePct = baseline>0 ? ((currentIV-baseline)/baseline)*100 : 0;
+  return {baseline, changePct};
+}
+
+// Self-reported win/loss tracking — no brokerage connection, so this can't
+// see real fills or P&L. Honest tracking means the user marks outcomes
+// themselves; anything else would be pretending to know something I don't.
+const LOTTO_TRACK_KEY = 'oc_lotto_track_v1';
+function getLottoTrackRecord(){
+  try{ return JSON.parse(localStorage.getItem(LOTTO_TRACK_KEY)) || {wins:0, losses:0, entries:[]}; }
+  catch{ return {wins:0, losses:0, entries:[]}; }
+}
+function logLottoTrigger(sym, callStrike, putStrike, estPOT){
+  const rec = getLottoTrackRecord();
+  rec.entries.unshift({sym, callStrike, putStrike, estPOT, time:new Date().toISOString(), outcome:null});
+  rec.entries = rec.entries.slice(0,100);
+  localStorage.setItem(LOTTO_TRACK_KEY, JSON.stringify(rec));
+  return rec.entries.length-1 === 0 ? 0 : 0; // most recent is index 0
+}
+window.markLottoOutcome = function(outcome){
+  const rec = getLottoTrackRecord();
+  if(!rec.entries.length) return;
+  if(rec.entries[0].outcome === null){
+    rec.entries[0].outcome = outcome;
+    if(outcome==='win') rec.wins++; else rec.losses++;
+    localStorage.setItem(LOTTO_TRACK_KEY, JSON.stringify(rec));
+  }
+  renderLottoTrackUI();
+};
+function renderLottoTrackUI(){
+  const rec = getLottoTrackRecord();
+  const el = document.getElementById('lottoTrackDisplay');
+  if(!el) return;
+  const total = rec.wins+rec.losses;
+  const rate = total>0 ? ((rec.wins/total)*100).toFixed(0) : '—';
+  const pending = rec.entries[0] && rec.entries[0].outcome===null;
+  el.innerHTML = `Win rate: <b>${rate}${total>0?'%':''}</b> (${rec.wins}W / ${rec.losses}L, self-reported)` +
+    (pending ? ` <button onclick="markLottoOutcome('win')" style="margin-left:8px;background:#4fa8a0;color:#fff;border:none;border-radius:3px;padding:2px 8px;font-size:10px;cursor:pointer">Mark this WIN</button>
+                 <button onclick="markLottoOutcome('loss')" style="margin-left:4px;background:#c1554a;color:#fff;border:none;border-radius:3px;padding:2px 8px;font-size:10px;cursor:pointer">Mark this LOSS</button>` : '');
 }
 
 function renderStrategyPriceChart(dailyOldFirst, sym){
