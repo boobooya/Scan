@@ -1607,6 +1607,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read this chart</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> think of the colored channel around the price line like a pool lane — price usually swims between the lines. When it breaks out of the lane, that's often a big move starting.</div>
       <strong>Candles:</strong> Green = price closed higher (bullish bar), Red = closed lower (bearish bar). The wick shows the full high/low range, the body shows open-to-close range.<br><br>
       <strong>Keltner Channel (orange):</strong> The middle line is a 20-period EMA. The upper and lower bands are ±1.5×ATR away. Price <em>above the upper band</em> = strong bullish breakout momentum. Price <em>below the lower band</em> = strong bearish momentum. Price oscillating inside the channel = ranging market — wait for a band break before trading.<br><br>
       <strong>Grey dotted forecast lines:</strong> The center dotted line projects the most likely price path for the next bars based on a blend of pattern matching, Hurst cycle phase, and momentum decay. The outer dotted bands are ±1.5σ confidence bounds — they widen over time reflecting genuine uncertainty. <em>This is a probabilistic projection, not a guarantee.</em><br><br>
@@ -1620,6 +1621,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read Hurst Cycle Arcs</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> markets often move in rhythms, like waves at the beach. These arcs try to guess when the next wave (a high or low point) might arrive, based on how far apart past waves were.</div>
       <strong>What is Hurst Cycle Analysis?</strong> H.M. Hurst's principle states that price moves in nested, harmonically-related cycles. Every market has a dominant cycle and smaller (half) and larger (double) harmonics. These cycles repeat with measurable regularity.<br><br>
       <strong>The Y-axis (0–100%) represents cycle phase:</strong><br>
       • <strong>0% = Trough</strong> — cycle bottom, historically where buying occurs<br>
@@ -1638,6 +1640,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read Market Structure</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> like watching someone climb stairs (higher highs, higher lows = uptrend) or walk down stairs (lower highs, lower lows = downtrend). When the stair pattern breaks, the trend might be changing.</div>
       <strong>HH (Higher High):</strong> Price made a new high above the previous pivot high — bullish continuation signal.<br>
       <strong>HL (Higher Low):</strong> A pullback that held above the prior swing low — uptrend buyers defending.<br>
       <strong>LH (Lower High):</strong> A bounce that failed to reach the prior high — sellers stepping in earlier.<br>
@@ -1651,6 +1654,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read RSI + Divergence</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> imagine sprinting — you can't sprint forever, you get tired and slow down. RSI measures how "tired" a price move is. If price keeps rising but RSI is getting tired (falling), the rally might run out of steam soon.</div>
       <strong>RSI (Relative Strength Index):</strong> Measures the speed and magnitude of recent price changes on a 0–100 scale. Calculated using 14 bars by default.<br><br>
       <strong>Key levels:</strong><br>
       • <strong>&gt;70 Overbought:</strong> Momentum extended to the upside. Not a sell signal by itself — in strong uptrends RSI can stay above 70 for extended periods. Look for it to <em>roll back below 70</em> as a sell trigger.<br>
@@ -1667,6 +1671,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read the ATR Dynamic Stop (Chandelier Exit)</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> like a trailing safety net that follows price up in an uptrend but never comes back down on its own. If price falls through the net, that's a sign the trend broke.</div>
       <strong>ATR (Average True Range):</strong> Measures current market volatility — the average size of price moves over 14 bars. A large ATR means wide swings; a small ATR means tight consolidation.<br><br>
       <strong>Chandelier Exit:</strong> A trailing stop that adapts to volatility.<br>
       • <strong>Green line (Long Stop):</strong> = Highest High of last 22 bars − 2×ATR. While price stays above this line, the uptrend is intact. A close below it signals the uptrend may be reversing.<br>
@@ -1683,6 +1688,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read VWAP + Standard Deviation Bands</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> VWAP is the "fair average price" for the day, weighted by how much everyone traded at each price. Price above it = buyers winning today, below it = sellers winning.</div>
       <strong>VWAP (Volume-Weighted Average Price):</strong> The average price weighted by volume from the start of the session. This is the primary reference used by institutional traders, market makers, and algorithmic systems.<br><br>
       <strong>Interpretation:</strong><br>
       • <strong>Price above VWAP:</strong> Buyers are in control on average. Institutions accumulating are paying above VWAP — bullish bias. Long entries above VWAP have higher probability.<br>
@@ -1698,6 +1704,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read Volume Profile</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> imagine a bar chart turned sideways showing which prices got traded the MOST today — those thick bars are like a "crowd magnet" where price likes to come back and revisit.</div>
       <strong>Volume Profile</strong> shows how much trading volume occurred at each price level, rather than over time. It reveals where the market spent the most energy.<br><br>
       <strong>Point of Control (POC) — amber line:</strong> The price level with the highest traded volume. This is the strongest magnet in the chart. Price gravitates back toward the POC during consolidation, and a decisive move away from it is significant.<br><br>
       <strong>Value Area (VAH / VAL — green/red dashed):</strong> The range containing 70% of total traded volume. Price inside the value area = fair value, expect choppiness. Price outside = directional opportunity.<br>
@@ -1712,6 +1719,7 @@ function buildModalHTML(r,sym,isBuy,isSel){
         <div class="panel-explain">
     <div class="pe-title">📖 How to read Z-Score</div>
     <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> this tells you how "weird" or unusual today's price is compared to normal. Near 0 = totally normal. Past +2 or -2 = price is stretched far, like a rubber band — it often snaps back.</div>
       <strong>Z-Score</strong> measures how far the current price is from its recent average, expressed in standard deviations. It answers: "Is the current price statistically extreme compared to recent history?"<br><br>
       <strong>Formula:</strong> Z = (Current Price − 20-bar Mean) ÷ 20-bar Standard Deviation<br><br>
       <strong>Interpretation:</strong><br>
@@ -1723,6 +1731,48 @@ function buildModalHTML(r,sym,isBuy,isSel){
       • <strong>Mean reversion:</strong> When Z &gt; +2 and RSI &gt; 70 and ADX &lt; 25 (ranging market) → strong short/put signal.<br>
       • <strong>Trend continuation:</strong> When Z is persistently above +1 and ADX &gt; 25 → trend is strong, don't fade it.<br>
       • <strong>Divergence:</strong> Price makes new high but Z-Score makes lower high → exhaustion signal.
+    </div>
+  </div>
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
+    <div class="pe-title">📖 How to read ADX / +DI / -DI</div>
+    <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> ADX measures how STRONG a trend is (not which direction) — like measuring how hard the wind is blowing without saying which way. +DI and -DI show which direction (up or down) is currently winning the tug-of-war.</div>
+      <strong>ADX (Average Directional Index):</strong> Measures trend strength on a 0–100 scale, regardless of direction. It answers "is there a real trend here, or just noise?" — not "which way is it going?"<br><br>
+      <strong>+DI / -DI:</strong> Two separate lines showing the strength of upward pressure (+DI) versus downward pressure (-DI). Whichever is higher is currently "winning."<br><br>
+      <strong>Reading ADX itself:</strong><br>
+      • <strong>ADX &lt; 20:</strong> Weak or no trend — choppy, range-bound conditions. Trend-following signals are less reliable here.<br>
+      • <strong>ADX 20–25:</strong> A trend may be starting to develop.<br>
+      • <strong>ADX &gt; 25:</strong> A real trend is present — trend-following strategies work better than mean-reversion here.<br>
+      • <strong>ADX &gt; 40:</strong> Very strong trend — but ADX doesn't predict when it ends, only that it's strong right now.<br><br>
+      <strong>Using +DI/-DI together with ADX:</strong> +DI crossing above -DI while ADX is rising and above 20-25 is a classic bullish trend-confirmation signal (the reverse for bearish). If ADX is falling, be cautious of trend-following signals even if +DI/-DI just crossed.
+    </div>
+  </div>
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
+    <div class="pe-title">📖 How to read Fibonacci Retracement Levels</div>
+    <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> traders noticed that price pullbacks often stop at certain "special" percentages (like 38%, 50%, 62% of the previous move). Nobody fully knows why — but so many traders watch these same levels that they can become somewhat self-fulfilling.</div>
+      <strong>What it is:</strong> horizontal lines drawn between a recent swing high and swing low, marking percentage retracement levels (23.6%, 38.2%, 50%, 61.8%, 78.6%) where a pullback might pause or reverse before the prior trend resumes.<br><br>
+      <strong>Key levels:</strong><br>
+      • <strong>38.2%:</strong> A shallow pullback — often seen in strong trends where buyers/sellers barely give ground.<br>
+      • <strong>50%:</strong> Not a true Fibonacci ratio, but widely watched as a psychological halfway point.<br>
+      • <strong>61.8% ("golden ratio"):</strong> The most closely watched level — a deeper pullback that still keeps the original trend structure intact.<br>
+      • <strong>78.6%:</strong> A very deep pullback — if price goes past this without holding, the original trend is more likely to be over rather than just pausing.<br><br>
+      <strong>Honest caveat:</strong> Fibonacci levels work best as a way to identify WHERE a reversal might happen, combined with other confirmation (candlestick patterns, volume, RSI) — not as a standalone signal. Treat a bounce off a Fib level as a hypothesis to confirm, not a guarantee.
+    </div>
+  </div>
+      </div>
+      <div style="margin-top:6px">
+        <div class="panel-explain">
+    <div class="pe-title">📖 How to read the Gann Square</div>
+    <div class="pe-body">
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px"><strong>💡 Simply put:</strong> an old-school technique (from the 1900s trader W.D. Gann) that uses angles and geometry — like a diagonal ruler — to guess where price might find support or resistance, based on time and price moving together at a fixed rate.</div>
+      <strong>Core idea:</strong> Gann believed price and time are related — a "1x1" angle means price should move roughly 1 unit for every 1 unit of time that passes. Steeper or shallower angles (2x1, 1x2, etc.) represent faster or slower expected rates of movement.<br><br>
+      <strong>How the lines are used:</strong> the angled lines act like diagonal support/resistance. If price is riding above the 1x1 line, the trend is considered strong; if price falls below it, that's read as a weakening trend.<br><br>
+      <strong>Honest caveat, more than most indicators here:</strong> Gann's methods are the least statistically validated of everything in this app — there's no widely accepted mathematical basis for why price should respect these specific angles, and results are highly sensitive to which starting point you pick for the square. Treat this one as a supplementary, historically-popular technique to watch alongside more evidence-based tools (ADX, RSI, Z-Score), not as a primary signal on its own.
     </div>
   </div>
       </div>
@@ -1790,6 +1840,19 @@ function buildModalHTML(r,sym,isBuy,isSel){
     </div>
     <div id="strategyPanelContent" style="color:#374151;font-size:11px;line-height:1.6">
       <div style="text-align:center;padding:16px;color:#9ca3af">Click "Run Strategy Selector" to pull gamma exposure + technicals and compute a regime-based structure recommendation for ${sym}.</div>
+    </div>
+  </div>
+
+  <div id="pDetective" style="background:#f4f1fb;border:1px solid #d4c8f0;border-radius:8px;padding:16px;margin-bottom:13px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#4c1d95">🕵️ Detective Analysis — ${sym}</div>
+        <div style="font-size:10px;color:#6b7280;margin-top:2px">Walks every indicator like a case file, then combines the evidence into a probability read for the next several candles</div>
+      </div>
+      <button onclick="runDetectiveAnalysis('${sym}')" id="detectiveRunBtn" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">🕵️ Run Detective Analysis</button>
+    </div>
+    <div id="detectivePanelContent" style="color:#374151;font-size:11px;line-height:1.6">
+      <div style="text-align:center;padding:16px;color:#9ca3af">Click "Run Detective Analysis" to build the case — RSI, ADX/DI, Market Structure, Z-Score, VWAP, Keltner, Hurst cycle, and Fibonacci, each weighed in.</div>
     </div>
   </div>
 
@@ -4293,6 +4356,184 @@ function renderProbabilityTable(box, sym, rows, gamma) {
 // ═══════ 0DTE STRATEGY SELECTOR — deep-dive panel ═══════════════════════
 let _strategyCharts = []; // destroyed/recreated on each run to avoid leaks
 
+// ═══════ DETECTIVE ANALYSIS — walks every indicator, weighs the evidence ══
+// Deliberately synchronous — uses bars already fetched during the scan
+// (resultMap), no new network calls, so this runs instantly. Reuses the
+// SAME comp* functions that draw the charts (not reimplemented math), and
+// matches their exact bar-ordering conventions precisely — some expect
+// oldest-first, some newest-first, verified against real call sites
+// elsewhere in this file before wiring in, since getting this backwards
+// would silently flip every signal.
+window.runDetectiveAnalysis = function(sym){
+  const btn = document.getElementById('detectiveRunBtn');
+  const box = document.getElementById('detectivePanelContent');
+  const r = resultMap.get(sym);
+  if(!r || !r.bars || r.bars.length<25){
+    box.innerHTML = '<div style="color:#dc2626;padding:10px">Not enough bar history for this symbol yet — try a longer timeframe or re-scan.</div>';
+    return;
+  }
+  if(btn) btn.disabled=true;
+
+  const bars = r.bars; // newest-first, as stored by buildResult
+  const N = Math.min(bars.length, 100);
+  const show = bars.slice(0,N).reverse(); // oldest-first — matches renderPanels' own "show" convention exactly
+  const closes = show.map(b=>b.close);
+  const spot = r.price;
+  const clues = [];
+
+  // RSI — oldest-first closes, per its real call site (line ~2171)
+  try{
+    const rsi = lastValid(compRSI(closes));
+    if(rsi!=null){
+      let verdict='neutral', note;
+      if(rsi>70){ verdict='bearish'; note=`RSI ${rsi.toFixed(0)} is overbought — momentum extended, pullback risk rising`; }
+      else if(rsi<30){ verdict='bullish'; note=`RSI ${rsi.toFixed(0)} is oversold — momentum extended down, bounce risk rising`; }
+      else if(rsi>50){ verdict='bullish'; note=`RSI ${rsi.toFixed(0)} above midline — net bullish momentum, not yet extended`; }
+      else { verdict='bearish'; note=`RSI ${rsi.toFixed(0)} below midline — net bearish momentum, not yet extended`; }
+      clues.push({name:'RSI Momentum', verdict, note, weight:1.0});
+    }
+  }catch(e){}
+
+  // ADX/DI — oldest-first, confirmed via the run0DteStrategy call site
+  try{
+    const adxRes = compADX(show,14);
+    const adx=lastValid(adxRes.adx), pdi=lastValid(adxRes.pdi), mdi=lastValid(adxRes.mdi);
+    if(adx!=null && pdi!=null && mdi!=null){
+      let verdict='neutral', note;
+      if(adx<20){ verdict='neutral'; note=`ADX ${adx.toFixed(0)} — weak/no trend, choppy conditions, directional clues below are less reliable right now`; }
+      else if(pdi>mdi){ verdict='bullish'; note=`ADX ${adx.toFixed(0)} (real trend present) with +DI above -DI — buyers currently in control`; }
+      else { verdict='bearish'; note=`ADX ${adx.toFixed(0)} (real trend present) with -DI above +DI — sellers currently in control`; }
+      clues.push({name:'ADX / DI Trend', verdict, note, weight: adx>25?1.3:0.7});
+    }
+  }catch(e){}
+
+  // Market Structure — newest-first, per its real call site (line ~1113 uses raw bars)
+  try{
+    const ms = compMS(bars);
+    if(ms){
+      const verdict = ms.trend==='uptrend'?'bullish':ms.trend==='downtrend'?'bearish':'neutral';
+      const seq = ms.pivots.slice(-4).map(p=>p.label).join('→') || 'not enough pivots yet';
+      clues.push({name:'Market Structure', verdict, note:`Recent swing pivots: ${seq} → reads as ${ms.trend}`, weight:1.2});
+    }
+  }catch(e){}
+
+  // Z-Score — oldest-first closes
+  try{
+    const z = lastValid(compZScore(closes,20));
+    if(z!=null){
+      let verdict='neutral', note;
+      if(z>2){ verdict='bearish'; note=`Z-Score ${z.toFixed(2)} — price stretched unusually far above its recent average, mean-reversion risk`; }
+      else if(z<-2){ verdict='bullish'; note=`Z-Score ${z.toFixed(2)} — price stretched unusually far below its recent average, bounce risk`; }
+      else { verdict='neutral'; note=`Z-Score ${z.toFixed(2)} — within normal statistical range, no extreme`; }
+      clues.push({name:'Z-Score Extremity', verdict, note, weight:0.9});
+    }
+  }catch(e){}
+
+  // VWAP — oldest-first bars
+  try{
+    const vwap = lastValid(compVWAP(show));
+    if(vwap!=null){
+      const verdict = spot>vwap?'bullish':'bearish';
+      clues.push({name:'VWAP Position', verdict, note:`Price ${f2(spot)} is ${spot>vwap?'above':'below'} session VWAP ${f2(vwap)} — ${spot>vwap?'buyers':'sellers'} in control of the session so far`, weight:0.8});
+    }
+  }catch(e){}
+
+  // Keltner — newest-first bars, per its real call site (line ~1938)
+  try{
+    const kelt = compKeltner(bars,20,14,1.5);
+    if(kelt.mid[0]!=null){
+      let verdict, note;
+      if(spot>kelt.upper[0]){ verdict='bullish'; note='Price is above the upper Keltner band — strong upside expansion, but watch for exhaustion'; }
+      else if(spot<kelt.lower[0]){ verdict='bearish'; note='Price is below the lower Keltner band — strong downside expansion, but watch for exhaustion'; }
+      else { verdict = spot>kelt.mid[0]?'bullish':'bearish'; note=`Price is ${spot>kelt.mid[0]?'above':'below'} the Keltner midline — mild lean, still inside the normal channel`; }
+      clues.push({name:'Keltner Channel', verdict, note, weight:0.7});
+    }
+  }catch(e){}
+
+  // Hurst cycle phase — newest-first bars, per its real call site (line ~1939)
+  let hurstResult=null;
+  try{
+    hurstResult = compHurst(bars);
+    if(hurstResult){
+      const nearTurn = hurstResult.phase<0.15 || hurstResult.phase>0.85;
+      const note = nearTurn
+        ? `Cycle phase ${(hurstResult.phase*100).toFixed(0)}% — near a projected turn in the ~${hurstResult.dom}-bar dominant cycle, elevated reversal chance in the next few bars`
+        : `Cycle phase ${(hurstResult.phase*100).toFixed(0)}% — mid-cycle, continuation more likely than a turn right now (~${hurstResult.dom}-bar dominant cycle)`;
+      clues.push({name:'Hurst Cycle Phase', verdict:'neutral', note, weight:0.5, flag: nearTurn?'turn-risk':'mid-cycle'});
+    }
+  }catch(e){}
+
+  // Fibonacci proximity — oldest-first bars, per its real call site (line ~2348)
+  try{
+    const fib = compFibAuto(show);
+    let nearest=null, nearestDist=Infinity;
+    fib.swing.forEach(l=>{ const d=Math.abs(spot-l.price); if(d<nearestDist){ nearestDist=d; nearest=l; } });
+    if(nearest && spot>0 && (nearestDist/spot)<0.005){
+      clues.push({name:'Fibonacci Level', verdict:'neutral', note:`Price is sitting right at ${nearest.label} — often a pause/reaction point, watch for a bounce or break`, weight:0.6, flag:'fib-proximity'});
+    }
+  }catch(e){}
+
+  // ═══ Combine into a probability read ═══
+  const directional = clues.filter(c=>c.verdict!=='neutral');
+  const bullW = directional.filter(c=>c.verdict==='bullish').reduce((a,c)=>a+c.weight,0);
+  const bearW = directional.filter(c=>c.verdict==='bearish').reduce((a,c)=>a+c.weight,0);
+  const totalW = bullW+bearW;
+  const netScore = totalW>0 ? (bullW-bearW)/totalW : 0; // -1 to +1
+  const pUp = clamp0100(50 + netScore*38);
+  const pDown = 100-pUp;
+  const agreeCount = Math.max(directional.filter(c=>c.verdict==='bullish').length, directional.filter(c=>c.verdict==='bearish').length);
+  const agreement = directional.length>0 ? agreeCount/directional.length : 0;
+
+  const adxClue = clues.find(c=>c.name==='ADX / DI Trend');
+  const zClue = clues.find(c=>c.name==='Z-Score Extremity');
+  const weakTrend = adxClue ? adxClue.note.includes('weak/no trend') : true;
+  const nearCycleTurn = hurstResult ? (hurstResult.phase<0.15||hurstResult.phase>0.85) : false;
+  const chopLikely = weakTrend && !(zClue && Math.abs(parseFloat(zClue.note.match(/-?\d+\.\d+/)?.[0]||0))>2);
+
+  let verdictText, verdictTone;
+  if(chopLikely){
+    verdictText = 'Low conviction — evidence leans toward continued chop/consolidation over the next several candles rather than a decisive move';
+    verdictTone = 'neutral';
+  } else if(agreement>=0.75 && pUp>60){
+    verdictText = `${(agreement*100).toFixed(0)}% of directional clues agree bullish — continuation higher is the stronger case for the next several candles`;
+    verdictTone = 'bullish';
+  } else if(agreement>=0.75 && pUp<40){
+    verdictText = `${(agreement*100).toFixed(0)}% of directional clues agree bearish — continuation lower is the stronger case for the next several candles`;
+    verdictTone = 'bearish';
+  } else {
+    verdictText = 'Mixed evidence — clues disagree on direction, treat any single-candle move with caution until more align';
+    verdictTone = 'neutral';
+  }
+  if(nearCycleTurn){
+    verdictText += ' Hurst cycle timing adds some reversal risk on top of this read, worth weighing against it.';
+  }
+
+  const toneColors = {bullish:['#d4edda','#155724'], bearish:['#f8d7da','#721c24'], neutral:['#f3f4f6','#6b7280']};
+  const [vbg,vfg] = toneColors[verdictTone];
+
+  box.innerHTML = `
+    <div style="background:#fff;border-left:3px solid #7c3aed;padding:8px 10px;margin-bottom:10px;border-radius:4px;font-size:10px;color:#374151">
+      <strong>💡 Simply put:</strong> think of this like a detective gathering clues at a scene — each indicator below is one witness statement. Some agree, some disagree. The verdict at the bottom weighs all of them together, it isn't any single clue acting alone.
+    </div>
+    <div style="background:${vbg};color:${vfg};border-radius:8px;padding:12px 14px;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;opacity:.8;margin-bottom:4px">Detective's Verdict — Next Several Candles</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px">P(up): ${pUp.toFixed(0)}% &nbsp;·&nbsp; P(down): ${pDown.toFixed(0)}% &nbsp;·&nbsp; Clue agreement: ${(agreement*100).toFixed(0)}%</div>
+      <div style="font-size:11px;line-height:1.5">${verdictText}</div>
+    </div>
+    <div style="font-size:10px;font-weight:700;color:#4c1d95;text-transform:uppercase;margin-bottom:6px">Case File — ${clues.length} clues examined</div>
+    ${clues.map(c=>{
+      const icon = c.verdict==='bullish'?'🟢':c.verdict==='bearish'?'🔴':'⚪';
+      return `<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px dashed #e5e7eb">
+        <div style="flex-shrink:0">${icon}</div>
+        <div><b>${c.name}</b><br><span style="color:#6b7280">${c.note}</span></div>
+      </div>`;
+    }).join('')}
+    <div style="font-size:9px;color:#9ca3af;margin-top:10px;line-height:1.6">
+      This is a rule-based synthesis of ${clues.length} indicators already computed for ${sym}, weighted by how reliable each tends to be (trend-strength indicators get more weight when a real trend is confirmed by ADX; cycle timing gets less weight since it's the least statistically grounded). It's a structured way to combine evidence, not a guarantee — treat disagreement between clues as a real signal to be more cautious, not noise to ignore.
+    </div>`;
+  if(btn) btn.disabled=false;
+};
+
 window.run0DteStrategy = async function(sym){
   const btn = document.getElementById('strategyRunBtn');
   const box = document.getElementById('strategyPanelContent');
@@ -4403,6 +4644,7 @@ window.run0DteStrategy = async function(sym){
         const totalTrack = track.wins+track.losses;
         burstCardHTML = `<div style="background:linear-gradient(135deg,#c1554a11,#c1554a05);border:1px solid #c1554a55;border-radius:8px;padding:14px 16px;margin-bottom:14px">
           <div style="font-size:14px;font-weight:800;color:#7a3931;margin-bottom:4px">🎰 Burst Detected — Lotto Straddle Candidate</div>
+          <div style="background:#fff;border-left:3px solid #c1554a;padding:7px 9px;margin-bottom:8px;border-radius:4px;font-size:10px;color:#374151"><strong>💡 Simply put:</strong> like buying two very cheap lottery tickets at once — one betting the stock jumps UP, one betting it drops DOWN — right as something sudden just started happening. Cheap because they're long shots, but if the burst turns into a real move, either ticket can pay off big.</div>
           <div style="font-size:10px;color:#7a3931;opacity:.85;margin-bottom:8px">
             Range expansion ${burst.rangeRatio.toFixed(1)}× normal · Volume ${burst.volRatio.toFixed(1)}× recent average
             ${ivBase.changePct>0 ? ` · IV up ${ivBase.changePct.toFixed(0)}% from this morning's baseline` : ''}
@@ -4447,6 +4689,7 @@ window.run0DteStrategy = async function(sym){
           <div style="font-size:9px;color:#9ca3af;margin-top:8px">IV vs RV proxy: ${Math.round(ivRankProxy)}% · Pin score: ${Math.round(pinScore)} · Wall: ${f2(wallStrike)} · DTE: ${dte}</div>
         </div>
       </div>
+      <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:8px 10px;margin-bottom:10px;border-radius:4px;font-size:11px;color:#374151"><strong>💡 Simply put:</strong> think of this like a weather forecast for "will the stock stay calm or get stormy today." The colored box on the left is today's forecast — gold means "probably calm" (good day to sell premium/collect money for taking on risk), teal means "probably stormy" (good day to buy premium/pay for a chance at a big move). The score bar shows HOW confident that forecast is, built from 6 different clues combined below it.</div>
       <div class="cpanel">
         <div class="phdr"><div class="pttl">🛑 Management &amp; Stops</div><div class="psub">Direction-correct for THIS structure — not a generic single-sided stop</div></div>
         ${structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, priorHalf, atmIV, tYears)}
@@ -4457,6 +4700,7 @@ window.run0DteStrategy = async function(sym){
       </div>
       <div class="cpanel">
         <div class="phdr"><div class="pttl">📐 Probability Distribution</div><div class="psub">Lognormal, from ATM IV — the market's implied range, not a guarantee</div></div>
+        <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:6px 10px;margin-bottom:8px;border-radius:4px;font-size:10px;color:#374151"><strong>💡 Simply put:</strong> this hill-shaped chart shows where the price is MOST likely to end up today — the tall part in the middle is "very likely," the short edges are "unlikely but possible." Think of it like a dartboard where the current price is the bullseye and the hill shows how far the dart might actually land.</div>
         <div class="csm"><canvas id="strat0dteProbChart"></canvas></div>
       </div>
       <div style="background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;padding:10px 12px;font-size:10px;color:#6b7280;line-height:1.7">
@@ -4491,6 +4735,7 @@ function structureManagementHTML(decision, spot, wallStrike, atr14, priorMid, pr
     const pot = (atmIV && tYears) ? probabilityOfTouchStrikes(spot, atmIV, tYears, 0.25) : null;
     if(pot){
       return `<div style="font-size:11px;color:#374151;line-height:1.8;padding:4px 2px">
+        <div style="background:#fffbea;border-left:3px solid #f59e0b;padding:7px 9px;margin-bottom:8px;border-radius:4px"><strong>💡 Simply put:</strong> this is like drawing a fence around today's likely price range using real math. The fence posts (strikes) are placed so there's roughly a 1-in-4 chance the price wanders past them before the day ends — you're getting paid to bet it stays inside the fence.</div>
         <strong>Neutral structure — two-sided, not bullish or bearish.</strong> Both strikes matter equally; there is no single "stop above" or "stop below" for this position.<br>
         Probability-of-touch strikes (~25% target): <b style="color:#c9a24b">${f2(pot.lower)}</b> / <b style="color:#c9a24b">${f2(pot.upper)}</b> &nbsp;·&nbsp; est. actual touch prob: <b>${(pot.estPOT*100).toFixed(0)}%</b><br>
         <span style="color:#6b7280">Solved from today's ATM IV (${(atmIV*100).toFixed(1)}%) and time to close — same zero-drift approximation the source indicator uses, reasonable for 0DTE. Assumes flat vol skew (doesn't distinguish put-side vs call-side IV), so treat as a solid starting point, not the exact chain price.</span><br>
