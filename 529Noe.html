@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<title>Floor Plan</title>
+<style>
+:root{
+  --bg:#e6ebee; --panel:#f9fbfc; --ink:#15222b; --muted:#5f707b; --line:#cdd7dd; --field:#eef2f5;
+  --accent:#0f5c78; --accent-ink:#fff;
+  --open:#d4442a; --progress:#dd9b07; --done:#23905a; --info:#5468d4; --none:#8a979f;
+  --shadow:0 10px 34px rgba(12,24,32,.22);
+  --panel-w:400px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0f181d; --panel:#172229; --ink:#e8eef1; --muted:#93a4ae; --line:#2b3b44; --field:#1f2d35; --accent:#5cb8d6; --accent-ink:#06222c;}
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Noto Sans SC",Roboto,sans-serif;
+  background:var(--bg);color:var(--ink);display:flex;flex-direction:column;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;font-size:15px;line-height:1.45;
+  padding-top:env(safe-area-inset-top,0px);
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* top bar */
+#top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)}
+#siteTitle{font-size:17px;font-weight:700;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:none}
+.seg button{border:0;background:transparent;padding:6px 13px;font-weight:600;font-size:14px;color:var(--muted)}
+.seg button.on{background:var(--ink);color:var(--panel)}
+
+/* admin bar */
+#adminbar{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--ink);color:var(--panel);overflow-x:auto;white-space:nowrap}
+#adminbar .chip{background:transparent;border-color:rgba(255,255,255,.35);color:inherit}
+#adminbar .chip.on{background:var(--panel);color:var(--ink)}
+#adminbar .chip.strong{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#dirty{font-size:13px;color:#ffd166;margin-left:auto;padding-left:8px}
+
+/* tabs + filters */
+#bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+#bar:empty{display:none}
+#tabs,#filters{display:flex;gap:6px;overflow-x:auto}
+#tabs:empty,#filters:empty{display:none}
+.tab{border:0;background:transparent;padding:6px 4px;margin-right:8px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 12px;font-size:14px;font-weight:500;white-space:nowrap}
+.chip.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.sd{width:9px;height:9px;border-radius:50%;display:inline-block}
+#filters{margin-left:auto}
+
+/* stage */
+#stage{flex:1;position:relative;min-height:0}
+#view{position:absolute;inset:0;overflow:hidden;touch-action:none;cursor:grab;
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:32px 32px;background-position:-1px -1px}
+#view:active{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#planImg{display:block;user-select:none;-webkit-user-drag:none;background:#fff;box-shadow:0 8px 30px rgba(10,20,28,.22)}
+#pins{position:absolute;inset:0;pointer-events:none}
+.pin{position:absolute;left:0;top:0;width:0;height:0;pointer-events:auto;will-change:transform}
+.pin .hit{position:absolute;left:-24px;top:-54px;width:48px;height:58px}
+.pin .dot{position:absolute;left:-15px;top:-41px;width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;
+  font-weight:700;font-size:13px;line-height:26px;text-align:center;border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4);
+  transition:transform .16s;transform-origin:50% 135%}
+.pin .dot::after{content:"";position:absolute;left:50%;top:100%;margin:0 0 0 -6px;border:6px solid transparent;border-top:9px solid var(--c);border-bottom:0}
+.pin.sel .dot{transform:scale(1.3)}
+.pin.dim{opacity:.22;pointer-events:none}
+#empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:24px;color:var(--muted)}
+#hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:999px;font-size:14px;font-weight:600;z-index:5;white-space:nowrap;box-shadow:var(--shadow)}
+.zoom{position:absolute;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;z-index:4}
+.zoom button{border:0;background:transparent;width:40px;height:40px;font-size:20px;line-height:1}
+.zoom button+button{border-top:1px solid var(--line)}
+
+/* panel */
+#panel{position:absolute;z-index:20;background:var(--panel);box-shadow:var(--shadow);display:flex;flex-direction:column;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+@media (max-width:819px){
+  #panel{left:0;right:0;bottom:0;height:58%;border-radius:18px 18px 0 0;transform:translateY(103%)}
+  #panel.open{transform:none}
+  #panel::before{content:"";position:absolute;left:50%;top:7px;width:38px;height:4px;margin-left:-19px;border-radius:2px;background:var(--line)}
+}
+@media (min-width:820px){
+  #panel{top:0;bottom:0;right:0;width:var(--panel-w);border-left:1px solid var(--line);transform:translateX(103%)}
+  #panel.open{transform:none}
+}
+.phead{display:flex;align-items:center;gap:12px;padding:20px 14px 12px;border-bottom:1px solid var(--line)}
+.num{flex:none;width:34px;height:34px;border-radius:50%;background:var(--c,var(--none));color:#fff;font-weight:700;display:grid;place-items:center}
+.ptitle{flex:1;min-width:0}
+.ptitle h2{margin:0;font-size:18px;line-height:1.25;overflow-wrap:anywhere}
+.psub{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px;margin-top:2px}
+.x{border:0;background:transparent;width:36px;height:36px;border-radius:50%;font-size:18px;color:var(--muted)}
+.x:hover{background:var(--field)}
+.scroll{overflow:auto;flex:1;-webkit-overflow-scrolling:touch;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+.abox{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:10px;background:var(--field)}
+.hintline{font-size:13px;color:var(--muted)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:420px){.row2.stack{grid-template-columns:1fr}}
+
+/* timeline */
+.tl{position:relative;padding:16px 16px 6px 36px;margin:0}
+.tl::before{content:"";position:absolute;left:23px;top:22px;bottom:10px;width:2px;background:var(--line)}
+.entry{position:relative;padding-bottom:26px}
+.entry::before{content:"";position:absolute;left:-19px;top:5px;width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 0 4px var(--panel)}
+.entry.latest::before{width:16px;height:16px;left:-21px;top:3px}
+.emeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.emeta time{font-weight:700}
+.st{color:var(--c);font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:5px}
+.st::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--c)}
+.tag{font-size:12px;border:1px solid var(--line);border-radius:6px;padding:0 6px;color:var(--muted)}
+.eact{margin-left:auto;display:flex;gap:4px}
+.eact button{border:0;background:transparent;color:var(--accent);font-size:14px;padding:4px 6px;border-radius:6px}
+.eact button.danger{color:var(--open)}
+img.ph{display:block;width:100%;max-height:48vh;object-fit:cover;border-radius:10px;background:var(--field);cursor:zoom-in;margin-bottom:8px}
+.note{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.none{color:var(--muted);padding:20px 16px}
+
+/* buttons + forms */
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 14px;font-weight:600}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--open)}
+input,textarea,select{width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink)}
+.abox input{background:var(--panel)}
+textarea{resize:vertical;min-height:84px}
+label{display:grid;gap:5px;font-size:13px;font-weight:600;color:var(--muted)}
+.lbl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:5px}
+dialog{border:0;border-radius:16px;padding:0;background:var(--panel);color:var(--ink);width:min(560px,94vw);max-height:92dvh;overflow:auto;box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(8,14,18,.55)}
+.dhead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 6px}
+.dhead h3{margin:0;font-size:18px}
+.dbody{padding:8px 16px 4px;display:grid;gap:14px}
+.dfoot{display:flex;justify-content:flex-end;gap:8px;padding:14px 16px 16px}
+.stpick{display:flex;flex-wrap:wrap;gap:6px}
+.stpick .chip{border-color:var(--c);color:var(--c)}
+.stpick .chip.on{background:var(--c);color:#fff}
+.pbox{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;color:var(--muted);width:100%;background:transparent;font-weight:600}
+.pprev img{display:block;width:100%;max-height:260px;object-fit:cover;border-radius:10px}
+.pprev .row{margin-top:8px}
+.menu{display:grid;gap:8px;padding:8px 16px 16px}
+.menu .btn{text-align:left}
+#lb{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;display:flex;align-items:center;justify-content:center;padding:12px}
+#lb img{max-width:100%;max-height:100%;object-fit:contain}
+#toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:12px;opacity:0;pointer-events:none;transition:.22s;z-index:200;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.tright{display:flex;align-items:center;gap:8px;flex:none}
+#adminbar a.chip{color:inherit;text-decoration:none}
+.opt{display:flex;flex-wrap:wrap;gap:6px}
+#oDates:empty{display:none}
+label.chk{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;color:var(--ink)}
+label.chk input{width:20px;height:20px;flex:none}
+
+/* report */
+#report{position:fixed;inset:0;z-index:90;background:var(--bg);overflow:auto;-webkit-overflow-scrolling:touch}
+.rtool{position:sticky;top:0;z-index:2;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top,0px));background:var(--panel);border-bottom:1px solid var(--line)}
+.rtool .sp{flex:1}
+.paper{--ink:#15222b;--muted:#5f707b;--line:#cdd7dd;--field:#eef2f5;background:#fff;color:#15222b;max-width:820px;margin:16px auto;padding:28px 28px 36px;border-radius:6px;box-shadow:var(--shadow)}
+@media (max-width:600px){.paper{margin:0;padding:18px 16px 28px;border-radius:0}}
+.rhead h1{margin:0 0 6px;font-size:24px;line-height:1.25}
+.rmeta{color:var(--muted);font-size:14px;display:grid;gap:2px}
+.rsum{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin:16px 0 6px;padding:10px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:14px}
+.rov{margin:18px 0;break-inside:avoid}
+.rov img{width:100%;display:block;border:1px solid var(--line)}
+.rh2{font-size:17px;margin:28px 0 8px;padding-bottom:6px;border-bottom:2px solid var(--ink);display:flex;align-items:center;gap:10px;break-after:avoid}
+.rent{padding:12px 0;border-bottom:1px solid var(--line);break-inside:avoid}
+.rline{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+.rline time{font-weight:700}
+.rbox{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.rbox img{width:min(280px,100%);max-height:300px;object-fit:cover;border-radius:6px;display:block}
+.rnotes{flex:1;min-width:200px}
+.num.sm{width:26px;height:26px;font-size:13px;flex:none}
+.muted{color:var(--muted);font-size:13px;font-weight:400}
+@media print{
+  @page{margin:14mm}
+  html,body{height:auto!important;overflow:visible!important;display:block!important;background:#fff!important;padding:0!important}
+  body>*:not(#report):not(.paper){display:none!important}
+  #report{position:static!important;overflow:visible!important;background:#fff!important;height:auto!important;display:block!important}
+  .rtool{display:none!important}
+  .paper{box-shadow:none!important;margin:0!important;padding:0!important;max-width:none!important;border-radius:0!important}
+  .rbox img{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .num,.st::before,.sd{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header id="top">
+  <div id="siteTitle"></div>
+  <div class="tright">
+    <button class="chip" id="bReport"></button>
+    <div class="seg" id="langSeg" role="group" aria-label="Language">
+      <button data-lang="en">EN</button><button data-lang="zh">中文</button>
+    </div>
+  </div>
+</header>
+
+
+
+<div id="bar"><div id="tabs"></div><div id="filters"></div></div>
+
+<main id="stage">
+  <div id="view">
+    <div id="world"><img id="planImg" alt="" draggable="false"></div>
+    <div id="pins"></div>
+    <div id="empty"></div>
+    <div id="hint" hidden></div>
+    <div class="zoom">
+      <button id="zIn" aria-label="Zoom in">+</button>
+      <button id="zOut" aria-label="Zoom out">&minus;</button>
+      <button id="zFit" aria-label="Fit">&#x2922;</button>
+    </div>
+  </div>
+  <aside id="panel" aria-live="polite"></aside>
+</main>
+
+<div id="report" hidden>
+  <div class="rtool"><button class="btn" id="rBack"></button><span class="sp"></span><button class="btn" id="rHtml"></button><button class="btn pri" id="rPrint"></button></div>
+  <div class="paper" id="rptBody"></div>
+</div>
+<dialog id="dlg"></dialog>
+<div id="lb" hidden><img alt=""></div>
+<div id="toast" role="status"></div>
+
+
+<script>
+'use strict';
+/* ============ helpers ============ */
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const ls = { get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
+const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+const ST = ['open','progress','done','info'];
+
+/* ============ i18n ============ */
+const S = {
+en:{title:'Floor Plan',open:'Open',progress:'In progress',done:'Done',info:'Note',all:'All',
+  addPin:'+ Pin',placeHint:'Tap the plan to place a pin',setPlan:'Plan image',newFloor:'+ Floor',more:'More',
+  emptyViewer:'Nothing here yet.',emptyAdmin:'Upload a floor plan image to begin.',uploadPlan:'Upload floor plan',
+  noUpdates:'No updates yet.',addUpdate:'+ Add update',edit:'Edit',del:'Delete',cancel:'Cancel',save:'Save',
+  nameEn:'Name (English)',nameZh:'Name (中文)',date:'Date',status:'Status',photo:'Photo',
+  choosePhoto:'Take or choose a photo',replace:'Replace',remove:'Remove',noteEn:'Note (English)',noteZh:'Note (中文)',
+  newPin:'New pin',newUpdate:'New update',editUpdate:'Edit update',
+  confPin:'Delete this pin and all its updates?',confUpd:'Delete this update?',confPlan:'Delete this floor plan and all its pins?',
+  moveHint:'Drag the selected pin on the plan to move it.',delPin:'Delete pin',unpub:'Unpublished changes',
+  publish:'Publish',exportJ:'Export data.json',importJ:'Import data.json',ghSet:'GitHub settings',names:'Site and floor names',
+  delPlan:'Delete this floor plan',reload:'Discard local copy and reload from site',
+  published:'Published. The site updates in about a minute.',publishing:'Publishing…',fail:'Failed: ',
+  needGh:'Enter your GitHub details first.',owner:'Owner (username)',repo:'Repository',branch:'Branch',path:'File path',token:'Access token',
+  tokenHint:'Use a fine-grained token limited to this one repository (Contents: read and write). It stays on this device only.',
+  needContent:'Add a photo or a note.',latest:'Latest',updates:'updates',point:'Point',floor:'Floor',
+  siteName:'Site title',floorName:'Floor name',linkCopied:'Link copied',processing:'Processing photo…',imported:'Imported.',
+  badImage:'Could not read that image.',badJson:'That file is not valid data.',share:'Copy link',
+  ghSaved:'Saved.',reloadConf:'Discard the copy on this device and reload?',
+  report:'Report',back:'Back',print:'Print / Save PDF',dlHtml:'Download HTML',rTitle:'Create report',rScope:'Period',rAll:'Whole project',rDay:'One day',rRange:'Date range',
+  rFrom:'From',rTo:'To',rFloor:'Floor',rAllFloors:'All floors',rAllSt:'All statuses',rLang:'Language',rBoth:'Both',rGroup:'Group by',rByLoc:'Location',
+  rPhotos:'Include photos',rOverview:'Include floor plan overview',rCreate:'Create report',rNone:'No updates match these choices.',rGenerated:'Generated',
+  planWord:'Floor plan',working:'Building report…',viewSite:'View site',
+  sum:(n,m)=>n+' update'+(n===1?'':'s')+' at '+m+' location'+(m===1?'':'s')},
+zh:{title:'平面图',open:'待处理',progress:'进行中',done:'已完成',info:'备注',all:'全部',
+  addPin:'+ 标记点',placeHint:'点击平面图放置标记点',setPlan:'平面图',newFloor:'+ 楼层',more:'更多',
+  emptyViewer:'暂无内容。',emptyAdmin:'上传平面图开始使用。',uploadPlan:'上传平面图',
+  noUpdates:'暂无记录。',addUpdate:'+ 添加记录',edit:'编辑',del:'删除',cancel:'取消',save:'保存',
+  nameEn:'名称（英文）',nameZh:'名称（中文）',date:'日期',status:'状态',photo:'照片',
+  choosePhoto:'拍照或选择照片',replace:'更换',remove:'移除',noteEn:'备注（英文）',noteZh:'备注（中文）',
+  newPin:'新标记点',newUpdate:'新记录',editUpdate:'编辑记录',
+  confPin:'删除此标记点及其所有记录？',confUpd:'删除此记录？',confPlan:'删除此平面图及其所有标记点？',
+  moveHint:'可在平面图上拖动选中的标记点来移动。',delPin:'删除标记点',unpub:'有未发布的更改',
+  publish:'发布',exportJ:'导出 data.json',importJ:'导入 data.json',ghSet:'GitHub 设置',names:'网站与楼层名称',
+  delPlan:'删除此平面图',reload:'放弃本机副本并从网站重新加载',
+  published:'已发布。网站约一分钟后更新。',publishing:'发布中…',fail:'失败：',
+  needGh:'请先填写 GitHub 信息。',owner:'用户名',repo:'仓库',branch:'分支',path:'文件路径',token:'访问令牌',
+  tokenHint:'请使用仅限此仓库的细粒度令牌（Contents：读写）。令牌只保存在本设备上。',
+  needContent:'请添加照片或备注。',latest:'最新',updates:'条记录',point:'标记点',floor:'楼层',
+  siteName:'网站标题',floorName:'楼层名称',linkCopied:'链接已复制',processing:'正在处理照片…',imported:'已导入。',
+  badImage:'无法读取该图片。',badJson:'该文件不是有效的数据。',share:'复制链接',
+  ghSaved:'已保存。',reloadConf:'放弃本机副本并重新加载？',
+  report:'报告',back:'返回',print:'打印 / 存为 PDF',dlHtml:'下载 HTML',rTitle:'生成报告',rScope:'时间范围',rAll:'整个项目',rDay:'单日',rRange:'日期范围',
+  rFrom:'从',rTo:'至',rFloor:'楼层',rAllFloors:'全部楼层',rAllSt:'全部状态',rLang:'语言',rBoth:'中英对照',rGroup:'分组方式',rByLoc:'位置',
+  rPhotos:'包含照片',rOverview:'包含平面图总览',rCreate:'生成报告',rNone:'没有符合条件的记录。',rGenerated:'生成于',
+  planWord:'平面图',working:'正在生成报告…',viewSite:'查看网站',
+  sum:(n,m)=>n+' 条记录，'+m+' 个位置'}
+};
+let lang = ls.get('fp_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
+const t = k => (S[lang] && S[lang][k]) || S.en[k] || k;
+function tr(o){
+  if(!o) return {text:'',fb:''};
+  const other = lang === 'en' ? 'zh' : 'en';
+  if(o[lang] && o[lang].trim()) return {text:o[lang],fb:''};
+  if(o[other] && o[other].trim()) return {text:o[other],fb:other};
+  return {text:'',fb:''};
+}
+function fmtDate(d, L){
+  L = L || lang;
+  const p = String(d || '').split('-').map(Number);
+  if(p.length !== 3 || p.some(isNaN)) return d || '';
+  return new Date(p[0], p[1]-1, p[2]).toLocaleDateString(L === 'zh' ? 'zh-CN' : 'en-US', {year:'numeric',month:'short',day:'numeric'});
+}
+
+/* ============ state ============ */
+let data = {version:1, title:{en:'Floor Plan',zh:'平面图'}, plans:[]};
+const ADMIN = false;
+const ui = { admin: ADMIN, planId:null, pinId:null, addMode:false, filter:'all', dirty:false };
+const view = { s:1, tx:0, ty:0, fitS:1, min:.2, max:8 };
+let planMode = 'replace';
+const VIEWER_PATH = ADMIN ? location.pathname.replace(/[^/]*$/, '') : location.pathname;
+const curPlan = () => data.plans.find(p => p.id === ui.planId) || null;
+const curPin = () => { const p = curPlan(); return p ? p.pins.find(x => x.id === ui.pinId) || null : null; };
+const sorted = pin => pin.updates.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.created||0) - (a.created||0));
+const latestStatus = pin => { const u = sorted(pin)[0]; return u ? u.status : null; };
+const pinTitle = pin => tr(pin.title).text || (t('point') + ' ' + pin.n);
+
+function normalize(){
+  if(!data || !Array.isArray(data.plans)) data = {version:1, title:{en:'Floor Plan',zh:'平面图'}, plans:[]};
+  data.title = data.title || {en:'',zh:''};
+  data.plans.forEach(p => {
+    p.id = p.id || uid(); p.name = p.name || {en:'',zh:''}; p.pins = p.pins || [];
+    let mx = 0;
+    p.pins.forEach(x => { x.id = x.id || uid(); x.title = x.title || {en:'',zh:''}; x.updates = x.updates || []; mx = Math.max(mx, x.n || 0);
+      x.updates.forEach(u => { u.id = u.id || uid(); u.note = u.note || {en:'',zh:''}; u.status = ST.includes(u.status) ? u.status : 'info'; }); });
+    p.pins.forEach(x => { if(!x.n) x.n = ++mx; });
+  });
+  if(!data.plans.some(p => p.id === ui.planId)) ui.planId = data.plans[0] ? data.plans[0].id : null;
+}
+
+
+async function load(){
+  let rec = null;
+  if(ui.admin) rec = await idbGet('draft');
+  if(rec && rec.data){ data = rec.data; ui.dirty = !!rec.dirty; return normalize(); }
+  try{ const r = await fetch('data.json?_=' + Date.now(), {cache:'no-store'}); if(r.ok) data = await r.json(); }catch(e){}
+  normalize();
+}
+
+
+/* ============ toast / lightbox ============ */
+let tt;
+function toast(m, sticky){ const el = $('#toast'); el.textContent = m; el.classList.add('show'); clearTimeout(tt); if(!sticky) tt = setTimeout(() => el.classList.remove('show'), 2800); }
+function hideToast(){ $('#toast').classList.remove('show'); }
+function openLightbox(src){ $('#lb img').src = src; $('#lb').hidden = false; }
+$('#lb').addEventListener('click', () => { $('#lb').hidden = true; });
+
+/* ============ pan / zoom ============ */
+const vp = $('#view'), world = $('#world');
+function applyView(){ world.style.transform = `translate(${view.tx}px,${view.ty}px) scale(${view.s})`; positionPins(); }
+function fit(){
+  const p = curPlan(); if(!p || !p.w) return;
+  const r = vp.getBoundingClientRect(); if(!r.width) return;
+  const s = Math.min(r.width / p.w, r.height / p.h) * .96;
+  view.fitS = s; view.s = s; view.min = s * .6; view.max = Math.max(s * 12, 2);
+  view.tx = (r.width - p.w * s) / 2; view.ty = (r.height - p.h * s) / 2; applyView();
+}
+function positionPins(){
+  const p = curPlan(); if(!p) return;
+  for(const el of $('#pins').children){
+    const pin = p.pins.find(x => x.id === el.dataset.id); if(!pin) continue;
+    el.style.transform = `translate(${view.tx + pin.x * p.w * view.s}px,${view.ty + pin.y * p.h * view.s}px)`;
+  }
+}
+function zoomAt(mx, my, f){
+  const ns = clamp(view.s * f, view.min, view.max), k = ns / view.s;
+  view.tx = mx - (mx - view.tx) * k; view.ty = my - (my - view.ty) * k; view.s = ns; applyView();
+}
+function tweenTo(tx, ty, ms = 240){
+  const a = {tx:view.tx, ty:view.ty}, t0 = performance.now();
+  (function step(now){ const k = Math.min(1, (now - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+    view.tx = a.tx + (tx - a.tx) * e; view.ty = a.ty + (ty - a.ty) * e; applyView(); if(k < 1) requestAnimationFrame(step); })(t0);
+}
+function revealPin(pin){
+  const p = curPlan(), r = vp.getBoundingClientRect();
+  const desk = matchMedia('(min-width:820px)').matches;
+  const visW = desk ? r.width - 400 : r.width, visH = desk ? r.height : r.height * .42;
+  const px = view.tx + pin.x * p.w * view.s, py = view.ty + pin.y * p.h * view.s;
+  if(px > 40 && px < visW - 40 && py > 70 && py < visH - 20) return;
+  tweenTo(view.tx + visW / 2 - px, view.ty + visH / 2 - py + 20);
+}
+
+const pts = new Map();
+let startXY = null, last = null, moved = false, downT = 0, downPin = null, dragPin = null, dragged = false, pinch = null;
+vp.addEventListener('pointerdown', e => {
+  if(e.target.closest('.zoom') || e.target.closest('#empty button')) return;
+  vp.setPointerCapture(e.pointerId);
+  pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(pts.size === 1){
+    moved = false; downT = Date.now(); startXY = {x:e.clientX, y:e.clientY};
+    const el = e.target.closest('.pin'); downPin = el ? el.dataset.id : null;
+    dragPin = (ui.admin && downPin && downPin === ui.pinId) ? curPin() : null; dragged = false;
+  } else if(pts.size === 2){
+    moved = true; dragPin = null;
+    const [a, b] = [...pts.values()], r = vp.getBoundingClientRect();
+    const mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+    pinch = {d0:Math.hypot(a.x - b.x, a.y - b.y) || 1, s0:view.s, wx:(mx - view.tx) / view.s, wy:(my - view.ty) / view.s};
+  }
+});
+vp.addEventListener('pointermove', e => {
+  if(!pts.has(e.pointerId)) return;
+  const prev = pts.get(e.pointerId); pts.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(pts.size === 1){
+    if(!moved && Math.hypot(e.clientX - startXY.x, e.clientY - startXY.y) > 6) moved = true;
+    if(!moved) return;
+    if(dragPin){
+      const p = curPlan(), r = vp.getBoundingClientRect();
+      dragPin.x = clamp((e.clientX - r.left - view.tx) / (p.w * view.s), 0, 1);
+      dragPin.y = clamp((e.clientY - r.top - view.ty) / (p.h * view.s), 0, 1);
+      dragged = true; positionPins();
+    } else { view.tx += e.clientX - prev.x; view.ty += e.clientY - prev.y; applyView(); }
+  } else if(pts.size === 2 && pinch){
+    const [a, b] = [...pts.values()], r = vp.getBoundingClientRect();
+    const mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+    const s = clamp(pinch.s0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d0, view.min, view.max);
+    view.s = s; view.tx = mx - pinch.wx * s; view.ty = my - pinch.wy * s; applyView();
+  }
+});
+function endPtr(e, cancel){
+  if(!pts.has(e.pointerId)) return;
+  const single = pts.size === 1; pts.delete(e.pointerId);
+  if(single){
+    if(!cancel && !moved && Date.now() - downT < 700) handleTap(e);
+    if(dragged){ markDirty(); dragged = false; }
+    dragPin = null; pinch = null;
+  } else if(pts.size === 1){ pinch = null; moved = true; }
+}
+vp.addEventListener('pointerup', e => endPtr(e, false));
+vp.addEventListener('pointercancel', e => endPtr(e, true));
+vp.addEventListener('wheel', e => { e.preventDefault(); const r = vp.getBoundingClientRect(); zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * .0015)); }, {passive:false});
+$('#zIn').onclick = () => { const r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1.4); };
+$('#zOut').onclick = () => { const r = vp.getBoundingClientRect(); zoomAt(r.width / 2, r.height / 2, 1 / 1.4); };
+$('#zFit').onclick = fit;
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { const atFit = Math.abs(view.s - view.fitS) < 1e-6; if(atFit) fit(); else applyView(); }, 120); });
+
+function handleTap(e){
+  if(downPin){ selectPin(downPin); return; }
+  const p = curPlan(); if(!p) return;
+  if(ui.admin && ui.addMode){
+    const r = vp.getBoundingClientRect();
+    const x = (e.clientX - r.left - view.tx) / (p.w * view.s), y = (e.clientY - r.top - view.ty) / (p.h * view.s);
+    if(x < 0 || x > 1 || y < 0 || y > 1) return;
+    ui.addMode = false; renderAdmin(); renderHint();
+    const n = Math.max(0, ...p.pins.map(q => q.n)) + 1;
+    openEditor({pin:{id:uid(), n, x, y, title:{en:'',zh:''}, updates:[]}, isNew:true});
+    return;
+  }
+  closePanel();
+}
+
+/* ============ selection / panel ============ */
+function setUrlPin(id){ try{ const u = new URL(location.href); if(id) u.searchParams.set('pin', id); else u.searchParams.delete('pin'); history.replaceState(null, '', u); }catch(e){} }
+function selectPin(id){
+  ui.pinId = id; renderPins(); renderPanel(); setUrlPin(id);
+  const pin = curPin(); if(pin) revealPin(pin);
+  const sc = $('#panel .scroll'); if(sc) sc.scrollTop = 0;
+}
+function closePanel(){ if(!ui.pinId) return; ui.pinId = null; renderPins(); renderPanel(); setUrlPin(null); }
+
+function renderPanel(){
+  const el = $('#panel'), pin = curPin();
+  el.classList.toggle('open', !!pin);
+  if(!pin){ return; }
+  const ups = sorted(pin), st = latestStatus(pin);
+  const title = tr(pin.title).text || (t('point') + ' ' + pin.n);
+  let h = `<div class="phead"><span class="num" style="--c:${st ? 'var(--' + st + ')' : 'var(--none)'}">${pin.n}</span>
+    <div class="ptitle"><h2>${esc(title)}</h2><div class="psub">${st ? `<span class="st" style="--c:var(--${st})">${t(st)}</span>` : ''}<span>${ups.length} ${t('updates')}</span></div></div>
+    <button class="x" data-act="share" aria-label="${t('share')}">&#x1F517;</button>
+    <button class="x" data-act="close" aria-label="Close">&#x2715;</button></div><div class="scroll">`;
+  if(ui.admin){
+    h += `<div class="abox"><div class="row2 stack"><input data-title="en" placeholder="${t('nameEn')}" value="${esc(pin.title.en)}"><input data-title="zh" placeholder="${t('nameZh')}" value="${esc(pin.title.zh)}"></div>
+      <div class="hintline">${t('moveHint')}</div>
+      <div class="row"><button class="btn pri" data-act="add">${t('addUpdate')}</button><button class="btn danger" data-act="delpin">${t('delPin')}</button></div></div>`;
+  }
+  if(!ups.length) h += `<div class="none">${t('noUpdates')}</div>`;
+  else {
+    h += '<div class="tl">';
+    ups.forEach((u, i) => {
+      const n = tr(u.note);
+      h += `<article class="entry${i === 0 && ups.length > 1 ? ' latest' : ''}" style="--c:var(--${u.status})">
+        <div class="emeta"><time>${esc(fmtDate(u.date))}</time><span class="st">${t(u.status)}</span>${i === 0 && ups.length > 1 ? `<span class="tag">${t('latest')}</span>` : ''}
+        ${ui.admin ? `<span class="eact"><button data-act="edit" data-id="${u.id}">${t('edit')}</button><button class="danger" data-act="del" data-id="${u.id}">${t('del')}</button></span>` : ''}</div>
+        ${u.photo ? `<img class="ph" src="${u.photo}" data-act="zoom" alt="">` : ''}
+        ${n.text ? `<p class="note">${esc(n.text)}${n.fb ? ` <span class="tag">${n.fb === 'en' ? 'EN' : '中'}</span>` : ''}</p>` : ''}
+      </article>`;
+    });
+    h += '</div>';
+  }
+  el.innerHTML = h + '</div>';
+}
+$('#panel').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const pin = curPin(), p = curPlan(); if(!pin) return;
+  const act = b.dataset.act;
+  if(act === 'close') closePanel();
+  else if(act === 'zoom') openLightbox(b.src);
+  else if(act === 'share'){
+    const link = location.origin + VIEWER_PATH + '?pin=' + pin.id;
+    if(navigator.share) navigator.share({title:pinTitle(pin), url:link}).catch(() => {});
+    else if(navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast(t('linkCopied')));
+  }
+  else if(act === 'add') openEditor({pin});
+  else if(act === 'edit') openEditor({pin, upd:pin.updates.find(u => u.id === b.dataset.id)});
+  else if(act === 'del'){ if(confirm(t('confUpd'))){ pin.updates = pin.updates.filter(u => u.id !== b.dataset.id); markDirty(); renderPins(); renderPanel(); } }
+  else if(act === 'delpin'){ if(confirm(t('confPin'))){ p.pins = p.pins.filter(x => x.id !== pin.id); ui.pinId = null; markDirty(); renderPins(); renderPanel(); setUrlPin(null); } }
+});
+$('#panel').addEventListener('change', e => {
+  const i = e.target.closest('[data-title]'), pin = curPin(); if(!i || !pin) return;
+  pin.title[i.dataset.title] = i.value.trim(); markDirty();
+  const h2 = $('#panel h2'); if(h2) h2.textContent = pinTitle(pin);
+});
+
+/* ============ render chrome ============ */
+function renderHeader(){
+  const title = tr(data.title).text || t('title');
+  $('#siteTitle').textContent = title; document.title = title + (ADMIN ? ' (admin)' : ''); $('#bReport').textContent = t('report'); document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  document.querySelectorAll('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
+}
+function renderTabs(){
+  const tabs = $('#tabs');
+  tabs.innerHTML = data.plans.length > 1 ? data.plans.map((p, i) => `<button class="tab${p.id === ui.planId ? ' on' : ''}" data-plan="${p.id}">${esc(tr(p.name).text || (t('floor') + ' ' + (i + 1)))}</button>`).join('') : '';
+}
+function renderFilters(){
+  const p = curPlan(), any = p && p.pins.some(x => x.updates.length);
+  $('#filters').innerHTML = any ? ['all', 'open', 'progress', 'done'].map(k => `<button class="chip${ui.filter === k ? ' on' : ''}" data-f="${k}">${k !== 'all' ? `<i class="sd" style="background:var(--${k})"></i>` : ''}${t(k)}</button>`).join('') : '';
+}
+function renderAdmin(){
+  const ab = $('#adminbar'); if(!ab) return; ab.hidden = !ui.admin; if(!ui.admin) return;
+  $('#bAdd').textContent = t('addPin'); $('#bAdd').classList.toggle('on', ui.addMode);
+  $('#bPlan').textContent = t('setPlan'); $('#bView').textContent = t('viewSite'); $('#bFloor').textContent = t('newFloor'); $('#bMenu').textContent = t('more') + ' …';
+  const d = $('#dirty'); d.hidden = !ui.dirty; d.textContent = t('unpub');
+  $('#bAdd').hidden = !curPlan();
+}
+function renderHint(){ const h = $('#hint'); h.hidden = !(ui.admin && ui.addMode); h.textContent = t('placeHint'); }
+function renderEmpty(){
+  const e = $('#empty');
+  e.innerHTML = ui.admin ? `<div>${t('emptyAdmin')}</div><button class="btn pri" id="eUp">${t('uploadPlan')}</button>` : `<div>${t('emptyViewer')}</div>`;
+  const b = $('#eUp'); if(b) b.onclick = () => { planMode = 'replace'; $('#filePlan').click(); };
+}
+function renderPins(){
+  const layer = $('#pins'), p = curPlan(); layer.innerHTML = ''; if(!p) return;
+  p.pins.forEach(pin => {
+    const st = latestStatus(pin), el = document.createElement('div');
+    el.className = 'pin' + (pin.id === ui.pinId ? ' sel' : '') + (ui.filter !== 'all' && st !== ui.filter ? ' dim' : '');
+    el.dataset.id = pin.id; el.style.setProperty('--c', st ? `var(--${st})` : 'var(--none)');
+    el.innerHTML = `<div class="hit"></div><div class="dot">${pin.n}</div>`;
+    layer.appendChild(el);
+  });
+  positionPins();
+}
+function showPlan(){
+  const p = curPlan(), img = $('#planImg');
+  if(p && p.image){ img.style.display = 'block'; img.width = p.w; img.height = p.h; if(img.getAttribute('src') !== p.image) img.src = p.image; $('#empty').hidden = true; fit(); }
+  else { img.style.display = 'none'; img.removeAttribute('src'); $('#empty').hidden = false; renderEmpty(); }
+  renderPins();
+}
+function renderAll(){ renderHeader(); renderTabs(); renderFilters(); renderAdmin(); renderHint(); showPlan(); renderPanel(); }
+
+/* tabs, filters, language */
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-plan]'); if(!b || b.dataset.plan === ui.planId) return; ui.planId = b.dataset.plan; ui.pinId = null; ui.filter = 'all'; setUrlPin(null); renderAll(); });
+$('#filters').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if(!b) return; ui.filter = b.dataset.f; renderFilters(); renderPins(); });
+$('#langSeg').addEventListener('click', e => { const b = e.target.closest('[data-lang]'); if(!b) return; lang = b.dataset.lang; ls.set('fp_lang', lang); renderAll(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ if(!$('#lb').hidden) $('#lb').hidden = true; else if(!$('#report').hidden) $('#report').hidden = true; else closePanel(); } });
+
+
+/* ============ report ============ */
+const COLORS = {open:'#d4442a', progress:'#dd9b07', done:'#23905a', info:'#5468d4', none:'#8a979f'};
+const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+function pickText(o, m){
+  if(!o) return '';
+  const a = (o.en || '').trim(), b = (o.zh || '').trim();
+  if(m === 'both') return [a, b].filter(Boolean).join(' / ');
+  return m === 'en' ? (a || b) : (b || a);
+}
+function noteH(n, m){
+  const tagOf = k => `<span class="tag">${k === 'en' ? 'EN' : '中'}</span>`;
+  if(m === 'both') return ['en', 'zh'].filter(k => (n[k] || '').trim()).map(k => `<p class="note">${tagOf(k)} ${esc(n[k])}</p>`).join('');
+  const other = m === 'en' ? 'zh' : 'en';
+  if((n[m] || '').trim()) return `<p class="note">${esc(n[m])}</p>`;
+  if((n[other] || '').trim()) return `<p class="note">${esc(n[other])} ${tagOf(other)}</p>`;
+  return '';
+}
+function allDates(){
+  const s = []; data.plans.forEach(p => p.pins.forEach(x => x.updates.forEach(u => { if(u.date) s.push(u.date); })));
+  return s.sort();
+}
+function buildRows(o){
+  const rows = [];
+  data.plans.forEach(p => {
+    if(o.plan !== 'all' && p.id !== o.plan) return;
+    p.pins.forEach(pin => pin.updates.forEach(u => {
+      if(o.status !== 'all' && u.status !== o.status) return;
+      const d = u.date || '';
+      if(o.scope === 'day' && d !== o.from) return;
+      if(o.scope === 'range' && (d < o.from || d > o.to)) return;
+      rows.push({plan:p, pin, u});
+    }));
+  });
+  rows.sort((a, b) => (b.u.date || '').localeCompare(a.u.date || '') || (b.u.created || 0) - (a.u.created || 0));
+  return rows;
+}
+
+function openReportDialog(){
+  const d = $('#dlg'), ds = allDates(), lastD = ds.length ? ds[ds.length - 1] : today();
+  const o = {scope:'all', from:lastD, to:lastD, plan:'all', status:'all', mode:lang, group:'date'};
+  const multi = data.plans.length > 1;
+  d.innerHTML = `<div class="dhead"><h3>${t('rTitle')}</h3><button class="x" data-x aria-label="Close">&#x2715;</button></div>
+  <div class="dbody">
+    <div><span class="lbl">${t('rScope')}</span><div class="opt" id="oScope"></div></div>
+    <div class="row2 stack" id="oDates"></div>
+    ${multi ? `<label>${t('rFloor')}<select id="oPlan"><option value="all">${t('rAllFloors')}</option>${data.plans.map((p, i) => `<option value="${p.id}">${esc(tr(p.name).text || (t('floor') + ' ' + (i + 1)))}</option>`).join('')}</select></label>` : ''}
+    <label>${t('status')}<select id="oStatus"><option value="all">${t('rAllSt')}</option>${ST.map(k => `<option value="${k}">${t(k)}</option>`).join('')}</select></label>
+    <div><span class="lbl">${t('rLang')}</span><div class="opt" id="oMode"></div></div>
+    <div><span class="lbl">${t('rGroup')}</span><div class="opt" id="oGroup"></div></div>
+    <label class="chk"><input type="checkbox" id="oPh" checked>${t('rPhotos')}</label>
+    <label class="chk"><input type="checkbox" id="oOv" checked>${t('rOverview')}</label>
+  </div>
+  <div class="dfoot"><button class="btn" data-x>${t('cancel')}</button><button class="btn pri" id="oGo">${t('rCreate')}</button></div>`;
+  const chips = (el, items, cur) => { el.innerHTML = items.map(([k, l]) => `<button type="button" class="chip${cur === k ? ' on' : ''}" data-k="${k}">${esc(l)}</button>`).join(''); };
+  const sync = () => { if($('#oFrom')) o.from = $('#oFrom').value || o.from; if($('#oTo')) o.to = $('#oTo').value || o.to; };
+  const draw = () => {
+    chips($('#oScope'), [['all', t('rAll')], ['day', t('rDay')], ['range', t('rRange')]], o.scope);
+    chips($('#oMode'), [['en', 'English'], ['zh', '中文'], ['both', t('rBoth')]], o.mode);
+    chips($('#oGroup'), [['date', t('date')], ['loc', t('rByLoc')]], o.group);
+    $('#oDates').innerHTML = o.scope === 'day' ? `<label>${t('date')}<input type="date" id="oFrom" value="${o.from}"></label>`
+      : o.scope === 'range' ? `<label>${t('rFrom')}<input type="date" id="oFrom" value="${o.from}"></label><label>${t('rTo')}<input type="date" id="oTo" value="${o.to}"></label>` : '';
+  };
+  draw();
+  d.onchange = null;
+  d.onclick = async e => {
+    if(e.target.closest('[data-x]')){ d.close(); return; }
+    const c = e.target.closest('.chip[data-k]');
+    if(c){
+      sync(); const id = c.parentElement.id;
+      if(id === 'oScope'){ o.scope = c.dataset.k; if(o.scope === 'range' && o.from === o.to && ds.length) o.from = ds[0]; }
+      else if(id === 'oMode') o.mode = c.dataset.k; else if(id === 'oGroup') o.group = c.dataset.k;
+      draw(); return;
+    }
+    if(e.target.closest('#oGo')){
+      sync();
+      if(o.scope === 'day') o.to = o.from;
+      if(o.scope === 'range' && o.to < o.from){ const x = o.from; o.from = o.to; o.to = x; }
+      o.plan = $('#oPlan') ? $('#oPlan').value : 'all'; o.status = $('#oStatus').value;
+      o.photos = $('#oPh').checked; o.overview = $('#oOv').checked;
+      const rows = buildRows(o);
+      if(!rows.length){ toast(t('rNone')); return; }
+      d.close(); toast(t('working'), true);
+      try{ await showReport(o, rows); hideToast(); }catch(err){ toast(t('fail') + err.message); }
+    }
+  };
+  d.showModal();
+}
+
+async function overviewURL(plan, rows){
+  const st = new Map(); rows.forEach(r => { if(r.plan === plan && !st.has(r.pin.id)) st.set(r.pin.id, r.u.status); });
+  const img = await loadImg(plan.image);
+  const W = Math.min(plan.w, 1400), k = W / plan.w, H = Math.round(plan.h * k);
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0, W, H);
+  const rad = Math.max(13, W / 64);
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = '700 ' + Math.round(rad * 1.05) + 'px sans-serif';
+  plan.pins.forEach(pin => {
+    if(!st.has(pin.id)) return;
+    const x = pin.x * W, y = pin.y * H;
+    g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fillStyle = COLORS[st.get(pin.id)] || COLORS.none; g.fill();
+    g.lineWidth = Math.max(2, rad / 6); g.strokeStyle = '#fff'; g.stroke();
+    g.fillStyle = '#fff'; g.fillText(String(pin.n), x, y + 1);
+  });
+  return c.toDataURL('image/jpeg', .85);
+}
+
+async function showReport(o, rows){
+  const m = o.mode, L = m === 'both' ? lang : m, R = k => S[L][k];
+  const multi = data.plans.length > 1;
+  const planName = p => pickText(p.name, m) || (R('floor') + ' ' + (data.plans.indexOf(p) + 1));
+  const ttl = pin => pickText(pin.title, m) || (R('point') + ' ' + pin.n);
+  const title = pickText(data.title, m) || R('title');
+  const cnt = {}; rows.forEach(r => { cnt[r.u.status] = (cnt[r.u.status] || 0) + 1; });
+  const locs = new Set(rows.map(r => r.pin.id)).size;
+  const per = o.scope === 'all' ? R('rAll') : o.scope === 'day' ? fmtDate(o.from, L) : fmtDate(o.from, L) + ' – ' + fmtDate(o.to, L);
+  const fl = o.plan === 'all' ? R('rAllFloors') : planName(data.plans.find(p => p.id === o.plan));
+
+  const entry = (r, showDate, showLoc) => {
+    const u = r.u, pin = r.pin;
+    return `<article class="rent" style="--c:var(--${u.status})">
+      <div class="rline">${showLoc ? `<span class="num sm">${pin.n}</span><strong>${esc(ttl(pin))}</strong>${multi ? `<span class="muted">${esc(planName(r.plan))}</span>` : ''}` : ''}${showDate ? `<time>${esc(fmtDate(u.date, L))}</time>` : ''}<span class="st">${R(u.status)}</span></div>
+      <div class="rbox">${o.photos && u.photo ? `<img src="${u.photo}" alt="">` : ''}<div class="rnotes">${noteH(u.note, m)}</div></div></article>`;
+  };
+
+  let h = `<header class="rhead"><h1>${esc(title)}</h1><div class="rmeta"><div>${esc(per)}${multi ? ' | ' + esc(fl) : ''}</div><div>${R('rGenerated')} ${esc(fmtDate(today(), L))}</div></div></header>
+    <div class="rsum"><strong>${S[L].sum(rows.length, locs)}</strong>${ST.filter(k => cnt[k]).map(k => `<span class="st" style="--c:var(--${k})">${R(k)} ${cnt[k]}</span>`).join('')}</div>`;
+
+  if(o.overview){
+    for(const p of data.plans){
+      if(!p.image || !rows.some(r => r.plan === p)) continue;
+      try{ const url = await overviewURL(p, rows); h += `<section class="rov"><h2 class="rh2">${esc(multi ? planName(p) : R('planWord'))}</h2><img src="${url}" alt=""></section>`; }catch(e){}
+    }
+  }
+
+  if(o.group === 'date'){
+    const groups = [];
+    rows.forEach(r => { const g = groups[groups.length - 1]; if(g && g.date === r.u.date) g.rows.push(r); else groups.push({date:r.u.date, rows:[r]}); });
+    h += groups.map(g => `<section class="rgrp"><h2 class="rh2">${esc(fmtDate(g.date, L))}</h2>${g.rows.map(r => entry(r, false, true)).join('')}</section>`).join('');
+  } else {
+    const map = new Map();
+    rows.forEach(r => { if(!map.has(r.pin.id)) map.set(r.pin.id, {pin:r.pin, plan:r.plan, rows:[]}); map.get(r.pin.id).rows.push(r); });
+    const locsList = [...map.values()].sort((a, b) => data.plans.indexOf(a.plan) - data.plans.indexOf(b.plan) || a.pin.n - b.pin.n);
+    h += locsList.map(g => `<section class="rgrp"><h2 class="rh2" style="--c:var(--none)"><span class="num sm">${g.pin.n}</span>${esc(ttl(g.pin))}${multi ? `<span class="muted">${esc(planName(g.plan))}</span>` : ''}</h2>${g.rows.map(r => entry(r, true, false)).join('')}</section>`).join('');
+  }
+
+  $('#rptBody').innerHTML = h;
+  $('#rBack').textContent = t('back'); $('#rHtml').textContent = t('dlHtml'); $('#rPrint').textContent = t('print');
+  const rp = $('#report'); rp.hidden = false; rp.scrollTop = 0;
+}
+function downloadReport(){
+  const css = document.querySelector('style').textContent;
+  const html = '<!DOCTYPE html><html lang="' + document.documentElement.lang + '"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>' + esc(document.title) + '</title><style>' + css +
+    '\nhtml,body{height:auto}body{display:block;overflow:auto;background:#e6ebee;padding:0}</style></head><body><div class="paper">' + $('#rptBody').innerHTML + '</div></body></html>';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([html], {type:'text/html'}));
+  a.download = 'report-' + today() + '.html'; document.body.appendChild(a); a.click(); a.remove();
+}
+$('#bReport').onclick = openReportDialog;
+$('#rBack').onclick = () => { $('#report').hidden = true; };
+$('#rPrint').onclick = () => window.print();
+$('#rHtml').onclick = downloadReport;
+
+
+/* ============ init ============ */
+(async function init(){
+  $('#empty').textContent = '…';
+  await load();
+  const want = new URLSearchParams(location.search).get('pin');
+  if(want){ const hit = data.plans.find(p => p.pins.some(x => x.id === want)); if(hit){ ui.planId = hit.id; ui.pinId = want; } }
+  renderAll();
+  if(ui.pinId) requestAnimationFrame(() => { const pin = curPin(); if(pin) revealPin(pin); });
+})();
+</script>
+</body>
+</html>
