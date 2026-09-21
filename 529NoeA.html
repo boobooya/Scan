@@ -263,6 +263,7 @@ label.chk input{width:20px;height:20px;flex:none}
 <input type="file" id="fileJson" accept="application/json,.json" hidden>
 
 
+<script id="embedded-data" type="application/json"></script>
 <script>
 'use strict';
 /* ============ helpers ============ */
@@ -298,7 +299,7 @@ en:{title:'Floor Plan',open:'Open',progress:'In progress',done:'Done',info:'Note
   rFrom:'From',rTo:'To',rFloor:'Floor',rAllFloors:'All floors',rAllSt:'All statuses',rLang:'Language',rBoth:'Both',rGroup:'Group by',rByLoc:'Location',
   rPhotos:'Include photos',rOverview:'Include floor plan overview',rCreate:'Create report',rNone:'No updates match these choices.',rGenerated:'Generated',
   planWord:'Floor plan',working:'Building report…',viewSite:'View site',
-  assignee:'Assigned to',due:'Due',overdue:'Overdue',before:'Before',after:'After',beforePhoto:'Before photo (optional)',uploadBefore:'Upload before photo',orEarlier:'Or use an earlier photo of this spot:',translate:'Translate to Chinese',translating:'Translating…',trEmpty:'Type the English text first.',trOverwrite:'Replace the existing Chinese text?',trFail:'Translation failed: ',trMail:'Email for translation (optional)',updatedOn:'Updated',dataSize:'Data size',sizeHint:'Keep it under about 10 MB so the site loads fast on phones.',
+  assignee:'Assigned to',due:'Due',overdue:'Overdue',before:'Before',after:'After',beforePhoto:'Before photo (optional)',uploadBefore:'Upload before photo',orEarlier:'Or use an earlier photo of this spot:',loadFail:'Could not load the data.',loadFailHelp:'data.json must be in the same folder as this page, and the page must be opened from the website address, not from a downloaded file.',testConn:'Test connection',ghChecking:'Checking…',ghNoRepo:'Cannot reach that repository. Check the owner, repository name, branch and token.',ghOk:'Connected. Data will be saved to: ',ghNoIndex:'Note: no index.html in that folder, so visitors will not see the data unless the viewer page is in the same folder.',folderWarn:'Saved, but no index.html was found next to data.json. Viewers only see it if the viewer page is in the same folder.',snapshot:'Download one-file viewer',snapErr:'Could not build it. Open this admin page from your website address and try again.',snapDone:'Downloaded.',translate:'Translate to Chinese',translating:'Translating…',trEmpty:'Type the English text first.',trOverwrite:'Replace the existing Chinese text?',trFail:'Translation failed: ',trMail:'Email for translation (optional)',updatedOn:'Updated',dataSize:'Data size',sizeHint:'Keep it under about 10 MB so the site loads fast on phones.',
   sum:(n,m)=>n+' update'+(n===1?'':'s')+' at '+m+' location'+(m===1?'':'s')},
 zh:{title:'平面图',open:'待处理',progress:'进行中',done:'已完成',info:'备注',all:'全部',
   addPin:'+ 标记点',placeHint:'点击平面图放置标记点',setPlan:'平面图',newFloor:'+ 楼层',more:'更多',
@@ -322,7 +323,7 @@ zh:{title:'平面图',open:'待处理',progress:'进行中',done:'已完成',inf
   rFrom:'从',rTo:'至',rFloor:'楼层',rAllFloors:'全部楼层',rAllSt:'全部状态',rLang:'语言',rBoth:'中英对照',rGroup:'分组方式',rByLoc:'位置',
   rPhotos:'包含照片',rOverview:'包含平面图总览',rCreate:'生成报告',rNone:'没有符合条件的记录。',rGenerated:'生成于',
   planWord:'平面图',working:'正在生成报告…',viewSite:'查看网站',
-  assignee:'负责人',due:'截止日期',overdue:'已逾期',before:'之前',after:'之后',beforePhoto:'之前的照片（可选）',uploadBefore:'上传之前的照片',orEarlier:'或使用此位置较早的照片：',translate:'翻译成中文',translating:'翻译中…',trEmpty:'请先输入英文。',trOverwrite:'替换已有的中文内容？',trFail:'翻译失败：',trMail:'翻译用邮箱（可选）',updatedOn:'更新于',dataSize:'数据大小',sizeHint:'建议控制在约 10 MB 以内，手机打开才会快。',
+  assignee:'负责人',due:'截止日期',overdue:'已逾期',before:'之前',after:'之后',beforePhoto:'之前的照片（可选）',uploadBefore:'上传之前的照片',orEarlier:'或使用此位置较早的照片：',loadFail:'无法加载数据。',loadFailHelp:'data.json 必须与本页面在同一文件夹，并且要通过网站地址打开本页面，而不是打开下载的文件。',testConn:'测试连接',ghChecking:'检查中…',ghNoRepo:'无法访问该仓库。请检查用户名、仓库名、分支和令牌。',ghOk:'已连接。数据将保存到：',ghNoIndex:'注意：该文件夹中没有 index.html，除非查看页面在同一文件夹，否则访客看不到数据。',folderWarn:'已保存，但在 data.json 旁边没有找到 index.html。只有查看页面在同一文件夹时，访客才能看到。',snapshot:'下载单文件查看版',snapErr:'无法生成。请通过网站地址打开此管理页面后重试。',snapDone:'已下载。',translate:'翻译成中文',translating:'翻译中…',trEmpty:'请先输入英文。',trOverwrite:'替换已有的中文内容？',trFail:'翻译失败：',trMail:'翻译用邮箱（可选）',updatedOn:'更新于',dataSize:'数据大小',sizeHint:'建议控制在约 10 MB 以内，手机打开才会快。',
   sum:(n,m)=>n+' 条记录，'+m+' 个位置'}
 };
 let lang = ls.get('fp_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
@@ -388,7 +389,12 @@ async function load(){
   let rec = null;
   if(ui.admin) rec = await idbGet('draft');
   if(rec && rec.data){ data = rec.data; ui.dirty = !!rec.dirty; return normalize(); }
-  try{ const r = await fetch('data.json?_=' + Date.now(), {cache:'no-store'}); if(r.ok) data = await r.json(); }catch(e){}
+  const emb = document.getElementById('embedded-data');
+  if(emb && emb.textContent.trim()){ try{ data = JSON.parse(emb.textContent); return normalize(); }catch(e){} }
+  try{
+    const r = await fetch('data.json?_=' + Date.now(), {cache:'no-store'});
+    if(r.ok) data = await r.json(); else ui.loadErr = 'HTTP ' + r.status;
+  }catch(e){ ui.loadErr = location.protocol === 'file:' ? 'file://' : String(e.message || e); }
   normalize();
 }
 
@@ -631,7 +637,7 @@ function renderAdmin(){
 function renderHint(){ const h = $('#hint'); h.hidden = !(ui.admin && ui.addMode); h.textContent = t('placeHint'); }
 function renderEmpty(){
   const e = $('#empty');
-  e.innerHTML = ui.admin ? `<div>${t('emptyAdmin')}</div><button class="btn pri" id="eUp">${t('uploadPlan')}</button>` : `<div>${t('emptyViewer')}</div>`;
+  e.innerHTML = ui.admin ? `<div>${t('emptyAdmin')}</div><button class="btn pri" id="eUp">${t('uploadPlan')}</button>` : (ui.loadErr ? `<div><b>${t('loadFail')}</b></div><div class="hintline">${t('loadFailHelp')}</div><div class="hintline">(${esc(ui.loadErr)})</div>` : `<div>${t('emptyViewer')}</div>`);
   const b = $('#eUp'); if(b) b.onclick = () => { planMode = 'replace'; $('#filePlan').click(); };
 }
 function renderPins(){
@@ -796,6 +802,7 @@ $('#bMenu').onclick = () => {
     <button class="btn pri" data-m="publish">${t('publish')}</button>
     <button class="btn" data-m="names">${t('names')}</button>
     <button class="btn" data-m="export">${t('exportJ')}</button>
+    <button class="btn" data-m="snap">${t('snapshot')}</button>
     <button class="btn" data-m="import">${t('importJ')}</button>
     <button class="btn" data-m="gh">${t('ghSet')}</button>
     <button class="btn" data-m="reload">${t('reload')}</button>
@@ -807,6 +814,7 @@ $('#bMenu').onclick = () => {
     if(m === 'publish'){ d.close(); publish(); }
     else if(m === 'names') openNames();
     else if(m === 'export'){ d.close(); exportJson(); }
+    else if(m === 'snap'){ d.close(); snapshot(); }
     else if(m === 'import'){ d.close(); $('#fileJson').click(); }
     else if(m === 'gh') openGh();
     else if(m === 'reload'){ if(confirm(t('reloadConf'))){ await idbDel('draft'); location.reload(); } }
@@ -831,6 +839,35 @@ function openNames(){
     }
   };
 }
+async function snapshot(){
+  try{
+    const r = await fetch('index.html?_=' + Date.now(), {cache:'no-store'});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const html = await r.text();
+    const open = '<' + 'script id="embedded-data" type="application/json">', close = '<' + '/script>', marker = open + close;
+    if(!html.includes(marker)) throw new Error('marker');
+    data.updated = today();
+    const json = JSON.stringify(data).replace(/</g, '\\u003c');
+    const out = html.replace(marker, () => open + json + close);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([out], {type:'text/html'}));
+    a.download = 'floorplan-' + today() + '.html'; document.body.appendChild(a); a.click(); a.remove();
+    toast(t('snapDone'));
+  }catch(err){ toast(t('snapErr')); }
+}
+async function ghTest(){
+  const g = {owner:$('#gO').value.trim(), repo:$('#gR').value.trim(), branch:$('#gB').value.trim() || 'main', path:$('#gP').value.trim() || 'data.json', token:$('#gT').value.trim()};
+  const msg = $('#gMsg'); msg.textContent = t('ghChecking');
+  try{
+    const api = 'https://api.github.com/repos/' + encodeURIComponent(g.owner) + '/' + encodeURIComponent(g.repo);
+    const H = {Authorization:'Bearer ' + g.token, Accept:'application/vnd.github+json'};
+    const r = await fetch(api, {headers:H});
+    if(!r.ok){ msg.textContent = t('ghNoRepo') + ' (' + r.status + ')'; return; }
+    const dir = g.path.includes('/') ? g.path.replace(/\/[^/]*$/, '') : '';
+    const i = await fetch(api + '/contents/' + (dir ? dir.split('/').map(encodeURIComponent).join('/') + '/' : '') + 'index.html?ref=' + encodeURIComponent(g.branch), {headers:H});
+    msg.textContent = t('ghOk') + g.owner + '/' + g.repo + '/' + g.path + (i.ok ? '' : ' ' + t('ghNoIndex'));
+  }catch(err){ msg.textContent = t('fail') + err.message; }
+}
 function ghDefaults(){
   const saved = JSON.parse(ls.get('fp_gh') || 'null'); if(saved) return saved;
   const g = {owner:'', repo:'', branch:'main', path:'data.json', token:''};
@@ -844,10 +881,11 @@ function openGh(){
     <div class="row2 stack"><label>${t('branch')}<input id="gB" value="${esc(g.branch)}" autocapitalize="off"></label><label>${t('path')}<input id="gP" value="${esc(g.path)}" autocapitalize="off"></label></div>
     <label>${t('token')}<input id="gT" type="password" value="${esc(g.token)}" autocomplete="off"></label>
     <label>${t('trMail')}<input id="gM" type="email" value="${esc(g.mail || '')}" autocapitalize="off"></label>
-    <div class="hintline">${t('tokenHint')}</div></div>
-    <div class="dfoot"><button class="btn" data-x>${t('cancel')}</button><button class="btn pri" id="gSave">${t('save')}</button></div>`;
+    <div class="hintline">${t('tokenHint')}</div><div class="hintline" id="gMsg"></div></div>
+    <div class="dfoot"><button class="btn" data-x>${t('cancel')}</button><button class="btn" id="gTest">${t('testConn')}</button><button class="btn pri" id="gSave">${t('save')}</button></div>`;
   d.onclick = e => {
     if(e.target.closest('[data-x]')){ d.close(); return; }
+    if(e.target.closest('#gTest')){ ghTest(); return; }
     if(e.target.closest('#gSave')){
       ls.set('fp_gh', JSON.stringify({owner:$('#gO').value.trim(), repo:$('#gR').value.trim(), branch:$('#gB').value.trim() || 'main', path:$('#gP').value.trim() || 'data.json', token:$('#gT').value.trim(), mail:$('#gM').value.trim()}));
       d.close(); toast(t('ghSaved'));
@@ -875,15 +913,24 @@ async function publish(){
   if(!g || !g.token || !g.owner || !g.repo){ toast(t('needGh')); openGh(); return; }
   try{
     toast(t('publishing'), true);
-    const url = `https://api.github.com/repos/${encodeURIComponent(g.owner)}/${encodeURIComponent(g.repo)}/contents/${g.path.split('/').map(encodeURIComponent).join('/')}`;
+    const api = 'https://api.github.com/repos/' + encodeURIComponent(g.owner) + '/' + encodeURIComponent(g.repo);
+    const dirPath = g.path.includes('/') ? g.path.replace(/\/[^/]*$/, '') : '';
+    const dirEnc = dirPath ? '/' + dirPath.split('/').map(encodeURIComponent).join('/') : '';
+    const base = g.path.split('/').pop();
     const H = {Authorization:'Bearer ' + g.token, Accept:'application/vnd.github+json'};
-    let sha; const r = await fetch(url + '?ref=' + encodeURIComponent(g.branch), {headers:H});
-    if(r.ok) sha = (await r.json()).sha; else if(r.status !== 404) throw new Error('GitHub ' + r.status);
+    let sha;
+    const lr = await fetch(api + '/contents' + dirEnc + '?ref=' + encodeURIComponent(g.branch), {headers:H});
+    if(lr.ok){ const list = await lr.json(); if(Array.isArray(list)){ const f = list.find(x => x.name === base); if(f) sha = f.sha; } }
+    else if(lr.status !== 404) throw new Error('GitHub ' + lr.status);
     data.updated = today();
     const body = {message:'Update floor plan data', content:b64(JSON.stringify(data)), branch:g.branch}; if(sha) body.sha = sha;
+    const url = api + '/contents/' + g.path.split('/').map(encodeURIComponent).join('/');
     const w = await fetch(url, {method:'PUT', headers:Object.assign({'Content-Type':'application/json'}, H), body:JSON.stringify(body)});
-    if(!w.ok){ const j = await w.json().catch(() => ({})); throw new Error(j.message || ('GitHub ' + w.status)); }
-    ui.dirty = false; await idbSet('draft', {data, dirty:false}); renderAdmin(); renderHeader(); toast(t('published'));
+    if(!w.ok){ const j = await w.json().catch(() => ({})); throw new Error(w.status === 404 ? t('ghNoRepo') : (j.message || ('GitHub ' + w.status))); }
+    ui.dirty = false; await idbSet('draft', {data, dirty:false}); renderAdmin(); renderHeader();
+    const ir = await fetch(api + '/contents' + dirEnc + '/index.html?ref=' + encodeURIComponent(g.branch), {headers:H}).catch(() => null);
+    if(ir && !ir.ok){ toast(t('folderWarn'), true); setTimeout(hideToast, 10000); }
+    else toast(t('published') + ' (' + g.path + ')');
   }catch(err){ toast(t('fail') + err.message); }
 }
 
