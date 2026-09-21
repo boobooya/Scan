@@ -186,6 +186,28 @@ label.chk input{width:20px;height:20px;flex:none}
   .num,.st::before,.sd{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 
+/* assignee, due, before/after */
+:root{--overdue:#b3261e}
+.pmeta{display:flex;flex-wrap:wrap;gap:4px 18px;padding:10px 16px;font-size:14px;color:var(--muted);border-bottom:1px solid var(--line)}
+.pmeta b{color:var(--ink);font-weight:600}
+.pmeta .od,.pmeta .od b{color:var(--overdue)}
+.pin.od .dot::before{content:"!";position:absolute;right:-7px;top:-7px;width:17px;height:17px;border-radius:50%;background:#fff;color:var(--overdue);font-size:12px;line-height:17px;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,.45)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.pair figure{margin:0;min-width:0}
+.pair figcaption{font-size:12px;font-weight:600;color:var(--muted);margin-bottom:4px}
+.pair img{display:block;width:100%;height:auto;max-height:34vh;object-fit:cover;border-radius:10px;background:var(--field);cursor:zoom-in}
+.rbox .pair{width:min(480px,100%)}
+.rbox .pair img{max-height:230px;border-radius:6px;cursor:auto}
+.pprev.sm img{max-height:150px;width:auto;max-width:100%}
+.thumbs{display:flex;gap:8px;overflow-x:auto;padding:4px 0 6px}
+.thumb{flex:none;width:92px;border:2px solid var(--line);border-radius:10px;background:var(--field);padding:0;overflow:hidden;text-align:center}
+.thumb img{display:block;width:100%;height:64px;object-fit:cover}
+.thumb span{display:block;font-size:11px;padding:3px 0;color:var(--muted)}
+
+.btn.sm{padding:6px 12px;font-size:14px}
+#siteTitle{line-height:1.25}
+#siteTitle small{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -263,6 +285,7 @@ en:{title:'Floor Plan',open:'Open',progress:'In progress',done:'Done',info:'Note
   rFrom:'From',rTo:'To',rFloor:'Floor',rAllFloors:'All floors',rAllSt:'All statuses',rLang:'Language',rBoth:'Both',rGroup:'Group by',rByLoc:'Location',
   rPhotos:'Include photos',rOverview:'Include floor plan overview',rCreate:'Create report',rNone:'No updates match these choices.',rGenerated:'Generated',
   planWord:'Floor plan',working:'Building report…',viewSite:'View site',
+  assignee:'Assigned to',due:'Due',overdue:'Overdue',before:'Before',after:'After',beforePhoto:'Before photo (optional)',uploadBefore:'Upload before photo',orEarlier:'Or use an earlier photo of this spot:',translate:'Translate to Chinese',translating:'Translating…',trEmpty:'Type the English text first.',trOverwrite:'Replace the existing Chinese text?',trFail:'Translation failed: ',trMail:'Email for translation (optional)',updatedOn:'Updated',dataSize:'Data size',sizeHint:'Keep it under about 10 MB so the site loads fast on phones.',
   sum:(n,m)=>n+' update'+(n===1?'':'s')+' at '+m+' location'+(m===1?'':'s')},
 zh:{title:'平面图',open:'待处理',progress:'进行中',done:'已完成',info:'备注',all:'全部',
   addPin:'+ 标记点',placeHint:'点击平面图放置标记点',setPlan:'平面图',newFloor:'+ 楼层',more:'更多',
@@ -286,6 +309,7 @@ zh:{title:'平面图',open:'待处理',progress:'进行中',done:'已完成',inf
   rFrom:'从',rTo:'至',rFloor:'楼层',rAllFloors:'全部楼层',rAllSt:'全部状态',rLang:'语言',rBoth:'中英对照',rGroup:'分组方式',rByLoc:'位置',
   rPhotos:'包含照片',rOverview:'包含平面图总览',rCreate:'生成报告',rNone:'没有符合条件的记录。',rGenerated:'生成于',
   planWord:'平面图',working:'正在生成报告…',viewSite:'查看网站',
+  assignee:'负责人',due:'截止日期',overdue:'已逾期',before:'之前',after:'之后',beforePhoto:'之前的照片（可选）',uploadBefore:'上传之前的照片',orEarlier:'或使用此位置较早的照片：',translate:'翻译成中文',translating:'翻译中…',trEmpty:'请先输入英文。',trOverwrite:'替换已有的中文内容？',trFail:'翻译失败：',trMail:'翻译用邮箱（可选）',updatedOn:'更新于',dataSize:'数据大小',sizeHint:'建议控制在约 10 MB 以内，手机打开才会快。',
   sum:(n,m)=>n+' 条记录，'+m+' 个位置'}
 };
 let lang = ls.get('fp_lang') || ((navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en');
@@ -316,6 +340,12 @@ const curPin = () => { const p = curPlan(); return p ? p.pins.find(x => x.id ===
 const sorted = pin => pin.updates.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'') || (b.created||0) - (a.created||0));
 const latestStatus = pin => { const u = sorted(pin)[0]; return u ? u.status : null; };
 const pinTitle = pin => tr(pin.title).text || (t('point') + ' ' + pin.n);
+const isOverdue = pin => !!(pin.due && pin.due < today() && latestStatus(pin) !== 'done');
+function beforeOf(pin, u){
+  if(u.photoBefore) return {src:u.photoBefore, date:''};
+  if(u.beforeRef){ const r = pin.updates.find(x => x.id === u.beforeRef && x.photo); if(r) return {src:r.photo, date:r.date}; }
+  return null;
+}
 
 function normalize(){
   if(!data || !Array.isArray(data.plans)) data = {version:1, title:{en:'Floor Plan',zh:'平面图'}, plans:[]};
@@ -323,7 +353,7 @@ function normalize(){
   data.plans.forEach(p => {
     p.id = p.id || uid(); p.name = p.name || {en:'',zh:''}; p.pins = p.pins || [];
     let mx = 0;
-    p.pins.forEach(x => { x.id = x.id || uid(); x.title = x.title || {en:'',zh:''}; x.updates = x.updates || []; mx = Math.max(mx, x.n || 0);
+    p.pins.forEach(x => { x.id = x.id || uid(); x.title = x.title || {en:'',zh:''}; x.updates = x.updates || []; x.due = x.due || ''; mx = Math.max(mx, x.n || 0);
       x.updates.forEach(u => { u.id = u.id || uid(); u.note = u.note || {en:'',zh:''}; u.status = ST.includes(u.status) ? u.status : 'info'; }); });
     p.pins.forEach(x => { if(!x.n) x.n = ++mx; });
   });
@@ -459,6 +489,17 @@ function selectPin(id){
 }
 function closePanel(){ if(!ui.pinId) return; ui.pinId = null; renderPins(); renderPanel(); setUrlPin(null); }
 
+function metaRow(pin){
+  const od = isOverdue(pin);
+  if(!pin.due) return '';
+  return `<div class="pmeta">${pin.due ? `<span class="${od ? 'od' : ''}">${t('due')}: <b>${esc(fmtDate(pin.due))}</b>${od ? ' (' + t('overdue') + ')' : ''}</span>` : ''}</div>`;
+}
+function photosH(pin, u){
+  const b = beforeOf(pin, u);
+  if(b && u.photo) return `<div class="pair"><figure><figcaption>${t('before')}${b.date ? ' ' + esc(fmtDate(b.date)) : ''}</figcaption><img src="${b.src}" data-act="zoom" alt=""></figure><figure><figcaption>${t('after')}</figcaption><img src="${u.photo}" data-act="zoom" alt=""></figure></div>`;
+  const one = u.photo || (b && b.src);
+  return one ? `<img class="ph" src="${one}" data-act="zoom" alt="">` : '';
+}
 function renderPanel(){
   const el = $('#panel'), pin = curPin();
   el.classList.toggle('open', !!pin);
@@ -468,9 +509,11 @@ function renderPanel(){
   let h = `<div class="phead"><span class="num" style="--c:${st ? 'var(--' + st + ')' : 'var(--none)'}">${pin.n}</span>
     <div class="ptitle"><h2>${esc(title)}</h2><div class="psub">${st ? `<span class="st" style="--c:var(--${st})">${t(st)}</span>` : ''}<span>${ups.length} ${t('updates')}</span></div></div>
     <button class="x" data-act="share" aria-label="${t('share')}">&#x1F517;</button>
-    <button class="x" data-act="close" aria-label="Close">&#x2715;</button></div><div class="scroll">`;
+    <button class="x" data-act="close" aria-label="Close">&#x2715;</button></div><div class="scroll">${metaRow(pin)}`;
   if(ui.admin){
     h += `<div class="abox"><div class="row2 stack"><input data-title="en" placeholder="${t('nameEn')}" value="${esc(pin.title.en)}"><input data-title="zh" placeholder="${t('nameZh')}" value="${esc(pin.title.zh)}"></div>
+      <div class="row"><button type="button" class="btn sm" data-act="trtitle">${t('translate')}</button></div>
+      <label>${t('due')}<input type="date" data-f="due" value="${esc(pin.due)}"></label>
       <div class="hintline">${t('moveHint')}</div>
       <div class="row"><button class="btn pri" data-act="add">${t('addUpdate')}</button><button class="btn danger" data-act="delpin">${t('delPin')}</button></div></div>`;
   }
@@ -482,7 +525,7 @@ function renderPanel(){
       h += `<article class="entry${i === 0 && ups.length > 1 ? ' latest' : ''}" style="--c:var(--${u.status})">
         <div class="emeta"><time>${esc(fmtDate(u.date))}</time><span class="st">${t(u.status)}</span>${i === 0 && ups.length > 1 ? `<span class="tag">${t('latest')}</span>` : ''}
         ${ui.admin ? `<span class="eact"><button data-act="edit" data-id="${u.id}">${t('edit')}</button><button class="danger" data-act="del" data-id="${u.id}">${t('del')}</button></span>` : ''}</div>
-        ${u.photo ? `<img class="ph" src="${u.photo}" data-act="zoom" alt="">` : ''}
+        ${photosH(pin, u)}
         ${n.text ? `<p class="note">${esc(n.text)}${n.fb ? ` <span class="tag">${n.fb === 'en' ? 'EN' : '中'}</span>` : ''}</p>` : ''}
       </article>`;
     });
@@ -501,13 +544,23 @@ $('#panel').addEventListener('click', e => {
     if(navigator.share) navigator.share({title:pinTitle(pin), url:link}).catch(() => {});
     else if(navigator.clipboard) navigator.clipboard.writeText(link).then(() => toast(t('linkCopied')));
   }
+  else if(act === 'trtitle') runTranslate(b, $('#panel [data-title="en"]'), $('#panel [data-title="zh"]'));
   else if(act === 'add') openEditor({pin});
   else if(act === 'edit') openEditor({pin, upd:pin.updates.find(u => u.id === b.dataset.id)});
   else if(act === 'del'){ if(confirm(t('confUpd'))){ pin.updates = pin.updates.filter(u => u.id !== b.dataset.id); markDirty(); renderPins(); renderPanel(); } }
   else if(act === 'delpin'){ if(confirm(t('confPin'))){ p.pins = p.pins.filter(x => x.id !== pin.id); ui.pinId = null; markDirty(); renderPins(); renderPanel(); setUrlPin(null); } }
 });
 $('#panel').addEventListener('change', e => {
-  const i = e.target.closest('[data-title]'), pin = curPin(); if(!i || !pin) return;
+  const pin = curPin(); if(!pin) return;
+  const f = e.target.closest('[data-f]');
+  if(f){
+    pin[f.dataset.f] = f.value.trim(); markDirty();
+    const sc = $('#panel .scroll'), y = sc ? sc.scrollTop : 0;
+    renderFilters(); renderPins(); renderPanel();
+    const s2 = $('#panel .scroll'); if(s2) s2.scrollTop = y;
+    return;
+  }
+  const i = e.target.closest('[data-title]'); if(!i) return;
   pin.title[i.dataset.title] = i.value.trim(); markDirty();
   const h2 = $('#panel h2'); if(h2) h2.textContent = pinTitle(pin);
 });
@@ -515,7 +568,7 @@ $('#panel').addEventListener('change', e => {
 /* ============ render chrome ============ */
 function renderHeader(){
   const title = tr(data.title).text || t('title');
-  $('#siteTitle').textContent = title; document.title = title + (ADMIN ? ' (admin)' : ''); $('#bReport').textContent = t('report'); document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+  $('#siteTitle').innerHTML = esc(title) + (data.updated ? '<small>' + t('updatedOn') + ' ' + esc(fmtDate(data.updated)) + '</small>' : ''); document.title = title + (ADMIN ? ' (admin)' : ''); $('#bReport').textContent = t('report'); document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
   document.querySelectorAll('#langSeg button').forEach(b => b.classList.toggle('on', b.dataset.lang === lang));
 }
 function renderTabs(){
@@ -524,13 +577,15 @@ function renderTabs(){
 }
 function renderFilters(){
   const p = curPlan(), any = p && p.pins.some(x => x.updates.length);
-  $('#filters').innerHTML = any ? ['all', 'open', 'progress', 'done'].map(k => `<button class="chip${ui.filter === k ? ' on' : ''}" data-f="${k}">${k !== 'all' ? `<i class="sd" style="background:var(--${k})"></i>` : ''}${t(k)}</button>`).join('') : '';
+  const od = p && p.pins.some(isOverdue); if(ui.filter === 'overdue' && !od) ui.filter = 'all';
+  $('#filters').innerHTML = any ? ['all', 'open', 'progress', 'done'].concat(od ? ['overdue'] : []).map(k => `<button class="chip${ui.filter === k ? ' on' : ''}" data-f="${k}">${k !== 'all' ? `<i class="sd" style="background:var(--${k})"></i>` : ''}${t(k)}</button>`).join('') : '';
 }
 function renderAdmin(){
   const ab = $('#adminbar'); if(!ab) return; ab.hidden = !ui.admin; if(!ui.admin) return;
   $('#bAdd').textContent = t('addPin'); $('#bAdd').classList.toggle('on', ui.addMode);
   $('#bPlan').textContent = t('setPlan'); $('#bView').textContent = t('viewSite'); $('#bFloor').textContent = t('newFloor'); $('#bMenu').textContent = t('more') + ' …';
   const d = $('#dirty'); d.hidden = !ui.dirty; d.textContent = t('unpub');
+  $('#bPub').hidden = !ui.dirty; $('#bPub').textContent = t('publish');
   $('#bAdd').hidden = !curPlan();
 }
 function renderHint(){ const h = $('#hint'); h.hidden = !(ui.admin && ui.addMode); h.textContent = t('placeHint'); }
@@ -543,7 +598,8 @@ function renderPins(){
   const layer = $('#pins'), p = curPlan(); layer.innerHTML = ''; if(!p) return;
   p.pins.forEach(pin => {
     const st = latestStatus(pin), el = document.createElement('div');
-    el.className = 'pin' + (pin.id === ui.pinId ? ' sel' : '') + (ui.filter !== 'all' && st !== ui.filter ? ' dim' : '');
+    const match = ui.filter === 'all' ? true : ui.filter === 'overdue' ? isOverdue(pin) : st === ui.filter;
+    el.className = 'pin' + (pin.id === ui.pinId ? ' sel' : '') + (match ? '' : ' dim') + (isOverdue(pin) ? ' od' : '');
     el.dataset.id = pin.id; el.style.setProperty('--c', st ? `var(--${st})` : 'var(--none)');
     el.innerHTML = `<div class="hit"></div><div class="dot">${pin.n}</div>`;
     layer.appendChild(el);
@@ -562,7 +618,7 @@ function renderAll(){ renderHeader(); renderTabs(); renderFilters(); renderAdmin
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-plan]'); if(!b || b.dataset.plan === ui.planId) return; ui.planId = b.dataset.plan; ui.pinId = null; ui.filter = 'all'; setUrlPin(null); renderAll(); });
 $('#filters').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if(!b) return; ui.filter = b.dataset.f; renderFilters(); renderPins(); });
 $('#langSeg').addEventListener('click', e => { const b = e.target.closest('[data-lang]'); if(!b) return; lang = b.dataset.lang; ls.set('fp_lang', lang); renderAll(); });
-document.addEventListener('keydown', e => { if(e.key === 'Escape'){ if(!$('#lb').hidden) $('#lb').hidden = true; else if(!$('#report').hidden) $('#report').hidden = true; else closePanel(); } });
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ if($('#dlg').open) return; if(!$('#lb').hidden) $('#lb').hidden = true; else if(!$('#report').hidden) $('#report').hidden = true; else closePanel(); } });
 
 
 /* ============ report ============ */
@@ -683,15 +739,27 @@ async function showReport(o, rows){
   const per = o.scope === 'all' ? R('rAll') : o.scope === 'day' ? fmtDate(o.from, L) : fmtDate(o.from, L) + ' – ' + fmtDate(o.to, L);
   const fl = o.plan === 'all' ? R('rAllFloors') : planName(data.plans.find(p => p.id === o.plan));
 
+  const metaTxt = pin => {
+    const parts = [];
+    if(pin.due) parts.push(R('due') + ': ' + fmtDate(pin.due, L) + (isOverdue(pin) ? ' (' + R('overdue') + ')' : ''));
+    return parts.join(' | ');
+  };
+  const repPhotos = r => {
+    const b = beforeOf(r.pin, r.u), u = r.u;
+    if(b && u.photo) return `<div class="pair"><figure><figcaption>${R('before')}${b.date ? ' ' + esc(fmtDate(b.date, L)) : ''}</figcaption><img src="${b.src}" alt=""></figure><figure><figcaption>${R('after')}</figcaption><img src="${u.photo}" alt=""></figure></div>`;
+    const one = u.photo || (b && b.src);
+    return one ? `<img src="${one}" alt="">` : '';
+  };
   const entry = (r, showDate, showLoc) => {
     const u = r.u, pin = r.pin;
     return `<article class="rent" style="--c:var(--${u.status})">
-      <div class="rline">${showLoc ? `<span class="num sm">${pin.n}</span><strong>${esc(ttl(pin))}</strong>${multi ? `<span class="muted">${esc(planName(r.plan))}</span>` : ''}` : ''}${showDate ? `<time>${esc(fmtDate(u.date, L))}</time>` : ''}<span class="st">${R(u.status)}</span></div>
-      <div class="rbox">${o.photos && u.photo ? `<img src="${u.photo}" alt="">` : ''}<div class="rnotes">${noteH(u.note, m)}</div></div></article>`;
+      <div class="rline">${showLoc ? `<span class="num sm">${pin.n}</span><strong>${esc(ttl(pin))}</strong>${multi ? `<span class="muted">${esc(planName(r.plan))}</span>` : ''}${metaTxt(pin) ? `<span class="muted">${esc(metaTxt(pin))}</span>` : ''}` : ''}${showDate ? `<time>${esc(fmtDate(u.date, L))}</time>` : ''}<span class="st">${R(u.status)}</span></div>
+      <div class="rbox">${o.photos ? repPhotos(r) : ''}<div class="rnotes">${noteH(u.note, m)}</div></div></article>`;
   };
 
+  const odN = new Set(rows.filter(r => isOverdue(r.pin)).map(r => r.pin.id)).size;
   let h = `<header class="rhead"><h1>${esc(title)}</h1><div class="rmeta"><div>${esc(per)}${multi ? ' | ' + esc(fl) : ''}</div><div>${R('rGenerated')} ${esc(fmtDate(today(), L))}</div></div></header>
-    <div class="rsum"><strong>${S[L].sum(rows.length, locs)}</strong>${ST.filter(k => cnt[k]).map(k => `<span class="st" style="--c:var(--${k})">${R(k)} ${cnt[k]}</span>`).join('')}</div>`;
+    <div class="rsum"><strong>${S[L].sum(rows.length, locs)}</strong>${ST.filter(k => cnt[k]).map(k => `<span class="st" style="--c:var(--${k})">${R(k)} ${cnt[k]}</span>`).join('')}${odN ? `<span class="st" style="--c:var(--overdue)">${R('overdue')} ${odN}</span>` : ''}</div>`;
 
   if(o.overview){
     for(const p of data.plans){
@@ -708,7 +776,7 @@ async function showReport(o, rows){
     const map = new Map();
     rows.forEach(r => { if(!map.has(r.pin.id)) map.set(r.pin.id, {pin:r.pin, plan:r.plan, rows:[]}); map.get(r.pin.id).rows.push(r); });
     const locsList = [...map.values()].sort((a, b) => data.plans.indexOf(a.plan) - data.plans.indexOf(b.plan) || a.pin.n - b.pin.n);
-    h += locsList.map(g => `<section class="rgrp"><h2 class="rh2" style="--c:var(--none)"><span class="num sm">${g.pin.n}</span>${esc(ttl(g.pin))}${multi ? `<span class="muted">${esc(planName(g.plan))}</span>` : ''}</h2>${g.rows.map(r => entry(r, true, false)).join('')}</section>`).join('');
+    h += locsList.map(g => `<section class="rgrp"><h2 class="rh2" style="--c:var(--none)"><span class="num sm">${g.pin.n}</span>${esc(ttl(g.pin))}${multi ? `<span class="muted">${esc(planName(g.plan))}</span>` : ''}${metaTxt(g.pin) ? `<span class="muted">${esc(metaTxt(g.pin))}</span>` : ''}</h2>${g.rows.map(r => entry(r, true, false)).join('')}</section>`).join('');
   }
 
   $('#rptBody').innerHTML = h;
